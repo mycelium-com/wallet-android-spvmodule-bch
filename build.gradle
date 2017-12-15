@@ -99,7 +99,7 @@ dependencies {
     implementation 'com.android.support:multidex:1.0.2'
     implementation 'org.bitcoinj:bitcoinj-core:0.15-SNAPSHOT'
 
-    implementation project(includePrefix +':modulespvbtccontract')
+    implementation project(includePrefix +':modulespvcontract')
     implementation project(includePrefix +':myceliummodularizationtools')
     implementation ("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version") {
         exclude(group: 'org.jetbrains', module: 'annotations')
