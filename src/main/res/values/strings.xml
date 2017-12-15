@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">SPV Module</string>
     <!--TODO: need normal text for next 2 lines-->
-    <string name="module_name">Mycelium Spv Bitcoin</string>
+    <string name="module_name">Mycelium Spv BCH</string>
     <string name="module_description">Module add bitcoin address management</string>
 
     <!-- Strings related to Settings -->

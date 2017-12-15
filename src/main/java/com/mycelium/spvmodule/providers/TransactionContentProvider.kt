@@ -42,7 +42,7 @@ class TransactionContentProvider : ContentProvider() {
                     for (rowItem in transactionsSummary) {
                         val riskProfile = rowItem.confirmationRiskProfile.orNull()
                         val columnValues = listOf(
-                                rowItem.txid.toHex(),                          //TransactionContract.TransactionSummary._ID
+                                rowItem.txid.toString(),                          //TransactionContract.TransactionSummary._ID
                                 rowItem.value.value.toPlainString(),           //TransactionContract.TransactionSummary.VALUE
                                 if (rowItem.isIncoming) 1 else 0,              //TransactionContract.TransactionSummary.IS_INCOMING
                                 rowItem.time,                                  //TransactionContract.TransactionSummary.TIME
@@ -67,7 +67,7 @@ class TransactionContentProvider : ContentProvider() {
                 for (rowItem in transactionsSummary) {
                     val riskProfile = rowItem.confirmationRiskProfile.orNull()
                     val columnValues = listOf(
-                            rowItem.txid.toHex(),                          //TransactionContract.TransactionSummary._ID
+                            rowItem.txid.toString(),                          //TransactionContract.TransactionSummary._ID
                             rowItem.value.value.toPlainString(),           //TransactionContract.TransactionSummary.VALUE
                             if (rowItem.isIncoming) 1 else 0,              //TransactionContract.TransactionSummary.IS_INCOMING
                             rowItem.time,                                  //TransactionContract.TransactionSummary.TIME
@@ -95,7 +95,7 @@ class TransactionContentProvider : ContentProvider() {
                     val inputs = transactionDetails.inputs.map { "${it.value} BTC${it.address}" }.joinToString(",")
                     val outputs = transactionDetails.outputs.map { "${it.value} BTC${it.address}" }.joinToString(",")
                     val columnValues = listOf(
-                        transactionDetails.hash.toHex(), //TransactionContract.Transaction._ID
+                        transactionDetails.hash.toString(), //TransactionContract.Transaction._ID
                         transactionDetails.height,       //TransactionContract.Transaction.HEIGHT
                         transactionDetails.time,         //TransactionContract.Transaction.TIME
                         transactionDetails.rawSize,      //TransactionContract.Transaction.RAW_SIZE

@@ -7,15 +7,8 @@ import android.text.format.DateUtils
 import android.text.style.TypefaceSpan
 
 import com.google.common.base.Charsets
+import org.bitcoinj.core.*
 
-import org.bitcoinj.core.Address
-import org.bitcoinj.core.AddressFormatException
-import org.bitcoinj.core.DumpedPrivateKey
-import org.bitcoinj.core.ECKey
-import org.bitcoinj.core.NetworkParameters
-import org.bitcoinj.script.ScriptException
-import org.bitcoinj.core.Sha256Hash
-import org.bitcoinj.core.Transaction
 import org.bitcoinj.wallet.KeyChainGroup
 import org.bitcoinj.wallet.UnreadableWalletException
 import org.bitcoinj.wallet.Wallet

@@ -16,14 +16,11 @@ import android.widget.Toast
 import com.google.common.base.Optional
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.AbstractScheduledService
-import com.mrd.bitlib.model.Address
-import com.mrd.bitlib.model.NetworkParameters
-import com.mrd.bitlib.util.Sha256Hash
 import com.mycelium.spvmodule.*
+import com.mycelium.spvmodule.currency.ExactBitcoinValue
+import com.mycelium.spvmodule.model.TransactionDetails
+import com.mycelium.spvmodule.model.TransactionSummary
 import com.mycelium.spvmodule.providers.TransactionContract
-import com.mycelium.wapi.model.TransactionDetails
-import com.mycelium.wapi.model.TransactionSummary
-import com.mycelium.wapi.wallet.currency.ExactBitcoinValue
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.propagate
 import org.bitcoinj.core.listeners.DownloadProgressTracker
@@ -118,7 +115,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         spvModuleApplication.applicationContext.registerReceiver(connectivityReceiver, intentFilter)
 
         val blockChainFile = File(spvModuleApplication.getDir("blockstore", Context.MODE_PRIVATE),
-                Constants.Files.BLOCKCHAIN_FILENAME + "-BCH")
+                Constants.Files.BLOCKCHAIN_FILENAME+"-BCH")
         blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, blockChainFile)
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
@@ -719,7 +716,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 " creationTimeSeconds = $creationTimeSeconds")
         propagate(Constants.CONTEXT)
         //val walletAccount = Wallet.fromSpendingKey(Constants.NETWORK_PARAMETERS,
-            //    DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS))
+        //    DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS))
         val coinTypeKey = DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS)
         coinTypeKey.creationTimeSeconds = creationTimeSeconds
         val accountLevelKey = HDKeyDerivation.deriveChildKey(coinTypeKey,
@@ -939,33 +936,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val transactions = walletAccount.getTransactions(false).sortedWith(kotlin.Comparator { o1, o2 -> o2.updateTime.compareTo(o1.updateTime) })
 
         for (transactionBitcoinJ in transactions) {
-            val transactionBitLib: com.mrd.bitlib.model.Transaction =
-                    com.mrd.bitlib.model.Transaction.fromBytes(transactionBitcoinJ.bitcoinSerialize())
-
             // Outputs
             val toAddresses = java.util.ArrayList<Address>()
             var destAddress: Address? = null
 
-            val networkParametersBitlib: NetworkParameters =
-                    when (walletAccount.networkParameters.id) {
-                        org.bitcoinj.core.NetworkParameters.ID_MAINNET -> NetworkParameters.productionNetwork
-                        org.bitcoinj.core.NetworkParameters.ID_TESTNET -> NetworkParameters.testNetwork
-                        else -> {
-                            throw Error("Wrong network parameters")
-                        }
-                    }
-
             for (transactionOutput in transactionBitcoinJ.outputs) {
-                val toAddress = Address.fromString(
-                        transactionOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
-                                .toBase58(), networkParametersBitlib)
+
+                val toAddress = transactionOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
+
                 if (!transactionOutput.isMine(walletAccount)) {
                     destAddress = toAddress
                 }
-                if (toAddress != Address.getNullAddress(networkParametersBitlib)) {
-                    toAddresses.add(toAddress)
-                }
+
+                toAddresses.add(toAddress)
             }
+
             val confirmations: Int = transactionBitcoinJ.confidence.depthInBlocks
             //val isQueuedOutgoing = (transactionBitcoinJ.isPending
             //       || transactionBitcoinJ.confidence == TransactionConfidence.ConfidenceType.BUILDING)
@@ -977,12 +962,15 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             }
             val bitcoinJValue = transactionBitcoinJ.getValue(walletAccount)
             val isIncoming = bitcoinJValue.isPositive
-            val bitcoinValue =  ExactBitcoinValue.from(abs(bitcoinJValue.value))
+
             val height = transactionBitcoinJ.confidence.depthInBlocks
             if (height <= 0) {
                 //continue
             }
-            val transactionSummary = TransactionSummary(transactionBitLib.hash,
+
+            val bitcoinValue =  ExactBitcoinValue.from(Math.abs(bitcoinJValue.value))
+
+            val transactionSummary = TransactionSummary(transactionBitcoinJ.hash,
                     bitcoinValue,
                     isIncoming,
                     transactionBitcoinJ.updateTime.time / 1000,
@@ -1019,33 +1007,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "getTransactionDetails, accountIndex = $accountIndex, hash = $hash")
         val walletAccount = walletsAccountsMap.get(accountIndex) ?: return null
-        val transactionBitcoinJ = walletAccount.getTransaction(
-                org.bitcoinj.core.Sha256Hash.wrap(hash))!!
-
-        val networkParametersBitlib: NetworkParameters =
-                when (walletAccount.networkParameters.id) {
-                    org.bitcoinj.core.NetworkParameters.ID_MAINNET -> NetworkParameters.productionNetwork
-                    org.bitcoinj.core.NetworkParameters.ID_TESTNET -> NetworkParameters.testNetwork
-                    else -> {
-                        throw Error("Wrong network parameters")
-                    }
-                }
-
+        val transactionBitcoinJ = walletAccount.getTransaction(Sha256Hash.wrap(hash))!!
         val inputs: MutableList<TransactionDetails.Item> = mutableListOf()
 
         for (input in transactionBitcoinJ.inputs) {
             val connectedOutput = input.outpoint.connectedOutput
             if (connectedOutput == null) {
-                inputs.add(TransactionDetails.Item(Address.getNullAddress(networkParametersBitlib),
-                        if (input.value != null) {
-                            input.value!!.value
-                        } else {
-                            0
-                        }, input.isCoinBase))
+                /*   inputs.add(TransactionDetails.Item(Address.getNullAddress(networkParametersBitlib),
+                           if (input.value != null) {
+                               input.value!!.value
+                           } else {
+                               0
+                           }, input.isCoinBase))*/
             } else {
                 val addressBitcoinJ = connectedOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
-                val addressBitLib: Address = Address.fromString(addressBitcoinJ.toBase58(), networkParametersBitlib)
-                inputs.add(TransactionDetails.Item(addressBitLib, input.value!!.value, input.isCoinBase))
+                inputs.add(TransactionDetails.Item(addressBitcoinJ, input.value!!.value, input.isCoinBase))
             }
         }
 
@@ -1053,12 +1029,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         for (output in transactionBitcoinJ.outputs) {
             val addressBitcoinJ = output.scriptPubKey.getToAddress(walletAccount.networkParameters)
-            val addressBitLib: Address = Address.fromString(addressBitcoinJ.toBase58(), networkParametersBitlib)
-            outputs.add(TransactionDetails.Item(addressBitLib, output.value!!.value, false))
+            //val addressBitLib: Address = Address.fromString(addressBitcoinJ.toBase58(), networkParametersBitlib)
+            outputs.add(TransactionDetails.Item(addressBitcoinJ, output.value!!.value, false))
         }
 
         val height = transactionBitcoinJ.confidence.depthInBlocks
-        val transactionDetails = TransactionDetails(Sha256Hash.fromString(hash),
+        val transactionDetails = TransactionDetails(Sha256Hash.wrap(hash),
                 height,
                 (transactionBitcoinJ.updateTime.time / 1000).toInt(), inputs.toTypedArray(),
                 outputs.toTypedArray(), transactionBitcoinJ.optimalEncodingMessageSize)
