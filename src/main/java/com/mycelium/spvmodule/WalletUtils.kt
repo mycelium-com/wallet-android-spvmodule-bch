@@ -70,13 +70,10 @@ object WalletUtils {
 
     fun getToAddressOfSent(tx: Transaction, wallet: Wallet): Address? {
         for (output in tx.outputs) {
-            try {
                 if (!output.isMine(wallet)) {
                     val script = output.scriptPubKey
                     return script.getToAddress(Constants.NETWORK_PARAMETERS, true)
                 }
-            } catch (ignore: ScriptException) {
-            }
 
         }
 
@@ -85,14 +82,10 @@ object WalletUtils {
 
     fun getWalletAddressOfReceived(tx: Transaction, wallet: Wallet): Address? {
         for (output in tx.outputs) {
-            try {
                 if (output.isMine(wallet)) {
                     val script = output.scriptPubKey
                     return script.getToAddress(Constants.NETWORK_PARAMETERS, true)
                 }
-            } catch (ignore: ScriptException) {
-            }
-
         }
 
         return null
