@@ -90,6 +90,10 @@ if (commonDebugKeystore.exists()) {
     logger.info("Using common debug.keystore " + commonDebugKeystore)
 }
 
+configurations {
+    compile.exclude group: 'org.jetbrains' , module:'annotations'
+}
+
 dependencies {
     testImplementation "junit:junit:$junitVersion"
     implementation fileTree(dir: 'libs', include: ['*.jar'])
@@ -101,9 +105,7 @@ dependencies {
 
     implementation project(includePrefix +':modulespvcontract')
     implementation project(includePrefix +':myceliummodularizationtools')
-    implementation ("org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version") {
-        exclude(group: 'org.jetbrains', module: 'annotations')
-    }
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation(guavaArtifact) {
         force = true
     }
