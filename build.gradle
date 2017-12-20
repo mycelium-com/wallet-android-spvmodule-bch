@@ -109,9 +109,6 @@ dependencies {
     implementation(guavaArtifact) {
         force = true
     }
-    implementation(project(path: ':wapi')) {
-        exclude module: 'annotations'
-    }
 }
 
 if (project.hasProperty('prodKeyStore') &&
