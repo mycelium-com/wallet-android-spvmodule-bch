@@ -159,8 +159,8 @@ class SpvModuleApplication : Application(), ModuleMessageReceiver {
 
         fun getMbwModuleName(): String = when (BuildConfig.APPLICATION_ID) {
             "com.mycelium.spvmodule_testrelease" -> "com.mycelium.testnetdigitalassets"
-            "com.mycelium.spvmodule.test" -> "com.mycelium.devwallet_spore"
-            "com.mycelium.module.spvbtc" -> "com.mycelium.wallet"
+            "com.mycelium.spvbchmodule.test" -> "com.mycelium.devwallet_spore"
+            "com.mycelium.module.spvbch" -> "com.mycelium.wallet"
             else -> throw RuntimeException("No mbw module defined for BuildConfig " + BuildConfig.APPLICATION_ID)
         }
 
