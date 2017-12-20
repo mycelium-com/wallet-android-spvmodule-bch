@@ -20,7 +20,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.mycelium.spvmodule"
+        applicationId "com.mycelium.spvbchmodule"
         minSdkVersion 19
         targetSdkVersion 25
         versionCode 300400
@@ -67,7 +67,7 @@ android {
 
     productFlavors {
         prodnet {
-            applicationId 'com.mycelium.module.spvbtc'
+            applicationId 'com.mycelium.module.spvbch'
             versionName = defaultConfig.versionName
             signingConfig signingConfigs.release
         }
