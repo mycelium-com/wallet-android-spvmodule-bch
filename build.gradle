@@ -17,6 +17,7 @@ android {
 
     packagingOptions {
         exclude 'lib/x86_64/darwin/libscrypt.dylib'
+        exclude 'META-INF/LICENSE'
     }
 
     defaultConfig {
@@ -26,10 +27,6 @@ android {
         versionCode 300400
         versionName "3.0.4.0"
         multiDexEnabled true
-    }
-
-    packagingOptions {
-        exclude 'META-INF/LICENSE'
     }
 
     buildTypes {
