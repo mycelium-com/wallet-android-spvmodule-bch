@@ -101,7 +101,7 @@ dependencies {
     implementation "com.android.support:support-v4:$androidSupportVersion"
     implementation "com.android.support:preference-v7:$androidSupportVersion"
     implementation 'com.android.support:multidex:1.0.2'
-    implementation 'org.bitcoinj:bitcoinj-core:0.15-SNAPSHOT'
+    implementation 'org.bitcoincashj:bitcoincashj-core:0.14.5'
 
     implementation project(includePrefix +':modulespvcontract')
     implementation project(includePrefix +':myceliummodularizationtools')
