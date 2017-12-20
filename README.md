@@ -1,10 +1,10 @@
-# SPV Module
+# SPV Bitcoin Cash Module
 
-The SPV Module is a proxy to the blockchain.
+The SPV Bitcoin Cash Module is a proxy to the blockchain.
 
 This module supports
 
-* SPV connection to the bitcoin network
+* SPV connection to the bitcoin cash network
 * broadcast transactions
 * receive transactions for addresses
 * receive transactions for addresses using a Bloom filter (standard Schildbach-style)
@@ -13,9 +13,9 @@ This module supports
 * TODO: [Committed bloom filters](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2016-May/012636.html)
 * for convenience, consuming modules can assign an account to addresses, TODO: which also gets replicated to the found transactions
 
-## SPV connection to the bitcoin network
+## SPV connection to the bitcoin cash network
 
-Using [bitcoinJ](https://bitcoinj.github.io/) Peer Groups, bootstrapped from [its default seeds](https://github.com/bitcoinj/bitcoinj/blob/910544ae576f6d1380311d4134bd5c8a2ae5c93b/core/src/main/java/org/bitcoinj/params/MainNetParams.java#L73).
+Using [bitcoincashj](https://github.com/mycelium-com/bitcoincashj/tree/multiple-hd-accounts).
 
 ## Broadcast transactions
 
