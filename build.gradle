@@ -34,7 +34,7 @@ android {
             minifyEnabled false
         }
         debug {
-            applicationIdSuffix '.test'
+            applicationIdSuffix '.debug'
             debuggable true
         }
     }
@@ -65,6 +65,7 @@ android {
             signingConfig signingConfigs.release
         }
         btctestnet {
+            applicationId 'com.mycelium.module.spvbch.testnet'
             versionName = defaultConfig.versionName + '-TESTNET'
             signingConfig signingConfigs.btctestnet
         }
