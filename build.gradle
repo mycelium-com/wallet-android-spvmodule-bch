@@ -32,14 +32,10 @@ android {
     buildTypes {
         all {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard.cfg'
         }
         debug {
-            minifyEnabled false
             applicationIdSuffix '.test'
             debuggable true
-            //shrinkResources true
-            //minifyEnabled false
         }
     }
     sourceSets {
@@ -69,8 +65,6 @@ android {
             signingConfig signingConfigs.release
         }
         btctestnet {
-            targetSdkVersion 23
-            minSdkVersion 19
             versionName = defaultConfig.versionName + '-TESTNET'
             signingConfig signingConfigs.btctestnet
         }
