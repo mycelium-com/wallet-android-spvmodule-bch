@@ -7,6 +7,7 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.StrictMode
 import android.preference.PreferenceManager
+import android.support.multidex.MultiDexApplication
 import android.util.Log
 import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.modularizationtools.ModuleMessageReceiver
@@ -18,7 +19,7 @@ import org.bitcoinj.crypto.LinuxSecureRandom
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.SendRequest
 
-class SpvModuleApplication : Application(), ModuleMessageReceiver {
+class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var configuration: Configuration? = null
         private set
     private var activityManager: ActivityManager? = null
