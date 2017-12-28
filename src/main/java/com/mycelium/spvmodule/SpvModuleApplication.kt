@@ -159,9 +159,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         private val LOG_TAG: String? = this::class.java.simpleName
 
         fun getMbwModuleName(): String = when (BuildConfig.APPLICATION_ID) {
-            "com.mycelium.spvmodule_testrelease" -> "com.mycelium.testnetdigitalassets"
-            "com.mycelium.spvbchmodule.test" -> "com.mycelium.devwallet_spore"
             "com.mycelium.module.spvbch" -> "com.mycelium.wallet"
+            "com.mycelium.module.spvbch.debug" -> "com.mycelium.wallet.debug"
+            "com.mycelium.module.spvbch.testnet" -> "com.mycelium.testnetwallet"
+            "com.mycelium.module.spvbch.testnet.debug" -> "com.mycelium.testnetwallet.debug"
             else -> throw RuntimeException("No mbw module defined for BuildConfig " + BuildConfig.APPLICATION_ID)
         }
 
@@ -174,6 +175,5 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
                 INSTANCE!!.doesSingleAddressWalletAccountExist(guid)
-
     }
 }

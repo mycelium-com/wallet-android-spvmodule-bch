@@ -21,7 +21,6 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.mycelium.spvbchmodule"
         minSdkVersion 19
         targetSdkVersion 25
         versionCode 300400
@@ -29,25 +28,28 @@ android {
         multiDexEnabled true
     }
 
-    buildTypes {
-        all {
-            minifyEnabled false
-        }
-        debug {
-            applicationIdSuffix '.test'
-            debuggable true
-        }
-    }
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-
     signingConfigs {
         release {
-            keyAlias = ''
+            if (project.hasProperty('prodKeyStore') &&
+                    project.hasProperty('prodKeyAlias') &&
+                    project.hasProperty('prodKeyStorePassword') &&
+                    project.hasProperty('prodKeyAliasPassword')) {
+                storeFile file('../../' + prodKeyStore)
+                keyAlias prodKeyAlias
+                storePassword prodKeyStorePassword
+                keyPassword prodKeyAliasPassword
+            }
         }
         btctestnet {
-            keyAlias = ''
+            if (project.hasProperty('testKeyStore') &&
+                    project.hasProperty('testKeyAlias') &&
+                    project.hasProperty('testKeyStorePassword') &&
+                    project.hasProperty('testKeyAliasPassword')) {
+                storeFile file('../../' + testKeyStore)
+                keyAlias testKeyAlias
+                storePassword testKeyStorePassword
+                keyPassword testKeyAliasPassword
+            }
         }
         commonDebug {
             storeFile commonDebugKeystore
@@ -56,6 +58,22 @@ android {
             keyPassword 'android'
         }
     }
+
+    buildTypes {
+        all {
+            minifyEnabled false
+        }
+        debug {
+            signingConfig signingConfigs.commonDebug
+            applicationIdSuffix '.debug'
+            debuggable true
+        }
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
     flavorDimensions "flavor"
 
     productFlavors {
@@ -65,20 +83,11 @@ android {
             signingConfig signingConfigs.release
         }
         btctestnet {
+            applicationId 'com.mycelium.module.spvbch.testnet'
             versionName = defaultConfig.versionName + '-TESTNET'
             signingConfig signingConfigs.btctestnet
         }
     }
-    buildToolsVersion androidSdkBuildVersion
-}
-
-// use the keystore file from the local repository, so that we share the same
-// signatures while developing
-if (commonDebugKeystore.exists()) {
-    android.buildTypes.debug.signingConfig = android.signingConfigs.commonDebug
-    // might be needed later on, if we have a devel flavor (if needed at all)
-    //android.productFlavors.dev.signingConfig = android.signingConfigs.commonDebug
-    logger.info("Using common debug.keystore " + commonDebugKeystore)
 }
 
 configurations {
@@ -100,28 +109,4 @@ dependencies {
     implementation(guavaArtifact) {
         force = true
     }
-}
-
-if (project.hasProperty('prodKeyStore') &&
-        project.hasProperty('prodKeyAlias') &&
-        project.hasProperty('prodKeyStorePassword') &&
-        project.hasProperty('prodKeyAliasPassword')) {
-    android.signingConfigs.release.storeFile = file('../../' + prodKeyStore)
-    android.signingConfigs.release.keyAlias = prodKeyAlias
-    android.signingConfigs.release.storePassword = prodKeyStorePassword
-    android.signingConfigs.release.keyPassword = prodKeyAliasPassword
-} else {
-    android.productFlavors.prodnet.signingConfig = null
-}
-
-if (project.hasProperty('testKeyStore') &&
-        project.hasProperty('testKeyAlias') &&
-        project.hasProperty('testKeyStorePassword') &&
-        project.hasProperty('testKeyAliasPassword')) {
-    android.signingConfigs.btctestnet.storeFile = file('../../' + testKeyStore)
-    android.signingConfigs.btctestnet.keyAlias = testKeyAlias
-    android.signingConfigs.btctestnet.storePassword = testKeyStorePassword
-    android.signingConfigs.btctestnet.keyPassword = testKeyAliasPassword
-} else {
-    android.productFlavors.btctestnet.signingConfig = null
 }
