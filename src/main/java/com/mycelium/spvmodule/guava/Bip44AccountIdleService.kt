@@ -719,9 +719,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         //    DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS))
         val coinTypeKey = DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS)
         coinTypeKey.creationTimeSeconds = creationTimeSeconds
-        val accountLevelKey = HDKeyDerivation.deriveChildKey(coinTypeKey,
-                ChildNumber(accountIndex, true), creationTimeSeconds)
-        val walletAccount = Wallet.fromSpendingKey(Constants.NETWORK_PARAMETERS, accountLevelKey)
+        val walletAccount = Wallet.fromMasterKey(Constants.NETWORK_PARAMETERS, coinTypeKey, accountIndex)
         /*val walletAccount = Wallet.fromSeed(
                 Constants.NETWORK_PARAMETERS,
                 DeterministicSeed(bip39Passphrase, null, "", creationTimeSeconds),
