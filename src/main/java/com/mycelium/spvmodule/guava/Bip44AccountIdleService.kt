@@ -173,7 +173,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         if (shouldInitializeCheckpoint) {
             val earliestKeyCreationTime = initializeEarliestKeyCreationTime()
             if (earliestKeyCreationTime > 0L) {
-                initializeCheckpoint(earliestKeyCreationTime)
+                // TODO Return checkpoint initialization after putting correct checkpoints.txt to assets directory
+                // initializeCheckpoint(earliestKeyCreationTime)
             }
         }
         blockChain = BlockChain(Constants.NETWORK_PARAMETERS, (walletsAccountsMap.values + singleAddressAccountsMap.values).toList(),
