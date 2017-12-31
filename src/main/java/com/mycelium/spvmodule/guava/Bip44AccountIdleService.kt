@@ -1190,6 +1190,16 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             super.onBlocksDownloaded(peer, block, filteredBlock, blocksLeft)
         }
 
+        override fun progress(pct: Double, blocksSoFar: Int, date: Date) {
+            Log.d(LOG_TAG, String.format(Locale.US, "Chain download %d%% done with %d blocks to go, block date %s", pct.toInt(), blocksSoFar,
+                    Utils.dateTimeFormat(date)))
+        }
+
+        override fun startDownload(blocks: Int) {
+            Log.d(LOG_TAG, "Downloading block chain of size " + blocks + ". " +
+                    if (blocks > 1000) "This may take a while." else "")
+        }
+
         private fun updateActivityHistory() {
             val chainHeight = blockChain!!.bestChainHeight
             val numBlocksDownloaded = chainHeight - lastChainHeight
