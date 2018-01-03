@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">SPV Bitcoin Cash Module</string>
+    <string name="app_name">Bitcoin Cash Module</string>
     <!--TODO: need normal text for next 2 lines-->
     <string name="module_name"><![CDATA[Bitcoin <font color="#f08c18">Cash</font> Module]]></string>
     <string name="module_description">Bitcoin Cash accounts support and exchange to BTC option</string>
