@@ -173,7 +173,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         if (shouldInitializeCheckpoint) {
             val earliestKeyCreationTime = initializeEarliestKeyCreationTime()
             if (earliestKeyCreationTime > 0L) {
-                initializeCheckpoint(earliestKeyCreationTime)
+                // TODO Return checkpoint initialization after putting correct checkpoints.txt to assets directory
+                // initializeCheckpoint(earliestKeyCreationTime)
             }
         }
         blockChain = BlockChain(Constants.NETWORK_PARAMETERS, (walletsAccountsMap.values + singleAddressAccountsMap.values).toList(),
@@ -1187,6 +1188,16 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 AsyncTask.execute(reportProgress)
             }
             super.onBlocksDownloaded(peer, block, filteredBlock, blocksLeft)
+        }
+
+        override fun progress(pct: Double, blocksSoFar: Int, date: Date) {
+            Log.d(LOG_TAG, String.format(Locale.US, "Chain download %d%% done with %d blocks to go, block date %s", pct.toInt(), blocksSoFar,
+                    Utils.dateTimeFormat(date)))
+        }
+
+        override fun startDownload(blocks: Int) {
+            Log.d(LOG_TAG, "Downloading block chain of size " + blocks + ". " +
+                    if (blocks > 1000) "This may take a while." else "")
         }
 
         private fun updateActivityHistory() {
