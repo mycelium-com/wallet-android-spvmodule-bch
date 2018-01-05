@@ -114,6 +114,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Bip44AccountIdleService.getInstance()!!.broadcastTransaction(sendRequest, accountIndex)
     }
 
+    fun broadcastTransactionSingleAddress(tx: Transaction, guid: String) {
+        Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(tx, guid)
+    }
+
     fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
         Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(sendRequest, guid)
     }

@@ -59,6 +59,15 @@ class SpvService : IntentService("SpvService") {
                     transaction.purpose = Transaction.Purpose.USER_PAYMENT
                     application.broadcastTransaction(transaction, accountIndex)
                 }
+                ACTION_BROADCAST_TRANSACTION_SINGLE_ADDRESS -> {
+                    singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
+                    val transactionByteArray = intent.getByteArrayExtra("TX")
+                    val transaction = Transaction(Constants.NETWORK_PARAMETERS, transactionByteArray)
+                    Log.i(LOG_TAG, "onHandleIntent: ACTION_BROADCAST_TRANSACTION_SINGLE_ADDRESS,  TX = " + transaction)
+                    transaction.confidence.source = TransactionConfidence.Source.SELF
+                    transaction.purpose = Transaction.Purpose.USER_PAYMENT
+                    application.broadcastTransactionSingleAddress(transaction, singleAddressAccountGuid)
+                }
                 ACTION_SEND_FUNDS -> {
                     accountIndex = getAccountIndex(intent) ?: return
                     val rawAddress = intent.getStringExtra(IntentContract.SendFunds.ADDRESS_EXTRA)
@@ -166,6 +175,7 @@ class SpvService : IntentService("SpvService") {
         val ACTION_CANCEL_COINS_RECEIVED = PACKAGE_NAME + ".cancel_coins_received"
         val ACTION_ADD_ACCOUNT = PACKAGE_NAME + ".reset_blockchain"
         val ACTION_BROADCAST_TRANSACTION = PACKAGE_NAME + ".broadcast_transaction"
+        val ACTION_BROADCAST_TRANSACTION_SINGLE_ADDRESS = PACKAGE_NAME + ".broadcast_transaction_single_address"
         val ACTION_RECEIVE_TRANSACTIONS = PACKAGE_NAME + ".receive_transactions"
         val ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS = PACKAGE_NAME + ".receive_transactions_single_address"
         val ACTION_SEND_FUNDS = PACKAGE_NAME + ".send_funds"
