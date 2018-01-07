@@ -17,6 +17,10 @@
   },
   {
     "name": "com.mycelium.testnetdigitalassets",
+    "signature": "Ux+tW+lAkn01UG6h1e68dE8mGvLbKX6Eg+iVJXVbOq8="
+  },
+  {
+    "name": "com.mycelium.testnetdigitalassets.debug",
     "signature": "gz35r0bqdqhXMguVc8UR2+QRbboJFKgr/FzEKO5OoW8="
   }
 ]
