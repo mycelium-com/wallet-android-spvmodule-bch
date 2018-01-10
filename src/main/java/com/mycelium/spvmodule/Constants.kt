@@ -113,6 +113,8 @@ interface Constants {
         val NOTIFICATION_ID_COINS_RECEIVED = 1
         val NOTIFICATION_ID_INACTIVITY = 2
 
+        val QR_ADDRESS_PREFIX = "bitcoincash:"
+
         /**
          * Returns fee per kB adjusted by txFeeFactor
          *
