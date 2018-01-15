@@ -9,6 +9,7 @@ import android.net.Uri
 import android.util.Log
 import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.spvmodule.BuildConfig
+import com.mycelium.spvmodule.Constants
 import com.mycelium.spvmodule.TransactionFee
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.providers.TransactionContract.*
@@ -140,7 +141,7 @@ class TransactionContentProvider : ContentProvider() {
                 }
             }
             CURRENT_RECEIVE_ADDRESS_LIST, CURRENT_RECEIVE_ADDRESS_ID -> {
-                cursor = CurrentReceivingAddressCursor()
+                cursor = CurrentReceiveAddressCursor()
                 if (selection == CurrentReceiveAddress.SELECTION_ACCOUNT_INDEX) {
                     // this is the CURRENT_RECEIVE_ADDRESS_ID case but we don't read the selection from the url (yet?)
                     val accountIndex = selectionArgs!![0].toInt()
@@ -150,9 +151,11 @@ class TransactionContentProvider : ContentProvider() {
                     service.getAccountIndices()
                 }.forEach { accountIndex ->
                     val currentReceiveAddress = service.getAccountCurrentReceiveAddress(accountIndex)
+                    val qrAddressString = Constants.QR_ADDRESS_PREFIX + currentReceiveAddress
                     val columnValues = listOf(
-                            accountIndex,                       //TransactionContract.CurrentReceiveAddress._ID
-                            currentReceiveAddress?.toString()   //TransactionContract.CurrentReceiveAddress.ADDRESS
+                            accountIndex,                           //TransactionContract.CurrentReceiveAddress._ID
+                            currentReceiveAddress?.toString(),      //TransactionContract.CurrentReceiveAddress.ADDRESS
+                            qrAddressString                         //TransactionContract.CurrentReceiveAddress.ADDRESS_QR
                     )
                     cursor.addRow(columnValues)
                 }
