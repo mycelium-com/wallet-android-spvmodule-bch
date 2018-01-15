@@ -32,7 +32,7 @@ class TransactionContentProvider : ContentProvider() {
         val match = URI_MATCHER.match(uri)
         val service = Bip44AccountIdleService.getInstance() ?: return cursor
         when (match) {
-            TRANSACTION_SUMMARY_LIST ->
+            TRANSACTION_SUMMARY_ID ->
                 if (selection == TransactionSummary.SELECTION_ACCOUNT_INDEX) {
                     Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
                     val accountIndex = selectionArgs!!.get(0)
