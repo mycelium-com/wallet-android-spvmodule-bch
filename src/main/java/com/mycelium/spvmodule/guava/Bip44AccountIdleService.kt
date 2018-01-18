@@ -989,10 +989,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "getTransactionsSummary, accountIndex = $accountIndex")
 
-        if (!walletsAccountsMap.containsKey(accountIndex))
-            return mutableListOf<TransactionSummary>()
-
-        return getTransactionsSummary(walletsAccountsMap.get(accountIndex)!!)
+        val walletAccount = walletsAccountsMap.get(accountIndex) ?: return mutableListOf()
+        return getTransactionsSummary(walletAccount)
     }
 
     fun getTransactionsSummary(guid: String): List<TransactionSummary> {
