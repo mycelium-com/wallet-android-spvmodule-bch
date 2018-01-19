@@ -76,6 +76,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var spendingKeyB58 = sharedPreferences.getString(SPENDINGKEYB58_PREF, "")
     private var counterCheckImpediments: Int = 0
     private var countercheckIfDownloadIsIdling: Int = 0
+    private var chainDownloadPercentDone : Int = 0
 
     override fun shutDown() {
         Log.d(LOG_TAG, "shutDown")
@@ -625,7 +626,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             val bestChainHeight = chainHead.height
             val replaying = chainHead.height < configuration.bestChainHeightEver
 
-            return BlockchainState(bestChainDate, bestChainHeight, replaying, impediments)
+            return BlockchainState(bestChainDate, bestChainHeight, replaying, chainDownloadPercentDone, impediments)
         }
 
     private fun broadcastPeerState(numPeers: Int) {
@@ -1190,6 +1191,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun progress(pct: Double, blocksSoFar: Int, date: Date) {
+            chainDownloadPercentDone = pct.toInt()
             Log.d(LOG_TAG, String.format(Locale.US, "Chain download %d%% done with %d blocks to go, block date %s", pct.toInt(), blocksSoFar,
                     Utils.dateTimeFormat(date)))
         }

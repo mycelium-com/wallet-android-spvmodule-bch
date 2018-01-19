@@ -26,12 +26,14 @@ import java.util.EnumSet
  * @param bestChainDate date as found in the last block
  * @param bestChainHeight 0-based index of the last block of the best chain
  * @param replaying it's not the first time these blocks are being parsed. We have seen higher bestChainHeights before.
+ * @param chainDownloadPercentDone percent of currently downloaded blocks
  * @param impediments problems when downloading (network and/or storage)
  */
 class BlockchainState(
         val bestChainDate: Date,
         val bestChainHeight: Int,
         val replaying: Boolean,
+        val chainDownloadPercentDone: Int,
         impediments: Set<Impediment>) {
 
     enum class Impediment {
@@ -44,6 +46,7 @@ class BlockchainState(
         intent.putExtra(EXTRA_BEST_CHAIN_DATE, bestChainDate.time)
         intent.putExtra(EXTRA_BEST_CHAIN_HEIGHT, bestChainHeight)
         intent.putExtra(EXTRA_REPLAYING, replaying)
+        intent.putExtra(EXTRA_CHAIN_DOWNLOAD_PERCENT_ODNE, chainDownloadPercentDone)
         intent.putExtra(EXTRA_IMPEDIMENTS, impediments.map {it.toString()}.toTypedArray())
     }
 
@@ -52,5 +55,6 @@ class BlockchainState(
         private val EXTRA_BEST_CHAIN_HEIGHT = "best_chain_height"
         private val EXTRA_REPLAYING = "replaying"
         private val EXTRA_IMPEDIMENTS = "impediment"
+        private val EXTRA_CHAIN_DOWNLOAD_PERCENT_ODNE = "chain_download_percent_done"
     }
 }
