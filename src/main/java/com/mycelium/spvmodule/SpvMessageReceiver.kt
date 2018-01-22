@@ -93,6 +93,11 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 var privateKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.PRIVATE_KEY)
                 SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, privateKey)
             }
+
+            IntentContract.RemoveSingleAddressWalletAccount.ACTION -> {
+                var guid = intent.getStringExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.SINGLE_ADDRESS_GUID)
+                SpvModuleApplication.getApplication().removeSingleAddressAccount(guid)
+            }
         }
         Log.d(LOG_TAG, "Will start Service $clone")
         // start service to check for new transactions and maybe to broadcast a transaction

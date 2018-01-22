@@ -697,6 +697,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         singleAddressAccountsMap.put(guid, walletAccount)
     }
 
+    fun removeSingleAddressAccount(guid: String) {
+        singleAddressAccountsMap.remove(guid)
+    }
+
     private fun createMissingAccounts(spendingKeyB58: String, creationTimeSeconds: Long) {
         var maxIndexWithActivity = -1
         for (accountIndexString in accountIndexStrings) {
