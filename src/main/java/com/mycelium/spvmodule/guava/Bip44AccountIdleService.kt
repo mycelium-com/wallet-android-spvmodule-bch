@@ -657,6 +657,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 val impedimentsString = blockchainState.impediments.joinToString { it.toString() }
                 contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_impediment, impedimentsString)
             }
+            notification.setStyle(Notification.BigTextStyle().bigText(contentText))
             notification.setContentText(contentText)
 
             notification.setContentIntent(PendingIntent.getActivity(spvModuleApplication, 0,
