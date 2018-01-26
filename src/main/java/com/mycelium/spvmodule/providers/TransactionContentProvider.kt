@@ -162,7 +162,7 @@ class TransactionContentProvider : ContentProvider() {
                 if (selection == ValidateQrCode.SELECTION_COMPLETE) {
                     //val accountIndex = selectionArgs!![0].toInt()
                     val qrCode = selectionArgs!![1]
-                    val isValid = service.isValid(qrCode)
+                    val isValid = service.isValidQrCode(qrCode)
                     val columnValues = listOf(
                             qrCode,                     //ValidateQrCode.QR_CODE
                             if (isValid) 1 else 0       //ValidateQrCode.IS_VALID
@@ -204,6 +204,18 @@ class TransactionContentProvider : ContentProvider() {
                     cursor.addRow(columnValues)
                 }
             }
+            VALIDATE_ADDRESS_ID -> {
+                cursor = ValidateAddressCursor()
+                if (selection == ValidateAddress.SELECTION_COMPLETE) {
+                    val address = selectionArgs!![0]
+                    val isValid = service.isValidAddress(address)
+                    val columnValues = listOf(
+                            address,                    //ValidateAddress.ADDRESS
+                            if (isValid) 1 else 0       //ValidateAddress.IS_VALID
+                    )
+                    cursor.addRow(columnValues)
+                }
+            }
             else -> {
                 // Do nothing.
             }
@@ -237,6 +249,7 @@ class TransactionContentProvider : ContentProvider() {
             VALIDATE_QR_CODE_ID -> ValidateQrCode.CONTENT_TYPE
             CALCULATE_MAX_SPENDABLE_ID -> CalculateMaxSpendable.CONTENT_TYPE
             CHECK_SEND_AMOUNT_ID -> CheckSendAmount.CONTENT_TYPE
+            VALIDATE_ADDRESS_ID -> ValidateAddress.CONTENT_TYPE
             else -> null
         }
     }
@@ -253,6 +266,7 @@ class TransactionContentProvider : ContentProvider() {
         private val VALIDATE_QR_CODE_ID = 9
         private val CALCULATE_MAX_SPENDABLE_ID = 10
         private val CHECK_SEND_AMOUNT_ID = 11
+        private val VALIDATE_ADDRESS_ID = 12
 
         private val URI_MATCHER: UriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             val auth = TransactionContract.AUTHORITY(BuildConfig.APPLICATION_ID)
@@ -267,6 +281,7 @@ class TransactionContentProvider : ContentProvider() {
             addURI(auth, ValidateQrCode.TABLE_NAME, VALIDATE_QR_CODE_ID)
             addURI(auth, CalculateMaxSpendable.TABLE_NAME, CALCULATE_MAX_SPENDABLE_ID)
             addURI(auth, CheckSendAmount.TABLE_NAME, CHECK_SEND_AMOUNT_ID)
+            addURI(auth, ValidateAddress.TABLE_NAME, VALIDATE_ADDRESS_ID)
         }
 
         private fun getTableFromMatch(match: Int): String = when (match) {
@@ -277,6 +292,7 @@ class TransactionContentProvider : ContentProvider() {
             VALIDATE_QR_CODE_ID -> ValidateQrCode.TABLE_NAME
             CALCULATE_MAX_SPENDABLE_ID -> CalculateMaxSpendable.TABLE_NAME
             CHECK_SEND_AMOUNT_ID -> CheckSendAmount.TABLE_NAME
+            VALIDATE_ADDRESS_ID -> ValidateAddress.TABLE_NAME
             else -> throw IllegalArgumentException("Unknown match " + match)
         }
     }
