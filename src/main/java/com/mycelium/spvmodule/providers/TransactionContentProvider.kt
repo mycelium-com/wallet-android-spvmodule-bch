@@ -207,6 +207,11 @@ class TransactionContentProvider : ContentProvider() {
                     cursor.addRow(columnValues)
                 }
             }
+
+            GET_SYNC_PROGRESS_ID -> {
+                cursor = SyncProgressCursor()
+                cursor.addRow(listOf(Bip44AccountIdleService.getInstance()!!.getSyncProgress()))
+            }
             else -> {
                 // Do nothing.
             }
@@ -256,6 +261,7 @@ class TransactionContentProvider : ContentProvider() {
         private val VALIDATE_QR_CODE_ID = 9
         private val CALCULATE_MAX_SPENDABLE_ID = 10
         private val CHECK_SEND_AMOUNT_ID = 11
+        private val GET_SYNC_PROGRESS_ID = 12
 
         private val URI_MATCHER: UriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             val auth = TransactionContract.AUTHORITY(BuildConfig.APPLICATION_ID)
@@ -270,6 +276,7 @@ class TransactionContentProvider : ContentProvider() {
             addURI(auth, ValidateQrCode.TABLE_NAME, VALIDATE_QR_CODE_ID)
             addURI(auth, CalculateMaxSpendable.TABLE_NAME, CALCULATE_MAX_SPENDABLE_ID)
             addURI(auth, CheckSendAmount.TABLE_NAME, CHECK_SEND_AMOUNT_ID)
+            addURI(auth, GetSyncProgress.TABLE_NAME, GET_SYNC_PROGRESS_ID)
         }
 
         private fun getTableFromMatch(match: Int): String = when (match) {
@@ -280,6 +287,7 @@ class TransactionContentProvider : ContentProvider() {
             VALIDATE_QR_CODE_ID -> ValidateQrCode.TABLE_NAME
             CALCULATE_MAX_SPENDABLE_ID -> CalculateMaxSpendable.TABLE_NAME
             CHECK_SEND_AMOUNT_ID -> CheckSendAmount.TABLE_NAME
+            GET_SYNC_PROGRESS_ID -> GetSyncProgress.TABLE_NAME
             else -> throw IllegalArgumentException("Unknown match " + match)
         }
     }

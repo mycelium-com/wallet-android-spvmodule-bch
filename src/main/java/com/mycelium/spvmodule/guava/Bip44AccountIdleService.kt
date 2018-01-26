@@ -78,6 +78,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var countercheckIfDownloadIsIdling: Int = 0
     private var chainDownloadPercentDone : Int = 0
 
+    fun getSyncProgress() : Int {
+        return chainDownloadPercentDone
+    }
     override fun shutDown() {
         Log.d(LOG_TAG, "shutDown")
         stopPeergroup()
