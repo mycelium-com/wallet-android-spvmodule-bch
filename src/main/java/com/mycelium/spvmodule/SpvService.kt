@@ -22,6 +22,7 @@ import android.app.NotificationManager
 import android.content.*
 import android.util.Log
 import com.mycelium.modularizationtools.CommunicationManager
+import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.propagate
 import org.bitcoinj.wallet.SendRequest
@@ -33,6 +34,7 @@ class SpvService : IntentService("SpvService") {
     private var notificationManager: NotificationManager? = null
     private var serviceCreatedAtMillis = System.currentTimeMillis()
     private var accountIndex: Int = -1
+    private var accountGuid: String = ""
     private var singleAddressAccountGuid: String = ""
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -51,13 +53,14 @@ class SpvService : IntentService("SpvService") {
                     notificationManager!!.cancel(Constants.NOTIFICATION_ID_COINS_RECEIVED)
                 }
                 ACTION_BROADCAST_TRANSACTION -> {
+                    accountGuid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
                     accountIndex = getAccountIndex(intent) ?: return
                     val transactionByteArray = intent.getByteArrayExtra("TX")
                     val transaction = Transaction(Constants.NETWORK_PARAMETERS, transactionByteArray)
                     Log.i(LOG_TAG, "onHandleIntent: ACTION_BROADCAST_TRANSACTION,  TX = " + transaction)
                     transaction.confidence.source = TransactionConfidence.Source.SELF
                     transaction.purpose = Transaction.Purpose.USER_PAYMENT
-                    application.broadcastTransaction(transaction, accountIndex)
+                    application.broadcastTransaction(transaction, Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))
                 }
                 ACTION_BROADCAST_TRANSACTION_SINGLE_ADDRESS -> {
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
@@ -69,6 +72,7 @@ class SpvService : IntentService("SpvService") {
                     application.broadcastTransactionSingleAddress(transaction, singleAddressAccountGuid)
                 }
                 ACTION_SEND_FUNDS -> {
+                    accountGuid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
                     accountIndex = getAccountIndex(intent) ?: return
                     val rawAddress = intent.getStringExtra(IntentContract.SendFunds.ADDRESS_EXTRA)
                     val rawAmount = intent.getLongExtra(IntentContract.SendFunds.AMOUNT_EXTRA, -1)
@@ -85,7 +89,7 @@ class SpvService : IntentService("SpvService") {
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
-                    application.broadcastTransaction(sendRequest, accountIndex)
+                    application.broadcastTransaction(sendRequest, Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))
                 }
                 ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
@@ -107,14 +111,15 @@ class SpvService : IntentService("SpvService") {
                     application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
                 }
                 ACTION_RECEIVE_TRANSACTIONS -> {
+                    accountGuid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
                     accountIndex = getAccountIndex(intent) ?: return
-                    if (!SpvModuleApplication.doesWalletAccountExist(accountIndex)) {
+                    if (!SpvModuleApplication.doesWalletAccountExist(Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))) {
                         // Ask for private Key
-                        SpvMessageSender.requestPrivateKey(accountIndex)
+                        SpvMessageSender.requestPrivateKey(accountGuid, accountIndex)
                         return
                     } else {
                         application.launchBlockchainScanIfNecessary()
-                        application.sendTransactions(accountIndex)
+                        application.sendTransactions(Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))
                     }
                 }
                 ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS -> {
@@ -139,6 +144,7 @@ class SpvService : IntentService("SpvService") {
             Log.w(LOG_TAG, "onHandleIntent: service restart, although it was started as non-sticky")
         }
     }
+
 
     fun getAccountIndex(intent: Intent): Int? {
         val index = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
