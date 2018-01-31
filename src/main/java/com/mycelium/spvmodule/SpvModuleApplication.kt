@@ -95,6 +95,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         restartBip44AccountIdleService()
     }
 
+    fun removeHDAccount(hdAccountGuid: String) {
+        Bip44AccountIdleService.getInstance()!!.removeHDAccount(hdAccountGuid)
+        restartBip44AccountIdleService()
+    }
+
     fun removeSingleAddressAccount(guid: String) {
         Bip44AccountIdleService.getInstance()!!.removeSingleAddressAccount(guid)
         restartBip44AccountIdleService()

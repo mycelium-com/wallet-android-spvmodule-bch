@@ -634,6 +634,13 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         singleAddressAccountsMap.put(guid, walletAccount)
     }
 
+    fun removeHDAccount(hdAccountGuid: String) {
+        for(key in hdWalletAccountsMap.keys()) {
+            if (key.contains(hdAccountGuid)) {
+                hdWalletAccountsMap.remove(key)
+            }
+        }
+    }
     fun removeSingleAddressAccount(guid: String) {
         singleAddressAccountsMap.remove(guid)
     }
