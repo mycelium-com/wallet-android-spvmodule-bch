@@ -21,7 +21,6 @@ import android.app.IntentService
 import android.app.NotificationManager
 import android.content.*
 import android.util.Log
-import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.propagate
@@ -60,7 +59,7 @@ class SpvService : IntentService("SpvService") {
                     Log.i(LOG_TAG, "onHandleIntent: ACTION_BROADCAST_TRANSACTION,  TX = " + transaction)
                     transaction.confidence.source = TransactionConfidence.Source.SELF
                     transaction.purpose = Transaction.Purpose.USER_PAYMENT
-                    application.broadcastTransaction(transaction, Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))
+                    application.broadcastTransaction(transaction, Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))
                 }
                 ACTION_BROADCAST_TRANSACTION_SINGLE_ADDRESS -> {
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
@@ -89,7 +88,7 @@ class SpvService : IntentService("SpvService") {
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
-                    application.broadcastTransaction(sendRequest, Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))
+                    application.broadcastTransaction(sendRequest, Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))
                 }
                 ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
@@ -113,13 +112,13 @@ class SpvService : IntentService("SpvService") {
                 ACTION_RECEIVE_TRANSACTIONS -> {
                     accountGuid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
                     accountIndex = getAccountIndex(intent) ?: return
-                    if (!SpvModuleApplication.doesWalletAccountExist(Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))) {
+                    if (!SpvModuleApplication.doesWalletAccountExist(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))) {
                         // Ask for private Key
                         SpvMessageSender.requestPrivateKey(accountGuid, accountIndex)
                         return
                     } else {
                         application.launchBlockchainScanIfNecessary()
-                        application.sendTransactions(Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))
+                        application.sendTransactions(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))
                     }
                 }
                 ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS -> {

@@ -76,7 +76,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 if (accountIndex == -1) {
                     Log.e(LOG_TAG, "no account specified. Skipping ${intent.action}.")
                     return
-                } else if (SpvModuleApplication.getApplication().doesWalletAccountExist(Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))) {
+                } else if (SpvModuleApplication.getApplication().doesWalletAccountExist(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))) {
                     Log.i(LOG_TAG, "Trying to create an account / wallet with accountIndex " +
                             "$accountIndex that already exists.")
                     return
@@ -87,7 +87,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                         IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV
                                 .CREATION_TIME_SECONDS_EXTRA, 0)
                 SpvModuleApplication.getApplication()
-                        .addWalletAccountWithExtendedKey(spendingKeyB58, creationTimeSeconds, Bip44AccountIdleService.createAccountId(accountGuid, accountIndex))
+                        .addWalletAccountWithExtendedKey(spendingKeyB58, creationTimeSeconds, Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))
                 return
             }
 

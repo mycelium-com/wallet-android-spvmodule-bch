@@ -74,14 +74,14 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     @Synchronized
     fun addWalletAccountWithExtendedKey(spendingKeyB58: String, creationTimeSeconds: Long,
                                         accountId: String) {
-        val accountIdParsed = Bip44AccountIdleService.parseAccountId(accountId)
+        val accountIdParsed = Bip44AccountIdleService.parseHDWalletId(accountId)
         val accountGuid = accountIdParsed.first
         val accountIndex = accountIdParsed.second
 
         Log.d(LOG_TAG, "addWalletAccountWithExtendedKey, accountId= $accountId, " +
                 "doesWalletAccountExist for accountIndex ${accountId + 3} " +
                 "is ${doesWalletAccountExist(accountId + 3)}.")
-        if(doesWalletAccountExist(Bip44AccountIdleService.createAccountId(accountGuid, accountIndex + 3))) {
+        if(doesWalletAccountExist(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex + 3))) {
             return
         }
 

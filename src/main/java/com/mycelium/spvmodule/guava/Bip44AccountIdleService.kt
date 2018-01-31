@@ -36,7 +36,6 @@ import org.bitcoinj.store.SPVBlockStore
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.*
 import java.io.*
-import java.lang.Math.abs
 import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -629,14 +628,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun createMissingAccounts(spendingKeyB58: String, creationTimeSeconds: Long, accountId: String) {
-        val accountGuid :String = parseAccountId(accountId).first
+        val accountGuid :String = parseHDWalletId(accountId).first
         var maxIndexWithActivity = -1
         for (accountIndexString in accountIndexStrings) {
-            val accGuid : String = parseAccountId(accountIndexString).first
+            val accGuid : String = parseHDWalletId(accountIndexString).first
             if (!accGuid.equals(accountGuid))
                 continue
 
-            val accountIndex : Int = parseAccountId(accountIndexString).second
+            val accountIndex : Int = parseHDWalletId(accountIndexString).second
             val walletAccount = walletsAccountsMap[accountIndexString]
             if (walletAccount?.getTransactions(false)?.isEmpty() == false) {
                 maxIndexWithActivity = Math.max(accountIndex, maxIndexWithActivity)
@@ -666,13 +665,13 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 ImmutableList.of(ChildNumber(44, true), ChildNumber(1, true),
                         ChildNumber(accountIndex, true)))*/
         walletAccount.keyChainGroupLookaheadSize = 20
-        accountIndexStrings.add(accountIndex.toString())
+        accountIndexStrings.add(makeHDWalletId(accountGuid, accountIndex))
         sharedPreferences.edit()
                 .putStringSet(ACCOUNT_INDEX_STRING_SET_PREF, accountIndexStrings)
                 .apply()
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
-        walletAccount.saveToFile(walletFile(createAccountId(accountGuid, accountIndex)))
+        walletAccount.saveToFile(walletFile(makeHDWalletId(accountGuid, accountIndex)))
     }
 
     @Synchronized
@@ -730,7 +729,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             checkIfFirstTransaction(walletAccount)
             for (key in walletsAccountsMap.keys()) {
                 if(walletsAccountsMap.get(key) == walletAccount) {
-                    val index: Int = parseAccountId(key).second
+                    val index: Int = parseHDWalletId(key).second
                     notifySatoshisReceived(transaction!!.getValue(walletAccount).value, 0L, index)
                 }
             }
@@ -752,11 +751,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                         accountId = key
                     }
                 }
-                var accountIdParsed = parseAccountId(accountId)
+                var accountIdParsed = parseHDWalletId(accountId)
                 var accountGuid = accountIdParsed.first
                 val accountIndex = accountIdParsed.second
                 val newAccountIndex = accountIndex + 1
-                if (doesWalletAccountExist(createAccountId(accountGuid, newAccountIndex))) {
+                if (doesWalletAccountExist(makeHDWalletId(accountGuid, newAccountIndex))) {
                     return
                 }
                 Log.d(LOG_TAG, "walletEventListener, checkIfFirstTransaction, first transaction " +
@@ -770,7 +769,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                                     "addWalletAccountWithExtendedKey with newAccountIndex = $newAccountIndex")
                             spvModuleApplication.addWalletAccountWithExtendedKey(spendingKeyB58,
                                     walletAccount.lastBlockSeenTimeSecs + 1,
-                                    createAccountId(accountGuid, newAccountIndex))
+                                    makeHDWalletId(accountGuid, newAccountIndex))
                         },
                         Executors.newSingleThreadExecutor())
             }
@@ -1257,14 +1256,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private val SPENDINGKEYB58_PREF = "spendingKeyB58"
         private val ACCOUNT_LOOKAHEAD = 3
 
-        fun parseAccountId(accountId : String) : Pair<String, Int> {
+        fun parseHDWalletId(accountId : String) : Pair<String, Int> {
             val index = accountId.indexOf("_")
             val accountGuid = accountId.substring(0, index)
             val accountIndex = Integer.parseInt(accountId.substring(index + 1))
             return Pair(accountGuid, accountIndex)
         }
 
-        fun createAccountId(accountGuid: String, index : Int) : String {
+        fun makeHDWalletId(accountGuid: String, index : Int) : String {
             return accountGuid + "_" + index.toString()
         }
     }
