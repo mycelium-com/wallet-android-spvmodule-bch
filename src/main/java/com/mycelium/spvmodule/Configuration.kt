@@ -61,6 +61,8 @@ class Configuration(private val prefs: SharedPreferences) {
         val PREFS_KEY_TRUSTED_PEER_ONLY = "trusted_peer_only"
         val PREFS_KEY_BROADCAST_USING_WAPI = "broadcast_using_wapi"
         val PREFS_KEY_DATA_USAGE = "data_usage"
+        val PREFS_KEY_SYNC_PROGRESS = "sync_progress"
+        val PREFS_KEY_WALLET = "mycelium_wallet"
 
         private val PREFS_KEY_LAST_USED = "last_used"
         private val PREFS_KEY_BEST_CHAIN_HEIGHT_EVER = "best_chain_height_ever"

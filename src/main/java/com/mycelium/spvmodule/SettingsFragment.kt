@@ -17,7 +17,7 @@
 
 package com.mycelium.spvmodule
 
-import android.content.Context
+import android.content.*
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.os.Handler
@@ -26,6 +26,7 @@ import android.os.Process
 import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
 import android.util.Log
+import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 
 import java.net.InetAddress
 
@@ -40,6 +41,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
 
     private var trustedPeerPreference: Preference? = null
     private var trustedPeerOnlyPreference: Preference? = null
+    private var syncProgressPreference: Preference? = null
+    private val chainStateBroadcastReceiver: ChainStateBroadcastReceiver = SettingsFragment.ChainStateBroadcastReceiver(this)
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -56,6 +59,20 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         backgroundThread!!.start()
         backgroundHandler = Handler(backgroundThread!!.looper)
 
+        findPreference(Configuration.PREFS_KEY_WALLET).setOnPreferenceClickListener {
+            val intent = Intent(Intent.ACTION_MAIN)
+            intent.`package` = "com.mycelium" +
+                    if (BuildConfig.FLAVOR == "prodnet") ".wallet" else ".testnetwallet" +
+                            if (BuildConfig.DEBUG) ".debug" else ""
+
+            try {
+                startActivity(intent)
+            } catch (e: ActivityNotFoundException) {
+                Log.e("SettingsFragment", "Something wrong with wallet", e)
+            }
+            true
+        }
+
         trustedPeerPreference = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER)
         trustedPeerPreference!!.onPreferenceChangeListener = this
 
@@ -65,10 +82,26 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         val dataUsagePreference = findPreference(Configuration.PREFS_KEY_DATA_USAGE)
         dataUsagePreference.isEnabled = pm!!.resolveActivity(dataUsagePreference.intent, 0) != null
 
+        syncProgressPreference = findPreference(Configuration.PREFS_KEY_SYNC_PROGRESS)
+        updateSyncProgress()
+
         updateTrustedPeer()
+        activity?.registerReceiver(chainStateBroadcastReceiver, IntentFilter("com.mycelium.wallet.blockchainState"));
+    }
+
+    private fun updateSyncProgress() {
+        syncProgressPreference?.title = getString(R.string.pref_title_sync_progress
+                , Bip44AccountIdleService.getInstance()!!.getSyncProgress())
+    }
+
+    class ChainStateBroadcastReceiver(private var fragment: SettingsFragment) : BroadcastReceiver() {
+        override fun onReceive(p0: Context?, p1: Intent?) {
+            fragment.updateSyncProgress()
+        }
     }
 
     override fun onDestroy() {
+        activity?.unregisterReceiver(chainStateBroadcastReceiver)
         trustedPeerOnlyPreference!!.onPreferenceChangeListener = null
         trustedPeerPreference!!.onPreferenceChangeListener = null
 
