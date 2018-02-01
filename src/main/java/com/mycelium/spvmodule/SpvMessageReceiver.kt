@@ -6,6 +6,7 @@ import android.util.Log
 
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModuleName
+import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
@@ -29,6 +30,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
         clone.setClass(context, SpvService::class.java)
         when (intent.action) {
             IntentContract.WaitingIntents.ACTION -> {
+                val accountGuid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
                 val accountId = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
                 val waitingActions = arrayListOf<String>()
                 for (queueIntent in SpvService.intentsQueue) {
@@ -37,7 +39,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                         waitingActions.add(queueIntent.action)
                     }
                 }
-                val resultIntent = IntentContract.WaitingIntents.createResultIntent(accountId, waitingActions.toTypedArray())
+                val resultIntent = IntentContract.WaitingIntents.createResultIntent(accountGuid, accountId, waitingActions.toTypedArray())
                 context.sendBroadcast(resultIntent)
                 return
             }
@@ -69,11 +71,12 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             }
 
             IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV.ACTION -> {
+                val accountGuid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
                 val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
                 if (accountIndex == -1) {
                     Log.e(LOG_TAG, "no account specified. Skipping ${intent.action}.")
                     return
-                } else if (SpvModuleApplication.getApplication().doesWalletAccountExist(accountIndex)) {
+                } else if (SpvModuleApplication.getApplication().doesWalletAccountExist(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))) {
                     Log.i(LOG_TAG, "Trying to create an account / wallet with accountIndex " +
                             "$accountIndex that already exists.")
                     return
@@ -84,7 +87,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                         IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV
                                 .CREATION_TIME_SECONDS_EXTRA, 0)
                 SpvModuleApplication.getApplication()
-                        .addWalletAccountWithExtendedKey(spendingKeyB58, creationTimeSeconds, accountIndex)
+                        .addWalletAccountWithExtendedKey(spendingKeyB58, creationTimeSeconds, Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))
                 return
             }
 
@@ -92,6 +95,11 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 var guid = intent.getStringExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.SINGLE_ADDRESS_GUID)
                 var privateKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.PRIVATE_KEY)
                 SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, privateKey)
+            }
+
+            IntentContract.RemoveHDWalletAccount.ACTION -> {
+                val guid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
+                SpvModuleApplication.getApplication().removeHDAccount(guid)
             }
 
             IntentContract.RemoveSingleAddressWalletAccount.ACTION -> {

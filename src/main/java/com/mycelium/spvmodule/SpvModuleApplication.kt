@@ -73,21 +73,30 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
     @Synchronized
     fun addWalletAccountWithExtendedKey(spendingKeyB58: String, creationTimeSeconds: Long,
-                                        accountIndex: Int) {
-        Log.d(LOG_TAG, "addWalletAccountWithExtendedKey, accountIndex = $accountIndex, " +
-                "doesWalletAccountExist for accountIndex ${accountIndex + 3} " +
-                "is ${doesWalletAccountExist(accountIndex + 3)}.")
-        if(doesWalletAccountExist(accountIndex + 3)) {
+                                        accountId: String) {
+        val accountIdParsed = Bip44AccountIdleService.parseHDWalletId(accountId)
+        val accountGuid = accountIdParsed.first
+        val accountIndex = accountIdParsed.second
+
+        Log.d(LOG_TAG, "addWalletAccountWithExtendedKey, accountId= $accountId, " +
+                "doesWalletAccountExist for accountIndex ${accountId + 3} " +
+                "is ${doesWalletAccountExist(accountId + 3)}.")
+        if(doesWalletAccountExist(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex + 3))) {
             return
         }
 
-        Bip44AccountIdleService.getInstance()!!.addWalletAccount(spendingKeyB58, creationTimeSeconds, accountIndex)
+        Bip44AccountIdleService.getInstance()!!.addWalletAccount(spendingKeyB58, creationTimeSeconds, accountId)
         restartBip44AccountIdleService()
     }
 
     @Synchronized
     fun addSingleAddressAccountWithPrivateKey(guid: String, privateKey: ByteArray) {
         Bip44AccountIdleService.getInstance()!!.addSingleAddressAccount(guid, privateKey)
+        restartBip44AccountIdleService()
+    }
+
+    fun removeHDAccount(hdAccountGuid: String) {
+        Bip44AccountIdleService.getInstance()!!.removeHDAccount(hdAccountGuid)
         restartBip44AccountIdleService()
     }
 
@@ -111,12 +120,12 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         }
     }
 
-    fun broadcastTransaction(tx: Transaction, accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountIndex)
+    fun broadcastTransaction(tx: Transaction, accountId: String) {
+        Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountId)
     }
 
-    fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransaction(sendRequest, accountIndex)
+    fun broadcastTransaction(sendRequest: SendRequest, accountId: String) {
+        Bip44AccountIdleService.getInstance()!!.broadcastTransaction(sendRequest, accountId)
     }
 
     fun broadcastTransactionSingleAddress(tx: Transaction, guid: String) {
@@ -127,8 +136,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(sendRequest, guid)
     }
 
-    fun sendTransactions(accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.sendTransactions(accountIndex)
+    fun sendTransactions(accountId: String) {
+        Bip44AccountIdleService.getInstance()!!.sendTransactions(accountId)
     }
 
     fun sendTransactionsSingleAddress(guid: String) {
@@ -146,8 +155,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 6
             }
 
-    internal fun doesWalletAccountExist(accountIndex: Int): Boolean =
-            Bip44AccountIdleService.getInstance()!!.doesWalletAccountExist(accountIndex)
+    internal fun doesWalletAccountExist(accountId: String): Boolean =
+            Bip44AccountIdleService.getInstance()!!.doesWalletAccountExist(accountId)
 
     internal fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
             Bip44AccountIdleService.getInstance()!!.doesSingleAddressWalletAccountExist(guid)
@@ -179,8 +188,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             CommunicationManager.getInstance(getApplication()).send(getMbwModuleName(), intent)
         }
 
-        fun doesWalletAccountExist(accountIndex: Int): Boolean =
-                INSTANCE!!.doesWalletAccountExist(accountIndex)
+        fun doesWalletAccountExist(accountId: String): Boolean =
+                INSTANCE!!.doesWalletAccountExist(accountId)
 
         fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
                 INSTANCE!!.doesSingleAddressWalletAccountExist(guid)

@@ -35,9 +35,10 @@ class TransactionContentProvider : ContentProvider() {
             TRANSACTION_SUMMARY_ID ->
                 if (selection == TransactionSummary.SELECTION_ACCOUNT_INDEX) {
                     Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                    val accountIndex = selectionArgs!!.get(0)
+                    val accountGuid = selectionArgs!!.get(0)
+                    val accountIndex = selectionArgs!!.get(1).toInt()
 
-                    val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
+                    val transactionsSummary = service.getTransactionsSummary(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))
                     cursor = TransactionsSummaryCursor(transactionsSummary.size)
 
                     for (rowItem in transactionsSummary) {
@@ -89,9 +90,10 @@ class TransactionContentProvider : ContentProvider() {
             TRANSACTION_DETAILS_ID ->
                 if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX) {
                     cursor = TransactionDetailsCursor()
-                    val accountIndex = selectionArgs!!.get(0)
+                    val accountGuid = selectionArgs!!.get(0)
+                    val accountIndex = selectionArgs!!.get(1).toInt()
                     val hash = uri!!.lastPathSegment
-                    val transactionDetails = service.getTransactionDetails(accountIndex.toInt(), hash) ?: return cursor
+                    val transactionDetails = service.getTransactionDetails(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex), hash) ?: return cursor
 
                     val inputs = transactionDetails.inputs.map { "${it.value} BTC${it.address}" }.joinToString(",")
                     val outputs = transactionDetails.outputs.map { "${it.value} BTC${it.address}" }.joinToString(",")
@@ -108,12 +110,13 @@ class TransactionContentProvider : ContentProvider() {
                 cursor = AccountBalanceCursor()
                 if (selection == AccountBalance.SELECTION_ACCOUNT_INDEX) {
                     // this is the ACCOUNT_BALANCE_ID case but we don't read the selection from the url (yet?)
-                    listOf(selectionArgs!!.get(0).toInt()).forEach { accountIndex ->
+                    val accountGuid = selectionArgs!!.get(0)
+                    listOf(selectionArgs!!.get(1).toInt()).forEach { accountIndex ->
                         val columnValues = listOf(
                                 accountIndex,                             //TransactionContract.AccountBalance._ID
-                                service.getAccountBalance(accountIndex),  //TransactionContract.AccountBalance.CONFIRMED
-                                service.getAccountSending(accountIndex),  //TransactionContract.AccountBalance.SENDING
-                                service.getAccountReceiving(accountIndex) //TransactionContract.AccountBalance.RECEIVING
+                                service.getAccountBalance(Bip44AccountIdleService.makeHDWalletId( accountGuid, accountIndex)),  //TransactionContract.AccountBalance.CONFIRMED
+                                service.getAccountSending(Bip44AccountIdleService.makeHDWalletId( accountGuid, accountIndex)),  //TransactionContract.AccountBalance.SENDING
+                                service.getAccountReceiving(Bip44AccountIdleService.makeHDWalletId( accountGuid, accountIndex)) //TransactionContract.AccountBalance.RECEIVING
                         )
                         cursor.addRow(columnValues)
                     }
@@ -144,16 +147,17 @@ class TransactionContentProvider : ContentProvider() {
                 cursor = CurrentReceiveAddressCursor()
                 if (selection == CurrentReceiveAddress.SELECTION_ACCOUNT_INDEX) {
                     // this is the CURRENT_RECEIVE_ADDRESS_ID case but we don't read the selection from the url (yet?)
-                    val accountIndex = selectionArgs!![0].toInt()
-                    listOf(accountIndex)
+                    val accountGuid = selectionArgs!![0]
+                    val accountIndex = selectionArgs!![1].toInt()
+                    listOf(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex))
                 } else {
                     // we assume no selection for now and return all accounts
                     service.getAccountIndices()
-                }.forEach { accountIndex ->
-                    val currentReceiveAddress = service.getAccountCurrentReceiveAddress(accountIndex)
+                }.forEach { accountId ->
+                    val currentReceiveAddress = service.getAccountCurrentReceiveAddress(accountId)
                     val qrAddressString = Constants.QR_ADDRESS_PREFIX + currentReceiveAddress
                     val columnValues = listOf(
-                            accountIndex,                           //TransactionContract.CurrentReceiveAddress._ID
+                            accountId,                           //TransactionContract.CurrentReceiveAddress._ID
                             currentReceiveAddress?.toString(),      //TransactionContract.CurrentReceiveAddress.ADDRESS
                             qrAddressString                         //TransactionContract.CurrentReceiveAddress.ADDRESS_QR
                     )
@@ -176,11 +180,12 @@ class TransactionContentProvider : ContentProvider() {
             CALCULATE_MAX_SPENDABLE_ID -> {
                 cursor = CalculateMaxSpendableCursor()
                 if (selection == CalculateMaxSpendable.SELECTION_COMPLETE) {
-                    val accountIndex = selectionArgs!![0].toInt()
+                    val accountGuid = selectionArgs!![0]
+                    val accountIndex = selectionArgs!![1].toInt()
                     val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     val txFeeFactor = selectionArgs[2].toFloat()
-                    val maxSpendableAmount = service.calculateMaxSpendableAmount(accountIndex, txFee, txFeeFactor)
+                    val maxSpendableAmount = service.calculateMaxSpendableAmount(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex), txFee, txFeeFactor)
                     val columnValues = listOf(
                             txFee,                  //CalculateMaxSpendable.TX_FEE
                             txFeeFactor,            //CalculateMaxSpendable.TX_FEE_FACTOR
@@ -192,12 +197,13 @@ class TransactionContentProvider : ContentProvider() {
             CHECK_SEND_AMOUNT_ID -> {
                 cursor = CheckSendAmountCursor()
                 if (selection == CheckSendAmount.SELECTION_COMPLETE) {
-                    val accountIndex = selectionArgs!![0].toInt()
+                    val accountGuid = selectionArgs!![0]
+                    val accountIndex = selectionArgs!![1].toInt()
                     val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     val txFeeFactor = selectionArgs[2].toFloat()
                     val amountToSend = selectionArgs[3].toLong()
-                    val checkSendAmount = service.checkSendAmount(accountIndex, txFee, txFeeFactor, amountToSend)
+                    val checkSendAmount = service.checkSendAmount(Bip44AccountIdleService.makeHDWalletId(accountGuid, accountIndex), txFee, txFeeFactor, amountToSend)
                     val columnValues = listOf(
                             txFee,                  //CheckSendAmount.TX_FEE
                             txFeeFactor,            //CheckSendAmount.TX_FEE_FACTOR
