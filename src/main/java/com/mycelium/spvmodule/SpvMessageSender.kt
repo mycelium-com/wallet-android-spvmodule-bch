@@ -64,10 +64,10 @@ class SpvMessageSender {
             SpvModuleApplication.sendMbw(intent)
         }
 
-        fun requestPrivateKey(accountIndex: Int) {
+        fun requestPrivateKey(accountId: String) {
             Log.d(LOG_TAG, "requestPrivateKey")
             Intent("com.mycelium.wallet.requestPrivateExtendedKeyCoinTypeToMBW").run {
-                putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
+                putExtra(IntentContract.ACCOUNT_ID, accountId)
                 send(this)
             }
         }
@@ -80,11 +80,11 @@ class SpvMessageSender {
             }
         }
 
-        fun notifySatoshisReceived(satoshisReceived: Long, satoshisSent: Long, accountIndex: Int) {
+        fun notifySatoshisReceived(satoshisReceived: Long, satoshisSent: Long, accountId: String) {
             val intent = Intent("com.mycelium.wallet.notifySatoshisReceived").apply {
                 putExtra(IntentContract.SATOSHIS_RECEIVED, satoshisReceived)
                 putExtra(IntentContract.SATOSHIS_SENT, satoshisSent)
-                putExtra(IntentContract.ACCOUNTS_INDEX, intArrayOf(accountIndex))
+                putExtra(IntentContract.ACCOUNTS_INDEX, arrayOf(accountId))
             }
             send(intent)
         }

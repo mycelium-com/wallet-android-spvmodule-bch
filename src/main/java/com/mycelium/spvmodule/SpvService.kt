@@ -32,7 +32,7 @@ class SpvService : IntentService("SpvService") {
     private val application = SpvModuleApplication.getApplication()
     private var notificationManager: NotificationManager? = null
     private var serviceCreatedAtMillis = System.currentTimeMillis()
-    private var accountIndex: Int = -1
+    private var accountId: String = ""
     private var singleAddressAccountGuid: String = ""
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -47,17 +47,17 @@ class SpvService : IntentService("SpvService") {
         if (intent != null) {
             when (intent.action) {
                 ACTION_CANCEL_COINS_RECEIVED -> {
-                    accountIndex = getAccountIndex(intent) ?: return
+                    accountId = getAccountId(intent) ?: return
                     notificationManager!!.cancel(Constants.NOTIFICATION_ID_COINS_RECEIVED)
                 }
                 ACTION_BROADCAST_TRANSACTION -> {
-                    accountIndex = getAccountIndex(intent) ?: return
+                    accountId = getAccountId(intent) ?: return
                     val transactionByteArray = intent.getByteArrayExtra("TX")
                     val transaction = Transaction(Constants.NETWORK_PARAMETERS, transactionByteArray)
                     Log.i(LOG_TAG, "onHandleIntent: ACTION_BROADCAST_TRANSACTION,  TX = " + transaction)
                     transaction.confidence.source = TransactionConfidence.Source.SELF
                     transaction.purpose = Transaction.Purpose.USER_PAYMENT
-                    application.broadcastTransaction(transaction, accountIndex)
+                    application.broadcastTransaction(transaction, accountId)
                 }
                 ACTION_BROADCAST_TRANSACTION_SINGLE_ADDRESS -> {
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
@@ -69,7 +69,7 @@ class SpvService : IntentService("SpvService") {
                     application.broadcastTransactionSingleAddress(transaction, singleAddressAccountGuid)
                 }
                 ACTION_SEND_FUNDS -> {
-                    accountIndex = getAccountIndex(intent) ?: return
+                    accountId = getAccountId(intent) ?: return
                     val rawAddress = intent.getStringExtra(IntentContract.SendFunds.ADDRESS_EXTRA)
                     val rawAmount = intent.getLongExtra(IntentContract.SendFunds.AMOUNT_EXTRA, -1)
                     val txFeeStr = intent.getStringExtra(IntentContract.SendFunds.FEE_EXTRA)
@@ -85,7 +85,7 @@ class SpvService : IntentService("SpvService") {
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
-                    application.broadcastTransaction(sendRequest, accountIndex)
+                    application.broadcastTransaction(sendRequest, accountId)
                 }
                 ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
@@ -107,14 +107,14 @@ class SpvService : IntentService("SpvService") {
                     application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
                 }
                 ACTION_RECEIVE_TRANSACTIONS -> {
-                    accountIndex = getAccountIndex(intent) ?: return
-                    if (!SpvModuleApplication.doesWalletAccountExist(accountIndex)) {
+                    accountId = getAccountId(intent) ?: return
+                    if (!SpvModuleApplication.doesWalletAccountExist(accountId)) {
                         // Ask for private Key
-                        SpvMessageSender.requestPrivateKey(accountIndex)
+                        SpvMessageSender.requestPrivateKey(accountId)
                         return
                     } else {
                         application.launchBlockchainScanIfNecessary()
-                        application.sendTransactions(accountIndex)
+                        application.sendTransactions(accountId)
                     }
                 }
                 ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS -> {
@@ -132,7 +132,7 @@ class SpvService : IntentService("SpvService") {
                 else -> {
                     Log.e(LOG_TAG,
                             "Unhandled action was ${intent.action}. Initializing blockchain " +
-                                    "for account $accountIndex.")
+                                    "for account $accountId.")
                 }
             }
         } else {
@@ -140,13 +140,13 @@ class SpvService : IntentService("SpvService") {
         }
     }
 
-    fun getAccountIndex(intent: Intent): Int? {
-        val index = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
-        if (index == -1) {
+    fun getAccountId(intent: Intent): String? {
+        val accountId = intent.getStringExtra(IntentContract.ACCOUNT_ID)
+        if (accountId.isEmpty()) {
             Log.e(LOG_TAG, "no account specified. Skipping ${intent.action}.")
             return null
         }
-        return index
+        return accountId
     }
 
     override fun onDestroy() {
