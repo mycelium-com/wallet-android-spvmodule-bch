@@ -302,7 +302,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         for (idWallet in walletsAccountsMap) {
             idWallet.value.run {
-                saveToFile(walletFile(idWallet.key))
+                saveWalletAccountToFile(this, walletFile(idWallet.key))
                 removeChangeEventListener(walletEventListener)
                 removeCoinsReceivedEventListener(walletEventListener)
                 removeCoinsSentEventListener(walletEventListener)
@@ -311,7 +311,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         for (saWallet in singleAddressAccountsMap) {
             saWallet.value.run {
-                saveToFile(singleAddressWalletFile(saWallet.key))
+                saveWalletAccountToFile(this, singleAddressWalletFile(saWallet.key))
                 removeChangeEventListener(singleAddressWalletEventListener)
                 removeCoinsReceivedEventListener(singleAddressWalletEventListener)
                 removeCoinsSentEventListener(singleAddressWalletEventListener)
@@ -686,7 +686,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun addSingleAddressAccount(guid: String, privateKey: ByteArray) {
         val ecKey = ECKey.fromPrivate(privateKey)
         val walletAccount = Wallet.fromKeys(Constants.NETWORK_PARAMETERS, arrayListOf(ecKey))
-        walletAccount.saveToFile(singleAddressWalletFile(guid))
+        saveWalletAccountToFile(walletAccount, singleAddressWalletFile(guid))
 
         singleAddressAccountGuidStrings.add(guid)
         sharedPreferences.edit()
@@ -733,7 +733,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 .apply()
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
-        walletAccount.saveToFile(walletFile(accountIndex))
+        saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
     }
 
     @Synchronized
@@ -741,7 +741,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         propagate(Constants.CONTEXT)
         val wallet = walletsAccountsMap[accountIndex]!!
         wallet.commitTx(transaction)
-        wallet.saveToFile(walletFile(accountIndex))
+        saveWalletAccountToFile(wallet, walletFile(accountIndex))
         val transactionBroadcast = peerGroup!!.broadcastTransaction(transaction)
         val future = transactionBroadcast.future()
         future.get()
@@ -752,7 +752,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         propagate(Constants.CONTEXT)
         val wallet = singleAddressAccountsMap[guid]!!
         wallet.commitTx(transaction)
-        wallet.saveToFile(singleAddressWalletFile(guid))
+        saveWalletAccountToFile(wallet, singleAddressWalletFile(guid))
         val transactionBroadcast = peerGroup!!.broadcastTransaction(transaction)
         val future = transactionBroadcast.future()
         future.get()
@@ -1174,6 +1174,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val numAddressBytes = 20
         val bytes = ByteArray(numAddressBytes)
         return org.bitcoinj.core.Address(network, bytes)
+    }
+
+    @Synchronized
+    private fun saveWalletAccountToFile(walletAccount: Wallet, file: File) {
+        walletAccount.saveToFile(file)
     }
 
     inner class DownloadProgressTrackerExt : DownloadProgressTracker() {
