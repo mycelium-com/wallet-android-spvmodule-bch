@@ -751,6 +751,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         walletAccount.saveToFile(walletFile(accountIndex))
     }
 
+    fun getPrivateKeysCount(accountIndex : Int) : Int {
+        val walletAccount = walletsAccountsMap.get(accountIndex)
+        return walletAccount!!.activeKeyChain.issuedExternalKeys
+    }
+
     @Synchronized
     fun broadcastTransaction(transaction: Transaction, accountIndex: Int) {
         propagate(Constants.CONTEXT)
