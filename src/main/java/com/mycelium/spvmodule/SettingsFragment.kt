@@ -17,8 +17,6 @@
 
 package com.mycelium.spvmodule
 
-import android.app.Activity
-import android.app.ActivityManager
 import android.content.*
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -66,7 +64,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
             val walletPackage = "com.mycelium" +
                     if (BuildConfig.FLAVOR == "prodnet") ".wallet" else ".testnetwallet" +
                             if (BuildConfig.DEBUG) ".debug" else ""
-            val am = context?.getSystemService(Activity.ACTIVITY_SERVICE) as ActivityManager
             if (activity?.intent?.getStringExtra("callingPackage") != walletPackage) {
                 val intent = Intent(Intent.ACTION_MAIN)
                 intent.`package` = walletPackage;
