@@ -17,6 +17,8 @@
 
 package com.mycelium.spvmodule
 
+import android.app.Activity
+import android.app.ActivityManager
 import android.content.*
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -27,8 +29,8 @@ import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
 import android.util.Log
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
-
 import java.net.InetAddress
+
 
 class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChangeListener {
     private var application: SpvModuleApplication? = null
@@ -60,16 +62,21 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         backgroundHandler = Handler(backgroundThread!!.looper)
 
         findPreference(Configuration.PREFS_KEY_WALLET).setOnPreferenceClickListener {
-            val intent = Intent(Intent.ACTION_MAIN)
-            intent.`package` = "com.mycelium" +
+
+            val walletPackage = "com.mycelium" +
                     if (BuildConfig.FLAVOR == "prodnet") ".wallet" else ".testnetwallet" +
                             if (BuildConfig.DEBUG) ".debug" else ""
-
-            try {
-                startActivity(intent)
-            } catch (e: ActivityNotFoundException) {
-                Log.e("SettingsFragment", "Something wrong with wallet", e)
+            val am = context?.getSystemService(Activity.ACTIVITY_SERVICE) as ActivityManager
+            if (activity?.intent?.getStringExtra("callingPackage") != walletPackage) {
+                val intent = Intent(Intent.ACTION_MAIN)
+                intent.`package` = walletPackage;
+                try {
+                    startActivity(intent)
+                } catch (e: ActivityNotFoundException) {
+                    Log.e("SettingsFragment", "Something wrong with wallet", e)
+                }
             }
+            activity?.finish()
             true
         }
 
