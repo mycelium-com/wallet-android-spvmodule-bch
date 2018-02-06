@@ -701,6 +701,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         singleAddressAccountsMap.put(guid, walletAccount)
     }
 
+    fun removeHdAccount(accountIndex: Int) {
+        walletsAccountsMap.remove(accountIndex)
+    }
+
     fun removeSingleAddressAccount(guid: String) {
         singleAddressAccountsMap.remove(guid)
     }
@@ -745,6 +749,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
         saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
+    }
+
+    fun getPrivateKeysCount(accountIndex : Int) : Int {
+        val walletAccount = walletsAccountsMap.get(accountIndex)
+        return walletAccount!!.activeKeyChain.issuedExternalKeys
     }
 
     @Synchronized
