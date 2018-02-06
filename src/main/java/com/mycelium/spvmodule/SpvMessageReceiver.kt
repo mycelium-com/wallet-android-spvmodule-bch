@@ -94,6 +94,11 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, privateKey)
             }
 
+            IntentContract.RemoveHdWalletAccount.ACTION -> {
+                val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
+                SpvModuleApplication.getApplication().removeHdAccount(accountIndex)
+            }
+
             IntentContract.RemoveSingleAddressWalletAccount.ACTION -> {
                 val guid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
                 SpvModuleApplication.getApplication().removeSingleAddressAccount(guid)
