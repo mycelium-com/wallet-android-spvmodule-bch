@@ -1213,7 +1213,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun progress(pct: Double, blocksSoFar: Int, date: Date) {
-            chainDownloadPercentDone = pct.toInt()
+            chainDownloadPercentDone = Math.floor(pct).toInt()
             Log.d(LOG_TAG, String.format(Locale.US, "Chain download %d%% done with %d blocks to go, block date %s", pct.toInt(), blocksSoFar,
                     Utils.dateTimeFormat(date)))
         }
