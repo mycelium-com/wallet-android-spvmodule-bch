@@ -23,6 +23,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
+import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
 import android.util.Log
@@ -90,7 +91,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         updateSyncProgress()
 
         updateTrustedPeer()
-        activity?.registerReceiver(chainStateBroadcastReceiver, IntentFilter("com.mycelium.wallet.blockchainState"));
+        LocalBroadcastManager.getInstance(context!!).registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
     }
 
     private fun updateSyncProgress() {
@@ -105,7 +106,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     }
 
     override fun onDestroy() {
-        activity?.unregisterReceiver(chainStateBroadcastReceiver)
+        LocalBroadcastManager.getInstance(context!!).unregisterReceiver(chainStateBroadcastReceiver)
         trustedPeerOnlyPreference!!.onPreferenceChangeListener = null
         trustedPeerPreference!!.onPreferenceChangeListener = null
 
