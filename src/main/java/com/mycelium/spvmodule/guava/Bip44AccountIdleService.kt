@@ -702,6 +702,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         singleAddressAccountsMap.put(guid, walletAccount)
     }
 
+    fun removeHdAccount(accountIndex: Int) {
+        walletsAccountsMap.remove(accountIndex)
+    }
+
     fun removeSingleAddressAccount(guid: String) {
         singleAddressAccountsMap.remove(guid)
     }
@@ -746,6 +750,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
         saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
+    }
+
+    fun getPrivateKeysCount(accountIndex : Int) : Int {
+        //If we don't have an account with corresponding index
+        if (!walletsAccountsMap.contains(accountIndex))
+            return 0
+        val walletAccount = walletsAccountsMap.get(accountIndex)
+        return walletAccount!!.activeKeyChain.issuedExternalKeys
     }
 
     @Synchronized
@@ -1215,7 +1227,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             val downloadedHeight = blockchainState.bestChainHeight;
             val mostCommonChainHeight = peerGroup?.mostCommonChainHeight
             if (mostCommonChainHeight != null) {
-                return (100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toInt()
+                return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toInt()
             }
             return 0
         }
@@ -1242,11 +1254,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun doneDownload() {
+            chainDownloadPercentDone = 100
             Log.d(LOG_TAG, "doneDownload(), Blockchain is fully downloaded.")
             for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
                 peerGroup!!.removeWallet(walletAccount)
             }
-            chainDownloadPercentDone = 100;
             super.doneDownload()
             /*
             if(peerGroup!!.isRunning) {
