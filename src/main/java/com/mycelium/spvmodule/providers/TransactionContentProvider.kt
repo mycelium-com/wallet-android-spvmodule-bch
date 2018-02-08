@@ -11,6 +11,7 @@ import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.spvmodule.BuildConfig
 import com.mycelium.spvmodule.Constants
 import com.mycelium.spvmodule.TransactionFee
+import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.providers.TransactionContract.*
 import com.mycelium.spvmodule.providers.data.*
@@ -45,9 +46,9 @@ class TransactionContentProvider : ContentProvider() {
                     return cursor
                 } else if (selection == TransactionSummary.SELECTION_ACCOUNT_INDEX_SINCE) {
                     Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                    val guid = selectionArgs!!.get(0)
+                    val accountIndex = selectionArgs!!.get(0)
                     val since = selectionArgs.get(1)
-                    val transactionsSummary = service.getTransactionsSummary(guid)
+                    val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
                     cursor = TransactionsSummaryCursor(transactionsSummary.size)
 
                     addTransactionsToCursorSince(transactionsSummary, cursor, since.toLong())
@@ -73,7 +74,7 @@ class TransactionContentProvider : ContentProvider() {
                 }
 
             TRANSACTION_DETAILS_ID ->
-                if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX || selection == TransactionDetails.SELECTION_ACCOUNT_INDEX_SINCE) {
+                if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX) {
                     cursor = TransactionDetailsCursor()
                     val accountIndex = selectionArgs!!.get(0)
                     val hash = uri!!.lastPathSegment
@@ -92,7 +93,7 @@ class TransactionContentProvider : ContentProvider() {
                 }
             ACCOUNT_BALANCE_ID, ACCOUNT_BALANCE_LIST -> {
                 cursor = AccountBalanceCursor()
-                if (selection == AccountBalance.SELECTION_ACCOUNT_INDEX || selection == AccountBalance.SELECTION_ACCOUNT_INDEX_SINCE) {
+                if (selection == AccountBalance.SELECTION_ACCOUNT_INDEX) {
                     // this is the ACCOUNT_BALANCE_ID case but we don't read the selection from the url (yet?)
                     listOf(selectionArgs!!.get(0).toInt()).forEach { accountIndex ->
                         val columnValues = listOf(
@@ -103,8 +104,7 @@ class TransactionContentProvider : ContentProvider() {
                         )
                         cursor.addRow(columnValues)
                     }
-                } else if (selection == AccountBalance.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID ||
-                        selection == AccountBalance.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID_SINCE) {
+                } else if (selection == AccountBalance.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID) {
                     val guid = selectionArgs!!.get(0)
 
                     val columnValues = listOf(
@@ -222,7 +222,8 @@ class TransactionContentProvider : ContentProvider() {
                 val riskProfile = rowItem.confirmationRiskProfile.orNull()
                 val columnValues = listOf(
                         rowItem.txid.toString(),                       //TransactionContract.TransactionSummary._ID
-                        rowItem.value.value.toPlainString(),           //TransactionContract.TransactionSummary.VALUE
+                        (rowItem.value as ExactBitcoinValue).asBitcoin
+                                .longValue.toString(),                 //TransactionContract.TransactionSummary.VALUE
                         if (rowItem.isIncoming) 1 else 0,              //TransactionContract.TransactionSummary.IS_INCOMING
                         rowItem.time,                                  //TransactionContract.TransactionSummary.TIME
                         rowItem.height,                                //TransactionContract.TransactionSummary.HEIGHT
