@@ -46,7 +46,7 @@ class BlockchainState(
         intent.putExtra(EXTRA_BEST_CHAIN_DATE, bestChainDate.time)
         intent.putExtra(EXTRA_BEST_CHAIN_HEIGHT, bestChainHeight)
         intent.putExtra(EXTRA_REPLAYING, replaying)
-        intent.putExtra(EXTRA_CHAIN_DOWNLOAD_PERCENT_ODNE, chainDownloadPercentDone)
+        intent.putExtra(EXTRA_CHAIN_DOWNLOAD_PERCENT_DONE, chainDownloadPercentDone)
         intent.putExtra(EXTRA_IMPEDIMENTS, impediments.map {it.toString()}.toTypedArray())
     }
 
@@ -55,6 +55,6 @@ class BlockchainState(
         private val EXTRA_BEST_CHAIN_HEIGHT = "best_chain_height"
         private val EXTRA_REPLAYING = "replaying"
         private val EXTRA_IMPEDIMENTS = "impediment"
-        private val EXTRA_CHAIN_DOWNLOAD_PERCENT_ODNE = "chain_download_percent_done"
+        private val EXTRA_CHAIN_DOWNLOAD_PERCENT_DONE = "chain_download_percent_done"
     }
 }
