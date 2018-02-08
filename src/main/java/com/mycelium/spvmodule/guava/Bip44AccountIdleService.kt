@@ -752,6 +752,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     fun getPrivateKeysCount(accountIndex : Int) : Int {
+        //If we don't have an account with corresponding index
+        if (!walletsAccountsMap.contains(accountIndex))
+            return 0
         val walletAccount = walletsAccountsMap.get(accountIndex)
         return walletAccount!!.activeKeyChain.issuedExternalKeys
     }
