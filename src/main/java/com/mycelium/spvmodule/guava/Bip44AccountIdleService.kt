@@ -76,6 +76,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var spendingKeyB58 = sharedPreferences.getString(SPENDINGKEYB58_PREF, "")
     private var counterCheckImpediments: Int = 0
     private var countercheckIfDownloadIsIdling: Int = 0
+    @Volatile
     private var chainDownloadPercentDone : Int = 0
 
     fun getSyncProgress() : Int {
@@ -701,6 +702,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         singleAddressAccountsMap.put(guid, walletAccount)
     }
 
+    fun removeHdAccount(accountIndex: Int) {
+        walletsAccountsMap.remove(accountIndex)
+    }
+
     fun removeSingleAddressAccount(guid: String) {
         singleAddressAccountsMap.remove(guid)
     }
@@ -745,6 +750,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
         saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
+    }
+
+    fun getPrivateKeysCount(accountIndex : Int) : Int {
+        //If we don't have an account with corresponding index
+        if (!walletsAccountsMap.contains(accountIndex))
+            return 0
+        val walletAccount = walletsAccountsMap.get(accountIndex)
+        return walletAccount!!.activeKeyChain.issuedExternalKeys
     }
 
     @Synchronized
@@ -1204,14 +1217,25 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun progress(pct: Double, blocksSoFar: Int, date: Date) {
-            chainDownloadPercentDone = pct.toInt()
+            chainDownloadPercentDone = getDownloadPercentDone()
+            broadcastBlockchainState()
             Log.d(LOG_TAG, String.format(Locale.US, "Chain download %d%% done with %d blocks to go, block date %s", pct.toInt(), blocksSoFar,
                     Utils.dateTimeFormat(date)))
+        }
+
+        private fun getDownloadPercentDone(): Int {
+            val downloadedHeight = blockchainState.bestChainHeight;
+            val mostCommonChainHeight = peerGroup?.mostCommonChainHeight
+            if (mostCommonChainHeight != null) {
+                return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toInt()
+            }
+            return 0
         }
 
         override fun startDownload(blocks: Int) {
             Log.d(LOG_TAG, "Downloading block chain of size " + blocks + ". " +
                     if (blocks > 1000) "This may take a while." else "")
+            chainDownloadPercentDone = getDownloadPercentDone()
         }
 
         private fun updateActivityHistory() {
@@ -1230,6 +1254,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun doneDownload() {
+            chainDownloadPercentDone = 100
             Log.d(LOG_TAG, "doneDownload(), Blockchain is fully downloaded.")
             for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
                 peerGroup!!.removeWallet(walletAccount)

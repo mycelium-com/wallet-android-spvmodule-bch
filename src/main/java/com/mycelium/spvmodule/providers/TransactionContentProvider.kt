@@ -199,6 +199,12 @@ class TransactionContentProvider : ContentProvider() {
                 cursor = SyncProgressCursor()
                 cursor.addRow(listOf(Bip44AccountIdleService.getInstance()!!.getSyncProgress()))
             }
+
+            GET_PRIVATE_KEYS_COUNT_ID -> {
+                val accountIndex = selectionArgs!![0].toInt()
+                cursor = GetPrivateKeysCountCursor()
+                cursor.addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)))
+            }
             else -> {
                 // Do nothing.
             }
@@ -277,6 +283,7 @@ class TransactionContentProvider : ContentProvider() {
         private val CALCULATE_MAX_SPENDABLE_ID = 10
         private val CHECK_SEND_AMOUNT_ID = 11
         private val GET_SYNC_PROGRESS_ID = 12
+        private val GET_PRIVATE_KEYS_COUNT_ID = 13
 
         private val URI_MATCHER: UriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             val auth = TransactionContract.AUTHORITY(BuildConfig.APPLICATION_ID)
@@ -292,6 +299,7 @@ class TransactionContentProvider : ContentProvider() {
             addURI(auth, CalculateMaxSpendable.TABLE_NAME, CALCULATE_MAX_SPENDABLE_ID)
             addURI(auth, CheckSendAmount.TABLE_NAME, CHECK_SEND_AMOUNT_ID)
             addURI(auth, GetSyncProgress.TABLE_NAME, GET_SYNC_PROGRESS_ID)
+            addURI(auth, GetPrivateKeysCount.TABLE_NAME, GET_PRIVATE_KEYS_COUNT_ID)
         }
 
         private fun getTableFromMatch(match: Int): String = when (match) {
@@ -303,6 +311,7 @@ class TransactionContentProvider : ContentProvider() {
             CALCULATE_MAX_SPENDABLE_ID -> CalculateMaxSpendable.TABLE_NAME
             CHECK_SEND_AMOUNT_ID -> CheckSendAmount.TABLE_NAME
             GET_SYNC_PROGRESS_ID -> GetSyncProgress.TABLE_NAME
+            GET_PRIVATE_KEYS_COUNT_ID -> GetPrivateKeysCount.TABLE_NAME
             else -> throw IllegalArgumentException("Unknown match " + match)
         }
     }
