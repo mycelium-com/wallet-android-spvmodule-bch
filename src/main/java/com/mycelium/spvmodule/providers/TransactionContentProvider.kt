@@ -11,9 +11,11 @@ import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.spvmodule.BuildConfig
 import com.mycelium.spvmodule.Constants
 import com.mycelium.spvmodule.TransactionFee
+import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.providers.TransactionContract.*
 import com.mycelium.spvmodule.providers.data.*
+import java.util.concurrent.TimeUnit
 
 class TransactionContentProvider : ContentProvider() {
     private var communicationManager: CommunicationManager? = null
@@ -40,51 +42,36 @@ class TransactionContentProvider : ContentProvider() {
                     val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
                     cursor = TransactionsSummaryCursor(transactionsSummary.size)
 
-                    for (rowItem in transactionsSummary) {
-                        val riskProfile = rowItem.confirmationRiskProfile.orNull()
-                        val columnValues = listOf(
-                                rowItem.txid.toString(),                          //TransactionContract.TransactionSummary._ID
-                                rowItem.value.value.toPlainString(),           //TransactionContract.TransactionSummary.VALUE
-                                if (rowItem.isIncoming) 1 else 0,              //TransactionContract.TransactionSummary.IS_INCOMING
-                                rowItem.time,                                  //TransactionContract.TransactionSummary.TIME
-                                rowItem.height,                                //TransactionContract.TransactionSummary.HEIGHT
-                                rowItem.confirmations,                         //TransactionContract.TransactionSummary.CONFIRMATIONS
-                                if (rowItem.isQueuedOutgoing) 1 else 0,        //TransactionContract.TransactionSummary.IS_QUEUED_OUTGOING
-                                riskProfile?.unconfirmedChainLength ?: -1,     //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_LENGTH
-                                riskProfile?.hasRbfRisk,                       //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_RBF_RISK
-                                riskProfile?.isDoubleSpend,                    //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_DOUBLE_SPEND
-                                rowItem.destinationAddress.orNull()?.toString(),//TransactionContract.TransactionSummary.DESTINATION_ADDRESS
-                                rowItem.toAddresses.joinToString(",")          //TransactionContract.TransactionSummary.TO_ADDRESSES
-                        )
-                        cursor.addRow(columnValues)
-                    }
+                    addTransactionsToCursorSince(transactionsSummary, cursor, 0)
+                    return cursor
+                } else if (selection == TransactionSummary.SELECTION_ACCOUNT_INDEX_SINCE) {
+                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
+                    val accountIndex = selectionArgs!!.get(0)
+                    val since = selectionArgs.get(1)
+                    val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
+                    cursor = TransactionsSummaryCursor(transactionsSummary.size)
+
+                    addTransactionsToCursorSince(transactionsSummary, cursor, since.toLong())
                     return cursor
                 } else if (selection == TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID) {
-                Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                val guid = selectionArgs!!.get(0)
-                val transactionsSummary = service.getTransactionsSummary(guid)
-                cursor = TransactionsSummaryCursor(transactionsSummary.size)
+                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
+                    val guid = selectionArgs!!.get(0)
+                    val since = 0L
+                    val transactionsSummary = service.getTransactionsSummary(guid)
+                    cursor = TransactionsSummaryCursor(transactionsSummary.size)
 
-                for (rowItem in transactionsSummary) {
-                    val riskProfile = rowItem.confirmationRiskProfile.orNull()
-                    val columnValues = listOf(
-                            rowItem.txid.toString(),                          //TransactionContract.TransactionSummary._ID
-                            rowItem.value.value.toPlainString(),           //TransactionContract.TransactionSummary.VALUE
-                            if (rowItem.isIncoming) 1 else 0,              //TransactionContract.TransactionSummary.IS_INCOMING
-                            rowItem.time,                                  //TransactionContract.TransactionSummary.TIME
-                            rowItem.height,                                //TransactionContract.TransactionSummary.HEIGHT
-                            rowItem.confirmations,                         //TransactionContract.TransactionSummary.CONFIRMATIONS
-                            if (rowItem.isQueuedOutgoing) 1 else 0,        //TransactionContract.TransactionSummary.IS_QUEUED_OUTGOING
-                            riskProfile?.unconfirmedChainLength ?: -1,     //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_LENGTH
-                            riskProfile?.hasRbfRisk,                       //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_RBF_RISK
-                            riskProfile?.isDoubleSpend,                    //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_DOUBLE_SPEND
-                            rowItem.destinationAddress.orNull()?.toString(),//TransactionContract.TransactionSummary.DESTINATION_ADDRESS
-                            rowItem.toAddresses.joinToString(",")          //TransactionContract.TransactionSummary.TO_ADDRESSES
-                    )
-                    cursor.addRow(columnValues)
+                    addTransactionsToCursorSince(transactionsSummary, cursor, since)
+                    return cursor
+                } else if (selection == TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID_SINCE) {
+                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
+                    val guid = selectionArgs!!.get(0)
+                    val since = selectionArgs.get(1)
+                    val transactionsSummary = service.getTransactionsSummary(guid)
+                    cursor = TransactionsSummaryCursor(transactionsSummary.size)
+
+                    addTransactionsToCursorSince(transactionsSummary, cursor, since.toLong())
+                    return cursor
                 }
-                return cursor
-            }
 
             TRANSACTION_DETAILS_ID ->
                 if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX) {
@@ -223,6 +210,35 @@ class TransactionContentProvider : ContentProvider() {
             }
         }
         return cursor
+    }
+
+    /**
+     * @since time in milliseconds
+     */
+    private fun addTransactionsToCursorSince(transactionsSummary: List<com.mycelium.spvmodule.model.TransactionSummary>, cursor: MatrixCursor, since: Long) {
+        val sinceSec = TimeUnit.MILLISECONDS.toSeconds(since)
+        for (rowItem in transactionsSummary) {
+            if (rowItem.time > sinceSec) {
+                val riskProfile = rowItem.confirmationRiskProfile.orNull()
+                val columnValues = listOf(
+                        rowItem.txid.toString(),                       //TransactionContract.TransactionSummary._ID
+                        (rowItem.value as ExactBitcoinValue).asBitcoin
+                                .longValue.toString(),                 //TransactionContract.TransactionSummary.VALUE
+                        if (rowItem.isIncoming) 1 else 0,              //TransactionContract.TransactionSummary.IS_INCOMING
+                        rowItem.time,                                  //TransactionContract.TransactionSummary.TIME
+                        rowItem.height,                                //TransactionContract.TransactionSummary.HEIGHT
+                        rowItem.confirmations,                         //TransactionContract.TransactionSummary.CONFIRMATIONS
+                        if (rowItem.isQueuedOutgoing) 1 else 0,        //TransactionContract.TransactionSummary.IS_QUEUED_OUTGOING
+                        riskProfile?.unconfirmedChainLength
+                                ?: -1,     //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_LENGTH
+                        riskProfile?.hasRbfRisk,                       //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_RBF_RISK
+                        riskProfile?.isDoubleSpend,                    //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_DOUBLE_SPEND
+                        rowItem.destinationAddress.orNull()?.toString(),//TransactionContract.TransactionSummary.DESTINATION_ADDRESS
+                        rowItem.toAddresses.joinToString(",")          //TransactionContract.TransactionSummary.TO_ADDRESSES
+                )
+                cursor.addRow(columnValues)
+            }
+        }
     }
 
     override fun insert(uri: Uri?, values: ContentValues?): Uri {
