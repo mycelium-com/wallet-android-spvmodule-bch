@@ -943,6 +943,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             }
             // if idling, shutdown service
             if (isIdle) {
+                chainDownloadPercentDone = 100
                 Log.i(LOG_TAG, "Idling is detected, restart the $LOG_TAG")
                 // AbstractScheduledService#shutDown is guaranteed not to run concurrently
                 // with {@link AbstractScheduledService#runOneIteration}. Se we restart the service in
