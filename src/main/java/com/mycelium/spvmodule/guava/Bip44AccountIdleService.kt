@@ -352,13 +352,16 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 //Start download blockchain
                 Log.i(LOG_TAG, "checkImpediments, peergroup startBlockChainDownload")
                 peerGroup!!.startBlockChainDownload(downloadProgressTracker)
-                //Release wakelock
-                if (wakeLock != null && wakeLock!!.isHeld) {
-                    wakeLock!!.release()
-                    wakeLock = null
-                }
             } else {
                 Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $peerGroup")
+                for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
+                    peerGroup!!.removeWallet(walletAccount)
+                }
+            }
+            //Release wakelock
+            if (wakeLock != null && wakeLock!!.isHeld) {
+                wakeLock!!.release()
+                wakeLock = null
             }
             broadcastBlockchainState()
         }
