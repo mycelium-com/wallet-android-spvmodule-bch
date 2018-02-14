@@ -82,7 +82,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         }
 
         Bip44AccountIdleService.getInstance()!!.addWalletAccount(spendingKeyB58, creationTimeSeconds, accountIndex)
-        restartBip44AccountIdleService()
+        restartBip44AccountIdleService(true)
     }
 
     @Synchronized
@@ -93,7 +93,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
     fun removeHdAccount(accountIndex: Int) {
         Bip44AccountIdleService.getInstance()!!.removeHdAccount(accountIndex)
-        restartBip44AccountIdleService(true)
+        restartBip44AccountIdleService()
     }
 
     fun removeSingleAddressAccount(guid: String) {
