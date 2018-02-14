@@ -119,13 +119,22 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
         spvModuleApplication.applicationContext.registerReceiver(connectivityReceiver, intentFilter)
 
-        val blockChainFile = File(spvModuleApplication.getDir("blockstore", Context.MODE_PRIVATE),
-                Constants.Files.BLOCKCHAIN_FILENAME+"-BCH")
-        blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, blockChainFile)
+        blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, getBlockchainFile())
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
         shareCurrentWalletState()
         initializePeergroup()
+    }
+
+    private fun getBlockchainFile() : File {
+        return File(spvModuleApplication.getDir("blockstore", Context.MODE_PRIVATE),
+                Constants.Files.BLOCKCHAIN_FILENAME+"-BCH")
+    }
+
+    fun resetBlockchainState() {
+        val blockchainFile = getBlockchainFile()
+        if (blockchainFile.exists())
+            blockchainFile.delete()
     }
 
     private fun shareCurrentWalletState() {
