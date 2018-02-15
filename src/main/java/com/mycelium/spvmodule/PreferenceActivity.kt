@@ -19,6 +19,7 @@ package com.mycelium.spvmodule
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.text.Html
 import android.view.ViewGroup.LayoutParams
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.widget.ScrollView
@@ -26,6 +27,7 @@ import android.widget.ScrollView
 class PreferenceActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        title = Html.fromHtml(getString(R.string.module_name))
         val sw = ScrollView(this)
         sw.id = 171415
         setContentView(sw, LayoutParams(MATCH_PARENT, MATCH_PARENT))
