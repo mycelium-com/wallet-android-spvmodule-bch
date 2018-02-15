@@ -14,7 +14,6 @@ import android.text.format.DateUtils
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
-import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.AbstractScheduledService
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
@@ -37,13 +36,9 @@ import org.bitcoinj.store.SPVBlockStore
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.*
 import java.io.*
-import java.lang.Math.abs
 import java.net.InetSocketAddress
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentSkipListSet
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
@@ -78,6 +73,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
     private var chainDownloadPercentDone : Int = 0
+    private val semaphore : Semaphore = Semaphore(1)
 
     fun getSyncProgress() : Int {
         return chainDownloadPercentDone
@@ -766,7 +762,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun getPrivateKeysCount(accountIndex : Int) : Int {
         //If we don't have an account with corresponding index
-        if (!walletsAccountsMap.contains(accountIndex))
+        if (walletsAccountsMap.get(accountIndex) == null)
             return 0
         val walletAccount = walletsAccountsMap.get(accountIndex)
         return walletAccount!!.activeKeyChain.issuedExternalKeys
@@ -1200,9 +1196,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return org.bitcoinj.core.Address(network, bytes)
     }
 
-    @Synchronized
     private fun saveWalletAccountToFile(walletAccount: Wallet, file: File) {
+        semaphore.acquire()
         walletAccount.saveToFile(file)
+        semaphore.release()
     }
 
     inner class DownloadProgressTrackerExt : DownloadProgressTracker() {
@@ -1314,10 +1311,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    private class WalletAutosaveEventListener : WalletFiles.Listener {
-        override fun onBeforeAutoSave(file: File) {}
+    private inner class WalletAutosaveEventListener : WalletFiles.Listener {
+        override fun onBeforeAutoSave(file: File) {
+            semaphore.acquire()
+        }
 
-        override fun onAfterAutoSave(file: File) {}
+        override fun onAfterAutoSave(file: File) {
+            semaphore.release()
+        }
     }
 
     private class ActivityHistoryEntry(val numTransactionsReceived: Int, val numBlocksDownloaded: Int) {
