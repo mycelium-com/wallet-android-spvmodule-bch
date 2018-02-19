@@ -25,10 +25,9 @@ import android.os.HandlerThread
 import android.os.Process
 import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.preference.Preference
-import android.support.v7.preference.PreferenceCategory
 import android.support.v7.preference.PreferenceFragmentCompat
-import android.text.Html
 import android.util.Log
+import android.view.View
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.view.HeaderPreference
 import java.net.InetAddress
@@ -93,6 +92,11 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
 
         updateTrustedPeer()
         LocalBroadcastManager.getInstance(application!!).registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        listView.setPadding(0, 0, 0, 0)
     }
 
     private fun updateSyncProgress() {
