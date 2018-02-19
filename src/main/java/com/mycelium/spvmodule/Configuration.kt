@@ -63,6 +63,7 @@ class Configuration(private val prefs: SharedPreferences) {
         val PREFS_KEY_DATA_USAGE = "data_usage"
         val PREFS_KEY_SYNC_PROGRESS = "sync_progress"
         val PREFS_KEY_HEADER = "header"
+        val PREFS_KEY_BCH_SETTINGS = "bitcoin_cash_settings"
 
         private val PREFS_KEY_LAST_USED = "last_used"
         private val PREFS_KEY_BEST_CHAIN_HEIGHT_EVER = "best_chain_height_ever"

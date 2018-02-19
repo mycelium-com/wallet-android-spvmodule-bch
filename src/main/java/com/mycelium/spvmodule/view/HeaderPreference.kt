@@ -3,6 +3,7 @@ package com.mycelium.spvmodule.view
 import android.content.Context
 import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceViewHolder
+import android.text.Html
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.ImageSpan
@@ -22,7 +23,7 @@ class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(con
         }
         holder?.itemView?.isClickable = false
         val descriptionView = holder?.itemView?.findViewById<TextView>(R.id.description)
-        val description = context.getString(R.string.inner_module_description)
+        val description = Html.fromHtml(context.getString(R.string.inner_module_description))
         val ssb = SpannableStringBuilder(description)
         val tag = "_logo_"
         val startIndex = description.indexOf(tag)

@@ -1,38 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
-<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
-	<com.mycelium.spvmodule.view.HeaderPreference
-		android:key="header"
-		android:layout="@layout/part_preference_header" />
-	<CheckBoxPreference
-		android:defaultValue="true"
-		android:key="connectivity_notification"
-		android:summary="@string/preferences_connectivity_notification_summary"
-		android:title="@string/preferences_connectivity_notification_title" />
-	<EditTextPreference
-		android:key="trusted_peer"
-		android:summary="@string/preferences_trusted_peer_summary"
-		android:title="@string/preferences_trusted_peer_title" />
-	<CheckBoxPreference
-		android:defaultValue="false"
-		android:key="trusted_peer_only"
-		android:summary="@string/preferences_trusted_peer_only_summary"
-		android:title="@string/preferences_trusted_peer_only_title" />
-	<CheckBoxPreference
-		android:defaultValue="true"
-		android:key="broadcast_using_wapi"
-		android:summary="@string/preferences_broadcast_using_wapi_summary"
-		android:title="@string/preferences_broadcast_using_wapi_title" />
-	<Preference
-		android:key="sync_progress"
-		android:summary=""
-		android:title="Sync progress: " />
-	<Preference
-		android:key="data_usage"
-		android:summary="@string/preferences_data_usage_summary"
-		android:title="@string/preferences_data_usage_title" >
-		<intent
-			android:targetClass="com.android.settings.Settings$DataUsageSummaryActivity"
-			android:targetPackage="com.android.settings" />
-	</Preference>
-	<Preference android:layout="@layout/part_preference_footer"/>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <com.mycelium.spvmodule.view.HeaderPreference
+        android:key="header"
+        android:layout="@layout/part_preference_header" />
+    <PreferenceCategory
+        android:key="bitcoin_cash_settings"
+        android:layout="@layout/preference_category_layout"
+        android:title="@string/bitcoin_cash_setting_section">
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="connectivity_notification"
+            android:layout="@layout/preference_layout"
+            android:summary="@string/preferences_connectivity_notification_summary"
+            android:title="@string/preferences_connectivity_notification_title" />
+        <EditTextPreference
+            android:key="trusted_peer"
+            android:layout="@layout/preference_layout"
+            android:summary="@string/preferences_trusted_peer_summary"
+            android:title="@string/preferences_trusted_peer_title" />
+        <CheckBoxPreference
+            android:defaultValue="false"
+            android:key="trusted_peer_only"
+            android:layout="@layout/preference_layout"
+            android:summary="@string/preferences_trusted_peer_only_summary"
+            android:title="@string/preferences_trusted_peer_only_title" />
+        <CheckBoxPreference
+            android:defaultValue="true"
+            android:key="broadcast_using_wapi"
+            android:layout="@layout/preference_layout"
+            android:summary="@string/preferences_broadcast_using_wapi_summary"
+            android:title="@string/preferences_broadcast_using_wapi_title" />
+        <Preference
+            android:key="sync_progress"
+            android:summary=""
+            android:layout="@layout/preference_layout"
+            android:title="@string/sync_progress" />
+        <Preference
+            android:key="data_usage"
+            android:layout="@layout/preference_layout"
+            android:summary="@string/preferences_data_usage_summary"
+            android:title="@string/preferences_data_usage_title">
+            <intent
+                android:targetClass="com.android.settings.Settings$DataUsageSummaryActivity"
+                android:targetPackage="com.android.settings" />
+        </Preference>
+    </PreferenceCategory>
+    <Preference android:layout="@layout/part_preference_footer" />
 </PreferenceScreen>
