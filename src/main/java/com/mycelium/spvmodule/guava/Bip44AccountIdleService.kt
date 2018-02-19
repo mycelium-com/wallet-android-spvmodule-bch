@@ -73,7 +73,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
     private var chainDownloadPercentDone : Int = 0
-    private val semaphore : Semaphore = Semaphore(1)
+    private val semaphore : Semaphore = Semaphore(100)
 
     fun getSyncProgress() : Int {
         return chainDownloadPercentDone
@@ -104,6 +104,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
+    @Synchronized
     override fun startUp() {
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
@@ -115,22 +116,13 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
         spvModuleApplication.applicationContext.registerReceiver(connectivityReceiver, intentFilter)
 
-        blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, getBlockchainFile())
+        val blockChainFile = File(spvModuleApplication.getDir("blockstore", Context.MODE_PRIVATE),
+                Constants.Files.BLOCKCHAIN_FILENAME+"-BCH")
+        blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, blockChainFile)
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
         shareCurrentWalletState()
         initializePeergroup()
-    }
-
-    private fun getBlockchainFile() : File {
-        return File(spvModuleApplication.getDir("blockstore", Context.MODE_PRIVATE),
-                Constants.Files.BLOCKCHAIN_FILENAME+"-BCH")
-    }
-
-    fun resetBlockchainState() {
-        val blockchainFile = getBlockchainFile()
-        if (blockchainFile.exists())
-            blockchainFile.delete()
     }
 
     private fun shareCurrentWalletState() {
@@ -401,13 +393,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun loadWalletFromProtobuf(accountIndex: Int, walletAccountFile: File): Wallet {
+        semaphore.acquire(100)
         var wallet = FileInputStream(walletAccountFile).use { walletStream ->
             try {
-                WalletProtobufSerializer().readWallet(walletStream).apply {
-                    if (params != Constants.NETWORK_PARAMETERS) {
-                        throw UnreadableWalletException("bad wallet network parameters: ${params.id}")
-                    }
-                }
+                Wallet.loadFromFileStream(walletStream)
             } catch (x: FileNotFoundException) {
                 Log.e(LOG_TAG, "problem loading wallet", x)
                 Looper.prepare()
@@ -420,6 +409,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 restoreWalletFromBackup(accountIndex)
             }
         }
+        semaphore.release(100)
 
         if (!wallet!!.isConsistent) {
             Toast.makeText(spvModuleApplication, "inconsistent wallet: " + walletAccountFile, Toast.LENGTH_LONG).show()
@@ -433,13 +423,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun loadSingleAddressWalletFromProtobuf(guid: String, walletAccountFile: File): Wallet {
+        semaphore.acquire(100)
         var wallet = FileInputStream(walletAccountFile).use { walletStream ->
             try {
-                WalletProtobufSerializer().readWallet(walletStream).apply {
-                    if (params != Constants.NETWORK_PARAMETERS) {
-                        throw UnreadableWalletException("bad wallet network parameters: ${params.id}")
-                    }
-                }
+                Wallet.loadFromFileStream(walletStream)
             } catch (x: FileNotFoundException) {
                 Log.e(LOG_TAG, "problem loading wallet", x)
                 Toast.makeText(spvModuleApplication, x.javaClass.name, Toast.LENGTH_LONG).show()
@@ -450,6 +437,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 restoreSingleAddressWalletFromBackup(guid)
             }
         }
+        semaphore.release(100)
 
         if (!wallet!!.isConsistent) {
             Toast.makeText(spvModuleApplication, "inconsistent wallet: " + walletAccountFile, Toast.LENGTH_LONG).show()
@@ -530,6 +518,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         builder.clearLastSeenBlockTimeSecs()
         val walletProto = builder.build()
 
+        semaphore.acquire()
         backupFileOutputStream(accountIndex).use {
             try {
                 walletProto.writeTo(it)
@@ -537,6 +526,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 Log.e(LOG_TAG, "problem writing key backup", x)
             }
         }
+        semaphore.release()
     }
 
     private fun backupSingleAddressWallet(walletAccount: Wallet, guid: String) {
@@ -549,6 +539,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         builder.clearLastSeenBlockTimeSecs()
         val walletProto = builder.build()
 
+        semaphore.acquire()
         backupSingleAddressFileOutputStream(guid).use {
             try {
                 walletProto.writeTo(it)
@@ -556,6 +547,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 Log.e(LOG_TAG, "problem writing key backup", x)
             }
         }
+        semaphore.release()
     }
 
     private fun cleanupFiles(accountIndex: Int) {
