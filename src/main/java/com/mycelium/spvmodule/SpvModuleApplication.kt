@@ -82,13 +82,13 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         }
 
         Bip44AccountIdleService.getInstance()!!.addWalletAccount(spendingKeyB58, creationTimeSeconds, accountIndex)
-        restartBip44AccountIdleService()
+        restartBip44AccountIdleService(true)
     }
 
     @Synchronized
     fun addSingleAddressAccountWithPrivateKey(guid: String, privateKey: ByteArray) {
         Bip44AccountIdleService.getInstance()!!.addSingleAddressAccount(guid, privateKey)
-        restartBip44AccountIdleService()
+        restartBip44AccountIdleService(true)
     }
 
     fun removeHdAccount(accountIndex: Int) {
@@ -101,7 +101,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         restartBip44AccountIdleService()
     }
 
-    internal fun restartBip44AccountIdleService() {
+    internal fun restartBip44AccountIdleService(rescan: Boolean = false) {
         Log.d(LOG_TAG, "restartBip44AccountIdleService, stopAsync")
         try {
             val service = Bip44AccountIdleService.getInstance()!!.stopAsync()
@@ -110,6 +110,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         } catch (e : Throwable) {
             Log.e(LOG_TAG, e.localizedMessage, e)
         } finally {
+            if (rescan)
+                Bip44AccountIdleService().resetBlockchainState()
             Log.d(LOG_TAG, "restartBip44AccountIdleService, startAsync")
             Bip44AccountIdleService().startAsync()
             Log.d(LOG_TAG, "restartBip44AccountIdleService, DONE")
