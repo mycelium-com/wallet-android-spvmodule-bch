@@ -104,7 +104,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    @Synchronized
     override fun startUp() {
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
