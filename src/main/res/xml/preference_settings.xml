@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
-	<Preference
-		android:key="mycelium_wallet"
-		android:summary="@string/start_wallet_application"
-		android:icon="@drawable/ic_mycelium_wallet"
-		android:title="@string/mycelium_wallet" />
+	<com.mycelium.spvmodule.view.HeaderPreference
+		android:key="header"
+		android:layout="@layout/part_preference_header" />
 	<CheckBoxPreference
 		android:defaultValue="true"
 		android:key="connectivity_notification"
@@ -25,6 +23,10 @@
 		android:summary="@string/preferences_broadcast_using_wapi_summary"
 		android:title="@string/preferences_broadcast_using_wapi_title" />
 	<Preference
+		android:key="sync_progress"
+		android:summary=""
+		android:title="Sync progress: " />
+	<Preference
 		android:key="data_usage"
 		android:summary="@string/preferences_data_usage_summary"
 		android:title="@string/preferences_data_usage_title" >
@@ -32,8 +34,5 @@
 			android:targetClass="com.android.settings.Settings$DataUsageSummaryActivity"
 			android:targetPackage="com.android.settings" />
 	</Preference>
-	<Preference
-		android:key="sync_progress"
-		android:summary=""
-		android:title="Sync progress: " />
+	<Preference android:layout="@layout/part_preference_footer"/>
 </PreferenceScreen>

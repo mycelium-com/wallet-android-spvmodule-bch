@@ -90,4 +90,7 @@
     <string name="pref_title_sync_progress">Sync progress: %d%%.</string>
     <string name="mycelium_wallet">Mycelium Wallet</string>
     <string name="start_wallet_application">Open the wallet application</string>
+    <string name="inner_module_description">This module is part of your MBW of Mycelium _logo_ finds if you have not retrieved BCH and allows you to exchange you BCH to BTC instantly. Full BCH support is coming soon.</string>
+    <string name="open_mycelium_wallet">Open Mycelium Wallet</string>
+    <string name="footer_text">You can always get to BCH Module from Mycelium by Settings > Modules > Bitcoin <font color="#f08c18">Cash</font> Module</string>
 </resources>

@@ -28,6 +28,7 @@ import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
 import android.util.Log
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
+import com.mycelium.spvmodule.view.HeaderPreference
 import java.net.InetAddress
 
 
@@ -59,9 +60,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         backgroundThread = HandlerThread("backgroundThread", Process.THREAD_PRIORITY_BACKGROUND)
         backgroundThread!!.start()
         backgroundHandler = Handler(backgroundThread!!.looper)
-
-        findPreference(Configuration.PREFS_KEY_WALLET).setOnPreferenceClickListener {
-
+        val header = findPreference(Configuration.PREFS_KEY_HEADER) as HeaderPreference
+        header.openListener = {
             val walletPackage = "com.mycelium" +
                     if (BuildConfig.FLAVOR == "prodnet") ".wallet" else ".testnetwallet" +
                             if (BuildConfig.DEBUG) ".debug" else ""
@@ -71,11 +71,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
                 try {
                     startActivity(intent)
                 } catch (e: ActivityNotFoundException) {
-                    Log.e("SettingsFragment", "Something wrong with wallet", e)
+                    Log.e("PreferenceActivity", "Something wrong with wallet", e)
                 }
             }
             activity?.finish()
-            true
         }
 
         trustedPeerPreference = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER)

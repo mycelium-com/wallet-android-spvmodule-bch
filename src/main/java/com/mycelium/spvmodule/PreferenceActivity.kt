@@ -20,21 +20,16 @@ package com.mycelium.spvmodule
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.text.Html
-import android.view.ViewGroup.LayoutParams
-import android.view.ViewGroup.LayoutParams.MATCH_PARENT
-import android.widget.ScrollView
 
 class PreferenceActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_preference)
         title = Html.fromHtml(getString(R.string.module_name))
-        val sw = ScrollView(this)
-        sw.id = 171415
-        setContentView(sw, LayoutParams(MATCH_PARENT, MATCH_PARENT))
         if (savedInstanceState == null) {
             val settingsFragment = SettingsFragment()
             val ft = supportFragmentManager.beginTransaction()
-            ft.add(sw.id, settingsFragment)
+            ft.add(R.id.fragment_container, settingsFragment)
             ft.commit()
         }
     }

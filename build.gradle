@@ -109,4 +109,5 @@ dependencies {
     implementation(guavaArtifact) {
         force = true
     }
+    implementation project(':view')
 }
