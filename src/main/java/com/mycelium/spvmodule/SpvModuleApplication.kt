@@ -82,7 +82,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         }
 
         Bip44AccountIdleService.getInstance()!!.addWalletAccount(spendingKeyB58, creationTimeSeconds, accountIndex)
-        restartBip44AccountIdleService(true)
+        restartBip44AccountIdleService()
     }
 
     @Synchronized
