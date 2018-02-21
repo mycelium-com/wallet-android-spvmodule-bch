@@ -489,7 +489,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun afterLoadWallet(walletAccount: Wallet, accountIndex: Int) {
-        Log.d(LOG_TAG, "afterLoadWallet, accountIndex = $accountIndex")
+        Log.d(LOG_TAG, "afterLoadWallet, accountIndex = $accountIndex, walletAccount.lastBlockSeenTimeSecs ="
+                + " ${walletAccount.lastBlockSeenTimeSecs}, "
+                + "walletAccount.earliestKeyCreationTime = ${walletAccount.earliestKeyCreationTime}")
         walletAccount.autosaveToFile(walletFile(accountIndex), 10, TimeUnit.SECONDS, WalletAutosaveEventListener())
         // clean up spam
         walletAccount.cleanup()
@@ -497,7 +499,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun afterLoadSingleAddressWallet(walletAccount: Wallet, guid: String) {
-        Log.d(LOG_TAG, "afterLoadWallet, accountIndex = $guid")
+        Log.d(LOG_TAG, "afterLoadSingleAddressWallet, accountIndex = $guid, walletAccount.lastBlockSeenTimeSecs = ${walletAccount.lastBlockSeenTimeSecs}")
         walletAccount.autosaveToFile(singleAddressWalletFile(guid), 10, TimeUnit.SECONDS, WalletAutosaveEventListener())
         // clean up spam
         walletAccount.cleanup()
