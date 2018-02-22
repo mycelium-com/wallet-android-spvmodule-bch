@@ -70,6 +70,7 @@ class SpvService : IntentService("SpvService") {
                 }
                 ACTION_SEND_FUNDS -> {
                     accountIndex = getAccountIndex(intent) ?: return
+                    val operationId = intent.getStringExtra(IntentContract.SendFunds.OPERATION_ID)
                     val rawAddress = intent.getStringExtra(IntentContract.SendFunds.ADDRESS_EXTRA)
                     val rawAmount = intent.getLongExtra(IntentContract.SendFunds.AMOUNT_EXTRA, -1)
                     val txFeeStr = intent.getStringExtra(IntentContract.SendFunds.FEE_EXTRA)
@@ -86,8 +87,10 @@ class SpvService : IntentService("SpvService") {
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
                     application.broadcastTransaction(sendRequest, accountIndex)
+                    SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString)
                 }
                 ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
+                    val operationId = intent.getStringExtra(IntentContract.SendFunds.OPERATION_ID)
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
                     val rawAddress = intent.getStringExtra(IntentContract.SendFundsSingleAddress.ADDRESS_EXTRA)
                     val rawAmount = intent.getLongExtra(IntentContract.SendFundsSingleAddress.AMOUNT_EXTRA, -1)
@@ -105,6 +108,7 @@ class SpvService : IntentService("SpvService") {
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
                     application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
+                    SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString)
                 }
                 ACTION_RECEIVE_TRANSACTIONS -> {
                     accountIndex = getAccountIndex(intent) ?: return

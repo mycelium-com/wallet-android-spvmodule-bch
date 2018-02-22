@@ -96,5 +96,12 @@ class SpvMessageSender {
             }
             send(intent)
         }
+
+        fun notifyBroadcastTransactionBroadcastCompleted(operationId : String, txHash : String) {
+            val intent = Intent("com.mycelium.wallet.notifyBroadcastTransactionBroadcastCompleted").apply {
+                putExtra(IntentContract.OPERATION_ID, operationId)
+                putExtra(IntentContract.TRANSACTION_HASH, txHash)
+            }
+        }
     }
 }
