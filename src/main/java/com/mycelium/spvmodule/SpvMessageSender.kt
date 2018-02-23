@@ -102,6 +102,7 @@ class SpvMessageSender {
                 putExtra(IntentContract.OPERATION_ID, operationId)
                 putExtra(IntentContract.TRANSACTION_HASH, txHash)
             }
+            send(intent)
         }
     }
 }

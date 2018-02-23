@@ -86,16 +86,20 @@ class SpvService : IntentService("SpvService") {
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
-                    application.broadcastTransaction(sendRequest, accountIndex)
-                    SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString)
+                    try {
+                        application.broadcastTransaction(sendRequest, accountIndex)
+                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString)
+                    } catch (ex : Exception) {
+                        Log.e(LOG_TAG, ex.toString());
+                    }
                 }
                 ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
-                    val operationId = intent.getStringExtra(IntentContract.SendFunds.OPERATION_ID)
+                    val operationId = intent.getStringExtra(IntentContract.SendFundsSingleAddress.OPERATION_ID)
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
                     val rawAddress = intent.getStringExtra(IntentContract.SendFundsSingleAddress.ADDRESS_EXTRA)
                     val rawAmount = intent.getLongExtra(IntentContract.SendFundsSingleAddress.AMOUNT_EXTRA, -1)
-                    val txFeeStr = intent.getStringExtra(IntentContract.SendFunds.FEE_EXTRA)
-                    val txFeeFactor = intent.getFloatExtra(IntentContract.SendFunds.FEE_FACTOR_EXTRA, 0.0f)
+                    val txFeeStr = intent.getStringExtra(IntentContract.SendFundsSingleAddress.FEE_EXTRA)
+                    val txFeeFactor = intent.getFloatExtra(IntentContract.SendFundsSingleAddress.FEE_FACTOR_EXTRA, 0.0f)
                     if (rawAddress.isEmpty() || rawAmount < 0 || txFeeStr == null || txFeeFactor == 0.0f) {
                         Log.e(LOG_TAG, "Could not send funds with parameters rawAddress $rawAddress, "
                                 + "rawAmount $rawAmount, feePerKb $txFeeStr and feePerFactor $txFeeFactor.")
@@ -107,8 +111,12 @@ class SpvService : IntentService("SpvService") {
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
-                    application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
-                    SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString)
+                    try {
+                        application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
+                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString)
+                    } catch (ex : Exception) {
+                        Log.e(LOG_TAG, ex.toString());
+                    }
                 }
                 ACTION_RECEIVE_TRANSACTIONS -> {
                     accountIndex = getAccountIndex(intent) ?: return
