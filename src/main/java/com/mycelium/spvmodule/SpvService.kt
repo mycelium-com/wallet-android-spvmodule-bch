@@ -88,9 +88,9 @@ class SpvService : IntentService("SpvService") {
 
                     try {
                         application.broadcastTransaction(sendRequest, accountIndex)
-                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString)
+                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString, true, "")
                     } catch (ex : Exception) {
-                        Log.e(LOG_TAG, ex.toString());
+                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
                 }
                 ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
@@ -113,9 +113,9 @@ class SpvService : IntentService("SpvService") {
 
                     try {
                         application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
-                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString)
+                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString, true, "")
                     } catch (ex : Exception) {
-                        Log.e(LOG_TAG, ex.toString());
+                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
                 }
                 ACTION_RECEIVE_TRANSACTIONS -> {
