@@ -851,19 +851,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     return
                 }
                 Log.d(LOG_TAG, "walletEventListener, checkIfFirstTransaction, first transaction " +
-                        "found on that wallet/account with accountIndex = $accountIndex," +
-                        " stop the download of the blockchain")
-                //TODO Investigate why it is stuck while stopping.
-                val listenableFuture = peerGroup!!.stopAsync()
-                listenableFuture.addListener(
-                        Runnable {
-                            Log.d(LOG_TAG, "walletEventListener, checkIfFirstTransaction, will try to " +
-                                    "addWalletAccountWithExtendedKey with newAccountIndex = $newAccountIndex")
-                            spvModuleApplication.addWalletAccountWithExtendedKey(spendingKeyB58,
-                                    walletAccount.lastBlockSeenTimeSecs + 1,
-                                    newAccountIndex)
-                        },
-                        Executors.newSingleThreadExecutor())
+                        "found on that wallet/account with accountIndex = $accountIndex,")
+
+                spvModuleApplication.addWalletAccountWithExtendedKey(spendingKeyB58,
+                        walletAccount.lastBlockSeenTimeSecs + 1,
+                        newAccountIndex)
             }
         }
 

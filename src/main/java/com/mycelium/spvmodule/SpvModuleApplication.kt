@@ -82,7 +82,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         }
 
         Bip44AccountIdleService.getInstance()!!.addWalletAccount(spendingKeyB58, creationTimeSeconds, accountIndex)
-        restartBip44AccountIdleService()
+
+        // Initiate service restart after first HD key was added in order to start blockchain scan
+        if (accountIndex == 0) {
+            restartBip44AccountIdleService()
+        }
     }
 
     @Synchronized
