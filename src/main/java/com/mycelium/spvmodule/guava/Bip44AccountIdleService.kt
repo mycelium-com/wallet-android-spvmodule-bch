@@ -73,7 +73,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
     private var chainDownloadPercentDone : Int = 0
-    private val semaphore : Semaphore = Semaphore(100)
+    val WRITE_THREADS_LIMIT = 100
+    private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
     fun getSyncProgress() : Int {
         return chainDownloadPercentDone
@@ -401,7 +402,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun loadWalletFromProtobuf(accountIndex: Int, walletAccountFile: File): Wallet {
-        semaphore.acquire(100)
+        semaphore.acquire(WRITE_THREADS_LIMIT)
         var wallet = FileInputStream(walletAccountFile).use { walletStream ->
             try {
                 Wallet.loadFromFileStream(walletStream)
@@ -417,7 +418,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 restoreWalletFromBackup(accountIndex)
             }
         }
-        semaphore.release(100)
+        semaphore.release(WRITE_THREADS_LIMIT)
 
         if (!wallet!!.isConsistent) {
             Toast.makeText(spvModuleApplication, "inconsistent wallet: " + walletAccountFile, Toast.LENGTH_LONG).show()
@@ -431,7 +432,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun loadSingleAddressWalletFromProtobuf(guid: String, walletAccountFile: File): Wallet {
-        semaphore.acquire(100)
+        semaphore.acquire(WRITE_THREADS_LIMIT)
         var wallet = FileInputStream(walletAccountFile).use { walletStream ->
             try {
                 Wallet.loadFromFileStream(walletStream)
@@ -445,7 +446,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 restoreSingleAddressWalletFromBackup(guid)
             }
         }
-        semaphore.release(100)
+        semaphore.release(WRITE_THREADS_LIMIT)
 
         if (!wallet!!.isConsistent) {
             Toast.makeText(spvModuleApplication, "inconsistent wallet: " + walletAccountFile, Toast.LENGTH_LONG).show()
