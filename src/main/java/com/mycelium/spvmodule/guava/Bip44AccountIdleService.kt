@@ -73,7 +73,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
     private var chainDownloadPercentDone : Int = 0
-    private val semaphore : Semaphore = Semaphore(1)
+    val WRITE_THREADS_LIMIT = 100
+    private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
     fun getSyncProgress() : Int {
         return chainDownloadPercentDone
@@ -401,13 +402,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun loadWalletFromProtobuf(accountIndex: Int, walletAccountFile: File): Wallet {
+        semaphore.acquire(WRITE_THREADS_LIMIT)
         var wallet = FileInputStream(walletAccountFile).use { walletStream ->
             try {
-                WalletProtobufSerializer().readWallet(walletStream).apply {
-                    if (params != Constants.NETWORK_PARAMETERS) {
-                        throw UnreadableWalletException("bad wallet network parameters: ${params.id}")
-                    }
-                }
+                Wallet.loadFromFileStream(walletStream)
             } catch (x: FileNotFoundException) {
                 Log.e(LOG_TAG, "problem loading wallet", x)
                 Looper.prepare()
@@ -420,6 +418,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 restoreWalletFromBackup(accountIndex)
             }
         }
+        semaphore.release(WRITE_THREADS_LIMIT)
 
         if (!wallet!!.isConsistent) {
             Toast.makeText(spvModuleApplication, "inconsistent wallet: " + walletAccountFile, Toast.LENGTH_LONG).show()
@@ -433,13 +432,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun loadSingleAddressWalletFromProtobuf(guid: String, walletAccountFile: File): Wallet {
+        semaphore.acquire(WRITE_THREADS_LIMIT)
         var wallet = FileInputStream(walletAccountFile).use { walletStream ->
             try {
-                WalletProtobufSerializer().readWallet(walletStream).apply {
-                    if (params != Constants.NETWORK_PARAMETERS) {
-                        throw UnreadableWalletException("bad wallet network parameters: ${params.id}")
-                    }
-                }
+                Wallet.loadFromFileStream(walletStream)
             } catch (x: FileNotFoundException) {
                 Log.e(LOG_TAG, "problem loading wallet", x)
                 Toast.makeText(spvModuleApplication, x.javaClass.name, Toast.LENGTH_LONG).show()
@@ -450,6 +446,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 restoreSingleAddressWalletFromBackup(guid)
             }
         }
+        semaphore.release(WRITE_THREADS_LIMIT)
 
         if (!wallet!!.isConsistent) {
             Toast.makeText(spvModuleApplication, "inconsistent wallet: " + walletAccountFile, Toast.LENGTH_LONG).show()
@@ -532,6 +529,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         builder.clearLastSeenBlockTimeSecs()
         val walletProto = builder.build()
 
+        semaphore.acquire()
         backupFileOutputStream(accountIndex).use {
             try {
                 walletProto.writeTo(it)
@@ -539,6 +537,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 Log.e(LOG_TAG, "problem writing key backup", x)
             }
         }
+        semaphore.release()
     }
 
     private fun backupSingleAddressWallet(walletAccount: Wallet, guid: String) {
@@ -551,6 +550,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         builder.clearLastSeenBlockTimeSecs()
         val walletProto = builder.build()
 
+        semaphore.acquire()
         backupSingleAddressFileOutputStream(guid).use {
             try {
                 walletProto.writeTo(it)
@@ -558,6 +558,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 Log.e(LOG_TAG, "problem writing key backup", x)
             }
         }
+        semaphore.release()
     }
 
     private fun cleanupFiles(accountIndex: Int) {
