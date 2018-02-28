@@ -76,9 +76,19 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     val WRITE_THREADS_LIMIT = 100
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
-    fun getSyncProgress() : Int {
-        return chainDownloadPercentDone
+    fun getSyncProgress(): Int {
+        return if (chainDownloadPercentDone == 0) {
+            sharedPreferences.getInt(SYNC_PROGRESS_PREF, 0)
+        } else {
+            chainDownloadPercentDone
+        }
     }
+
+    fun setSyncProgress(value: Int) {
+        chainDownloadPercentDone = value
+        sharedPreferences.edit().putInt(SYNC_PROGRESS_PREF, value).apply()
+    }
+
     override fun shutDown() {
         Log.d(LOG_TAG, "shutDown")
         stopPeergroup()
@@ -950,7 +960,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             }
             // if idling, shutdown service
             if (isIdle) {
-                chainDownloadPercentDone = 100
+                setSyncProgress(100)
                 Log.i(LOG_TAG, "Idling is detected, restart the $LOG_TAG")
                 // AbstractScheduledService#shutDown is guaranteed not to run concurrently
                 // with {@link AbstractScheduledService#runOneIteration}. Se we restart the service in
@@ -1226,7 +1236,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun progress(pct: Double, blocksSoFar: Int, date: Date) {
-            chainDownloadPercentDone = getDownloadPercentDone()
+            setSyncProgress(getDownloadPercentDone())
             broadcastBlockchainState()
             Log.d(LOG_TAG, String.format(Locale.US, "Chain download %d%% done with %d blocks to go, block date %s", pct.toInt(), blocksSoFar,
                     Utils.dateTimeFormat(date)))
@@ -1244,7 +1254,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         override fun startDownload(blocks: Int) {
             Log.d(LOG_TAG, "Downloading block chain of size " + blocks + ". " +
                     if (blocks > 1000) "This may take a while." else "")
-            chainDownloadPercentDone = getDownloadPercentDone()
+            setSyncProgress(getDownloadPercentDone());
         }
 
         private fun updateActivityHistory() {
@@ -1263,7 +1273,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun doneDownload() {
-            chainDownloadPercentDone = 100
+            setSyncProgress(100)
             Log.d(LOG_TAG, "doneDownload(), Blockchain is fully downloaded.")
             for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
                 peerGroup!!.removeWallet(walletAccount)
@@ -1372,6 +1382,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
         private val PASSPHRASE_PREF = "bip39Passphrase"
         private val SPENDINGKEYB58_PREF = "spendingKeyB58"
+        private val SYNC_PROGRESS_PREF = "syncprogress"
         private val ACCOUNT_LOOKAHEAD = 3
     }
 
