@@ -823,7 +823,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         override fun onCoinsReceived(walletAccount: Wallet?, transaction: Transaction?,
                                      prevBalance: Coin?, newBalance: Coin?) {
             transactionsReceived.incrementAndGet()
-            checkIfFirstTransaction(walletAccount)
+            addMoreAccountsToLookAhead(walletAccount)
             for (key in walletsAccountsMap.keys()) {
                 if(walletsAccountsMap.get(key) == walletAccount) {
                     notifySatoshisReceived(transaction!!.getValue(walletAccount).value, 0L, key)
@@ -834,37 +834,33 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         override fun onCoinsSent(walletAccount: Wallet?, transaction: Transaction?,
                                  prevBalance: Coin?, newBalance: Coin?) {
             transactionsReceived.incrementAndGet()
-            checkIfFirstTransaction(walletAccount)
+            addMoreAccountsToLookAhead(walletAccount)
         }
 
-        private fun checkIfFirstTransaction(walletAccount: Wallet?) {
-            //If this is the first transaction found on that wallet/account, stop the download of the blockchain.
-            if (walletAccount!!.getRecentTransactions(2, true).size == 1) {
-                var accountIndex = 0;
-                for (key in walletsAccountsMap.keys()) {
-                    if (walletsAccountsMap.get(key)!!.currentReceiveAddress() ==
-                            walletAccount.currentReceiveAddress()) {
-                        accountIndex = key
-                    }
+        // If we found at least one transaction on the latest account in the map,
+        // it is possible that some funds may exist on the next account.
+        // So we should take the next account into work
+        private fun addMoreAccountsToLookAhead(walletAccount: Wallet?) {
+            if (walletAccount!!.getRecentTransactions(1, true).size == 1) {
+                var accountIndex = 0
+
+                // Find an HD account index in the accounts' map
+                walletsAccountsMap.entries.filter {
+                    walletAccount == it.value
+                }.forEach {
+                    accountIndex = it.key
                 }
-                val newAccountIndex = accountIndex + 1
-                if (doesWalletAccountExist(newAccountIndex + 3)) {
-                    return
+
+                if (accountIndex == walletsAccountsMap.size - 1) {
+                    val listenableFuture = peerGroup!!.stopAsync()
+                    listenableFuture.addListener(
+                            Runnable {
+                                spvModuleApplication.addWalletAccountWithExtendedKey(spendingKeyB58,
+                                        walletAccount.lastBlockSeenTimeSecs + 1,
+                                        accountIndex + 1)
+                            },
+                            Executors.newSingleThreadExecutor())
                 }
-                Log.d(LOG_TAG, "walletEventListener, checkIfFirstTransaction, first transaction " +
-                        "found on that wallet/account with accountIndex = $accountIndex," +
-                        " stop the download of the blockchain")
-                //TODO Investigate why it is stuck while stopping.
-                val listenableFuture = peerGroup!!.stopAsync()
-                listenableFuture.addListener(
-                        Runnable {
-                            Log.d(LOG_TAG, "walletEventListener, checkIfFirstTransaction, will try to " +
-                                    "addWalletAccountWithExtendedKey with newAccountIndex = $newAccountIndex")
-                            spvModuleApplication.addWalletAccountWithExtendedKey(spendingKeyB58,
-                                    walletAccount.lastBlockSeenTimeSecs + 1,
-                                    newAccountIndex)
-                        },
-                        Executors.newSingleThreadExecutor())
             }
         }
 
