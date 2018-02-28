@@ -843,11 +843,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private fun addMoreAccountsToLookAhead(walletAccount: Wallet?) {
             if (walletAccount!!.getRecentTransactions(1, true).size == 1) {
                 var accountIndex = 0
-                for (key in walletsAccountsMap.keys()) {
-                    if (walletAccount.equals(walletsAccountsMap.get(key))) {
-                        accountIndex = key
-                        break;
-                    }
+
+                // Find an HD account index in the accounts' map
+                walletsAccountsMap.entries.filter {
+                    walletAccount == it.value
+                }.forEach {
+                    accountIndex = it.key
                 }
 
                 if (accountIndex == walletsAccountsMap.size - 1) {
