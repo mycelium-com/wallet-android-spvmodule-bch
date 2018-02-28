@@ -841,7 +841,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         // it is possible that some funds may exist on the next account.
         // So we should take the next account into work
         private fun addMoreAccountsToLookAhead(walletAccount: Wallet?) {
-            if (walletAccount!!.getRecentTransactions(2, true).size == 1) {
+            if (walletAccount!!.getRecentTransactions(1, true).size == 1) {
                 var accountIndex = 0
                 for (key in walletsAccountsMap.keys()) {
                     if (walletAccount.equals(walletsAccountsMap.get(key))) {
