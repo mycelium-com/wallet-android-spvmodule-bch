@@ -1,6 +1,5 @@
 package com.mycelium.spvmodule
 
-import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -103,11 +102,6 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.RemoveSingleAddressWalletAccount.ACTION -> {
                 val guid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
                 SpvModuleApplication.getApplication().removeSingleAddressAccount(guid)
-            }
-
-            IntentContract.ForceCacheClean.ACTION -> {
-                val activityManager = SpvModuleApplication.getApplication().getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-                activityManager.clearApplicationUserData()
             }
         }
         Log.d(LOG_TAG, "Will start Service $clone")
