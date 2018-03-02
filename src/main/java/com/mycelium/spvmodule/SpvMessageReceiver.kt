@@ -3,17 +3,15 @@ package com.mycelium.spvmodule
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModuleName
-
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
-import java.util.concurrent.Executors
 import org.json.JSONObject
 import java.io.DataOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.concurrent.Executors
 
 class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
     @Synchronized
@@ -102,6 +100,10 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.RemoveSingleAddressWalletAccount.ACTION -> {
                 val guid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
                 SpvModuleApplication.getApplication().removeSingleAddressAccount(guid)
+            }
+
+            IntentContract.ForceCacheClean.ACTION -> {
+                SpvModuleApplication.getApplication().clearAllAccounts()
             }
         }
         Log.d(LOG_TAG, "Will start Service $clone")
