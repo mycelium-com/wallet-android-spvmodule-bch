@@ -140,6 +140,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun resetBlockchainState() {
         val blockchainFile = getBlockchainFile()
+        sharedPreferences.edit()
+                .remove(SYNC_PROGRESS_PREF)
+                .apply();
         if (blockchainFile.exists())
             blockchainFile.delete()
     }
