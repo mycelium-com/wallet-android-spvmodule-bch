@@ -101,6 +101,12 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         restartBip44AccountIdleService()
     }
 
+    @Synchronized
+    fun clearAllAccounts() {
+        Bip44AccountIdleService.getInstance()!!.removeAllAccounts()
+        restartBip44AccountIdleService(true)
+    }
+
     internal fun restartBip44AccountIdleService(rescan: Boolean = false) {
         Log.d(LOG_TAG, "restartBip44AccountIdleService, stopAsync")
         try {

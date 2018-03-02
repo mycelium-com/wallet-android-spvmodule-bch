@@ -5,7 +5,7 @@ import com.google.common.base.Strings
 
 class Configuration(private val prefs: SharedPreferences) {
     val connectivityNotificationEnabled: Boolean
-        get() = prefs.getBoolean(PREFS_KEY_CONNECTIVITY_NOTIFICATION, true)
+        get() = prefs.getBoolean(PREFS_KEY_CONNECTIVITY_NOTIFICATION, false)
 
     val trustedPeerHost: String?
         get() {
