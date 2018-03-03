@@ -139,6 +139,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun resetBlockchainState() {
         val blockchainFile = getBlockchainFile()
+        sharedPreferences.edit()
+                .remove(SYNC_PROGRESS_PREF)
+                .apply();
         if (blockchainFile.exists())
             blockchainFile.delete()
     }
@@ -729,6 +732,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun removeAllAccounts() {
         singleAddressAccountsMap.clear()
         walletsAccountsMap.clear()
+        sharedPreferences.edit()
+                .remove(SPENDINGKEYB58_PREF)
+                .remove(ACCOUNT_INDEX_STRING_SET_PREF)
+                .remove(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF)
+                .apply()
     }
 
     private fun createMissingAccounts(creationTimeSeconds: Long) {
@@ -965,7 +973,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             }
             // if idling, shutdown service
             if (isIdle) {
-                setSyncProgress(100)
                 Log.i(LOG_TAG, "Idling is detected, restart the $LOG_TAG")
                 // AbstractScheduledService#shutDown is guaranteed not to run concurrently
                 // with {@link AbstractScheduledService#runOneIteration}. Se we restart the service in
