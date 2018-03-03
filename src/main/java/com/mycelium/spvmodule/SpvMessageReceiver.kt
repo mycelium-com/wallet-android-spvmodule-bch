@@ -47,6 +47,17 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 clone.action = SpvService.ACTION_SEND_FUNDS_SINGLE_ADDRESS
             }
 
+            IntentContract.CreateUnsignedTransaction.ACTION -> {
+                val config = SpvModuleApplication.getApplication().configuration!!
+                val txBytes = intent.getByteArrayExtra(IntentContract.CreateUnsignedTransaction.TX_EXTRA)
+                if (config.broadcastUsingWapi) {
+                    asyncWapiBroadcast(txBytes)
+                    return
+                } else {
+                    clone.action = SpvService.ACTION_BROADCAST_TRANSACTION
+                }
+            }
+
             IntentContract.BroadcastTransaction.ACTION -> {
                 val config = SpvModuleApplication.getApplication().configuration!!
                 val txBytes = intent.getByteArrayExtra(IntentContract.BroadcastTransaction.TX_EXTRA)

@@ -817,8 +817,15 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         future.get()
     }
 
+    fun createUnsignedTransaction(sendRequest: SendRequest, accountIndex: Int) {
+        sendRequest.signInputs = false
+        walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
+        sendUnsignedTransactionToMbw(sendRequest.tx, accountIndex)
+    }
+
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
         propagate(Constants.CONTEXT)
+        sendRequest.signInputs = false
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         broadcastTransaction(sendRequest.tx, accountIndex)
     }
@@ -839,6 +846,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             blockchainState.putExtras(this)
             SpvModuleApplication.sendMbw(this)
         }
+    }
+
+    private fun sendUnsignedTransactionToMbw(transaction: Transaction, accountIndex: Int) {
+        SpvMessageSender.sendUnsignedTransactionToMbw(transaction, accountIndex)
     }
 
     private val transactionsReceived = AtomicInteger()

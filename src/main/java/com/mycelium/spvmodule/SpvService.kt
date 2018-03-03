@@ -85,8 +85,9 @@ class SpvService : IntentService("SpvService") {
                     val sendRequest = SendRequest.to(address, amount)
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
-
+                    sendRequest.signInputs = false
                     try {
+                        application.createUnsignedTransaction(sendRequest, accountIndex)
                         application.broadcastTransaction(sendRequest, accountIndex)
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString, true, "")
                     } catch (ex : Exception) {
@@ -184,6 +185,7 @@ class SpvService : IntentService("SpvService") {
         val ACTION_PEER_STATE = PACKAGE_NAME + ".peer_state"
         val ACTION_PEER_STATE_NUM_PEERS = "num_peers"
         val ACTION_BLOCKCHAIN_STATE = PACKAGE_NAME + ".blockchain_state"
+        val ACTION_SEND_UNSIGNED_TX = PACKAGE_NAME + ".send_unsigned_tx"
         val ACTION_CANCEL_COINS_RECEIVED = PACKAGE_NAME + ".cancel_coins_received"
         val ACTION_ADD_ACCOUNT = PACKAGE_NAME + ".reset_blockchain"
         val ACTION_BROADCAST_TRANSACTION = PACKAGE_NAME + ".broadcast_transaction"
