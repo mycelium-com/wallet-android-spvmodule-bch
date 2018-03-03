@@ -72,7 +72,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     @Synchronized
-    fun addWalletAccountWithExtendedKey(spendingKeyB58: String, creationTimeSeconds: Long,
+    fun addWalletAccountWithExtendedKey(creationTimeSeconds: Long,
                                         accountIndex: Int) {
         Log.d(LOG_TAG, "addWalletAccountWithExtendedKey, accountIndex = $accountIndex, " +
                 "doesWalletAccountExist for accountIndex ${accountIndex + 3} " +
@@ -81,8 +81,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             return
         }
 
-        Bip44AccountIdleService.getInstance()!!.addWalletAccount(spendingKeyB58, creationTimeSeconds, accountIndex)
-        restartBip44AccountIdleService()
+        Bip44AccountIdleService.getInstance()!!.addWalletAccount(creationTimeSeconds, accountIndex)
     }
 
     @Synchronized

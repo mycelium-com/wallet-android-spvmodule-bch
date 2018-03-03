@@ -64,10 +64,12 @@ class SpvMessageSender {
             SpvModuleApplication.sendMbw(intent)
         }
 
-        fun requestPrivateKey(accountIndex: Int) {
-            Log.d(LOG_TAG, "requestPrivateKey")
-            Intent("com.mycelium.wallet.requestPrivateExtendedKeyCoinTypeToMBW").run {
-                putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
+        fun requestAccountLevelKeys(accountIndexList: List<Int>, creationTimeSeconds : Long) {
+            Log.d(LOG_TAG, "requestAccountLevelKeys, accountIndexList = $accountIndexList, " +
+                    "creationTimeSeconds = $creationTimeSeconds")
+            Intent("com.mycelium.wallet.requestAccountLevelKeysToMBW").run {
+                putExtra(IntentContract.ACCOUNT_INDEXES_EXTRA, accountIndexList.toIntArray())
+                putExtra(IntentContract.CREATIONTIMESECONDS, creationTimeSeconds)
                 send(this)
             }
         }

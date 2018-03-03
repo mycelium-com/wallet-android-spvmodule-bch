@@ -68,7 +68,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private val peerConnectivityListener: PeerConnectivityListener = PeerConnectivityListener()
     private val notificationManager = spvModuleApplication.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private lateinit var blockStore: BlockStore
-    private var spendingKeyB58 = sharedPreferences.getString(SPENDINGKEYB58_PREF, "")
     private var counterCheckImpediments: Int = 0
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
@@ -697,16 +696,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     @Synchronized
-    fun addWalletAccount(spendingKeyB58: String, creationTimeSeconds: Long,
+    fun addWalletAccount(creationTimeSeconds: Long,
                          accountIndex: Int) {
         Log.d(LOG_TAG, "addWalletAccount, accountIndex = $accountIndex," +
                 " creationTimeSeconds = $creationTimeSeconds")
         propagate(Constants.CONTEXT)
-        this.spendingKeyB58 = spendingKeyB58
-        sharedPreferences.edit()
-                .putString(SPENDINGKEYB58_PREF, spendingKeyB58)
-                .apply()
-        createMissingAccounts(spendingKeyB58, creationTimeSeconds)
+        createMissingAccounts(creationTimeSeconds)
     }
 
     @Synchronized
@@ -736,7 +731,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         walletsAccountsMap.clear()
     }
 
-    private fun createMissingAccounts(spendingKeyB58: String, creationTimeSeconds: Long) {
+    private fun createMissingAccounts(creationTimeSeconds: Long) {
         var maxIndexWithActivity = -1
         for (accountIndexString in accountIndexStrings) {
             val accountIndex = accountIndexString.toInt()
@@ -745,23 +740,29 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 maxIndexWithActivity = Math.max(accountIndex, maxIndexWithActivity)
             }
         }
+        var listAccountsToCreate : MutableList<Int> = mutableListOf()
         for (i in maxIndexWithActivity + 1..maxIndexWithActivity + ACCOUNT_LOOKAHEAD) {
             if (walletsAccountsMap[i] == null) {
-                createOneAccount(spendingKeyB58, creationTimeSeconds, i)
+                listAccountsToCreate.add(i)
+                createOneAccount(creationTimeSeconds, i)
             }
         }
     }
 
-    private fun createOneAccount(spendingKeyB58: String, creationTimeSeconds: Long, accountIndex: Int) {
-        Log.d(LOG_TAG, "createOneAccount, accountIndex = $accountIndex," +
-                " creationTimeSeconds = $creationTimeSeconds")
+    private fun createOneAccount(accountIndex: Int, accountLevelKey: DeterministicKey) {
+        Log.d(LOG_TAG, "createOneAccount, accountLevelKey = $accountLevelKey")
         propagate(Constants.CONTEXT)
         //val walletAccount = Wallet.fromSpendingKey(Constants.NETWORK_PARAMETERS,
         //    DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS))
+
+
+        /*
         val coinTypeKey = DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS)
+
         coinTypeKey.creationTimeSeconds = creationTimeSeconds
         val accountLevelKey = HDKeyDerivation.deriveChildKey(coinTypeKey,
                 ChildNumber(accountIndex, true), creationTimeSeconds)
+                 */
         val walletAccount = Wallet.fromSpendingKey(Constants.NETWORK_PARAMETERS, accountLevelKey)
         /*val walletAccount = Wallet.fromSeed(
                 Constants.NETWORK_PARAMETERS,
@@ -870,8 +871,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     val listenableFuture = peerGroup!!.stopAsync()
                     listenableFuture.addListener(
                             Runnable {
-                                spvModuleApplication.addWalletAccountWithExtendedKey(spendingKeyB58,
-                                        walletAccount.lastBlockSeenTimeSecs + 1,
+                                spvModuleApplication.addWalletAccountWithExtendedKey(walletAccount.lastBlockSeenTimeSecs + 1,
                                         accountIndex + 1)
                             },
                             Executors.newSingleThreadExecutor())
@@ -1385,8 +1385,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
         private val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
-        private val PASSPHRASE_PREF = "bip39Passphrase"
-        private val SPENDINGKEYB58_PREF = "spendingKeyB58"
         private val SYNC_PROGRESS_PREF = "syncprogress"
         private val ACCOUNT_LOOKAHEAD = 3
     }
