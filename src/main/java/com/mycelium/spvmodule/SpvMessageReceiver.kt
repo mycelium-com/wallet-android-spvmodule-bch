@@ -48,14 +48,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             }
 
             IntentContract.CreateUnsignedTransaction.ACTION -> {
-                val config = SpvModuleApplication.getApplication().configuration!!
-                val txBytes = intent.getByteArrayExtra(IntentContract.CreateUnsignedTransaction.TX_EXTRA)
-                if (config.broadcastUsingWapi) {
-                    asyncWapiBroadcast(txBytes)
-                    return
-                } else {
-                    clone.action = SpvService.ACTION_BROADCAST_TRANSACTION
-                }
+                clone.action = SpvService.ACTION_CREATE_UNSIGNED_TRANSACTION
             }
 
             IntentContract.BroadcastTransaction.ACTION -> {

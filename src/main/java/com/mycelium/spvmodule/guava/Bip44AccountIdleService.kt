@@ -197,7 +197,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             val earliestKeyCreationTime = initializeEarliestKeyCreationTime()
             if (earliestKeyCreationTime > 0L) {
                 // TODO Return checkpoint initialization after putting correct checkpoints.txt to assets directory
-                // initializeCheckpoint(earliestKeyCreationTime)
+                 initializeCheckpoint(earliestKeyCreationTime)
             }
         }
         blockChain = BlockChain(Constants.NETWORK_PARAMETERS, (walletsAccountsMap.values + singleAddressAccountsMap.values).toList(),
@@ -733,7 +733,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         singleAddressAccountsMap.clear()
         walletsAccountsMap.clear()
         sharedPreferences.edit()
-                .remove(SPENDINGKEYB58_PREF)
                 .remove(ACCOUNT_INDEX_STRING_SET_PREF)
                 .remove(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF)
                 .apply()
@@ -752,7 +751,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         for (i in maxIndexWithActivity + 1..maxIndexWithActivity + ACCOUNT_LOOKAHEAD) {
             if (walletsAccountsMap[i] == null) {
                 listAccountsToCreate.add(i)
-                createOneAccount(creationTimeSeconds, i)
+                SpvMessageSender.requestAccountLevelKeys(listAccountsToCreate, creationTimeSeconds)
             }
         }
     }

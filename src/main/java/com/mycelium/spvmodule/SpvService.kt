@@ -123,7 +123,8 @@ class SpvService : IntentService("SpvService") {
                     accountIndex = getAccountIndex(intent) ?: return
                     if (!SpvModuleApplication.doesWalletAccountExist(accountIndex)) {
                         // Ask for private Key
-                        SpvMessageSender.requestPrivateKey(accountIndex)
+                        SpvMessageSender.requestAccountLevelKeys(mutableListOf(accountIndex),
+                                Date().time / 1000)
                         return
                     } else {
                         application.launchBlockchainScanIfNecessary()
@@ -141,6 +142,9 @@ class SpvService : IntentService("SpvService") {
                         application.launchBlockchainScanIfNecessary()
                         application.sendTransactionsSingleAddress(singleAddressAccountGuid)
                     }
+                }
+                ACTION_CREATE_UNSIGNED_TRANSACTION -> {
+
                 }
                 else -> {
                     Log.e(LOG_TAG,
@@ -194,6 +198,7 @@ class SpvService : IntentService("SpvService") {
         val ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS = PACKAGE_NAME + ".receive_transactions_single_address"
         val ACTION_SEND_FUNDS = PACKAGE_NAME + ".send_funds"
         val ACTION_SEND_FUNDS_SINGLE_ADDRESS = PACKAGE_NAME + ".send_funds_single_address"
+        val ACTION_CREATE_UNSIGNED_TRANSACTION: String = PACKAGE_NAME + ".create_unsigned_transaction"
 
         val intentsQueue: Queue<Intent> = ConcurrentLinkedQueue<Intent>()
     }
