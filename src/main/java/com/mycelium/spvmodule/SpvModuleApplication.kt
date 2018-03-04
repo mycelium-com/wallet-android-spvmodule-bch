@@ -201,4 +201,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
                 INSTANCE!!.doesSingleAddressWalletAccountExist(guid)
     }
+
+    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeys: ArrayList<String>) {
+        Bip44AccountIdleService.getInstance()!!.createAccounts(accountIndexes, accountKeys)
+    }
 }

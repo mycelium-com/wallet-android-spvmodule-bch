@@ -756,6 +756,19 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
+    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeyStrings: ArrayList<String>) {
+        val accountIndexesIterator = accountIndexes.iterator()
+        val accountKeyStringsIterator = accountKeyStrings.iterator()
+        check(accountIndexes.size == accountKeyStrings.size)
+        while (accountIndexesIterator.hasNext()) {
+            val accountIndex = accountIndexesIterator.next()
+            val accountKeyString = accountKeyStringsIterator.next()
+            createOneAccount(accountIndex, DeterministicKey.deserializeB58(accountKeyString,
+                    NetworkParameters.fromID(NetworkParameters.ID_TESTNET)))
+        }
+        SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+    }
+
     private fun createOneAccount(accountIndex: Int, accountLevelKey: DeterministicKey) {
         Log.d(LOG_TAG, "createOneAccount, accountLevelKey = $accountLevelKey")
         propagate(Constants.CONTEXT)
@@ -770,7 +783,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val accountLevelKey = HDKeyDerivation.deriveChildKey(coinTypeKey,
                 ChildNumber(accountIndex, true), creationTimeSeconds)
                  */
-        val walletAccount = Wallet.fromSpendingKey(Constants.NETWORK_PARAMETERS, accountLevelKey)
+        val walletAccount = Wallet.fromWatchingKey(Constants.NETWORK_PARAMETERS, accountLevelKey)
         /*val walletAccount = Wallet.fromSeed(
                 Constants.NETWORK_PARAMETERS,
                 DeterministicSeed(bip39Passphrase, null, "", creationTimeSeconds),
