@@ -790,7 +790,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 .apply()
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
-            saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
+        saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
     }
 
     fun getPrivateKeysCount(accountIndex : Int) : Int {
