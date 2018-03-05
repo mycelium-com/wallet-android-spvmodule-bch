@@ -84,7 +84,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                         IntentContract.RequestAccountLevelKeysToSPV
                                 .CREATION_TIME_SECONDS_EXTRA, 0)
                 SpvModuleApplication.getApplication()
-                        .createAccounts(accountIndexes, accountKeys)
+                        .createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
                 return
             }
 

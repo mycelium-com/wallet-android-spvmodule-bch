@@ -14,6 +14,7 @@ import android.text.format.DateUtils
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.AbstractScheduledService
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
@@ -756,7 +757,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeyStrings: ArrayList<String>) {
+    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeyStrings: ArrayList<String>, creationTimeSeconds: Long) {
         val accountIndexesIterator = accountIndexes.iterator()
         val accountKeyStringsIterator = accountKeyStrings.iterator()
         check(accountIndexes.size == accountKeyStrings.size)
@@ -764,12 +765,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             val accountIndex = accountIndexesIterator.next()
             val accountKeyString = accountKeyStringsIterator.next()
             createOneAccount(accountIndex, DeterministicKey.deserializeB58(accountKeyString,
-                    NetworkParameters.fromID(NetworkParameters.ID_TESTNET)))
+                    NetworkParameters.fromID(NetworkParameters.ID_TESTNET)), creationTimeSeconds)
         }
         SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
     }
 
-    private fun createOneAccount(accountIndex: Int, accountLevelKey: DeterministicKey) {
+    private fun createOneAccount(accountIndex: Int, accountLevelKey: DeterministicKey, creationTimeSeconds: Long) {
         Log.d(LOG_TAG, "createOneAccount, accountLevelKey = $accountLevelKey")
         propagate(Constants.CONTEXT)
         //val walletAccount = Wallet.fromSpendingKey(Constants.NETWORK_PARAMETERS,
@@ -783,7 +784,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val accountLevelKey = HDKeyDerivation.deriveChildKey(coinTypeKey,
                 ChildNumber(accountIndex, true), creationTimeSeconds)
                  */
-        val walletAccount = Wallet.fromWatchingKey(Constants.NETWORK_PARAMETERS, accountLevelKey)
+        val walletAccount = Wallet.fromWatchingKeyB58(Constants.NETWORK_PARAMETERS,
+                accountLevelKey.serializePubB58(Constants.NETWORK_PARAMETERS),
+                creationTimeSeconds, accountLevelKey.path)
         /*val walletAccount = Wallet.fromSeed(
                 Constants.NETWORK_PARAMETERS,
                 DeterministicSeed(bip39Passphrase, null, "", creationTimeSeconds),

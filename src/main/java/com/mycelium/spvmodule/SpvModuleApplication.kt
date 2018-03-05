@@ -202,7 +202,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 INSTANCE!!.doesSingleAddressWalletAccountExist(guid)
     }
 
-    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeys: ArrayList<String>) {
-        Bip44AccountIdleService.getInstance()!!.createAccounts(accountIndexes, accountKeys)
+    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeys: ArrayList<String>,
+                       creationTimeSeconds: Long) {
+        Bip44AccountIdleService.getInstance()!!.createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
     }
 }
