@@ -843,6 +843,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         sendUnsignedTransactionToMbw(sendRequest.tx, accountIndex)
     }
 
+    fun createUnsignedTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
+        sendRequest.signInputs = false
+        singleAddressAccountsMap[guid]?.completeTx(sendRequest)
+        sendUnsignedTransactionToMbwSingleAddress(sendRequest.tx, guid)
+    }
+
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
         propagate(Constants.CONTEXT)
         sendRequest.signInputs = false
@@ -870,6 +876,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     private fun sendUnsignedTransactionToMbw(transaction: Transaction, accountIndex: Int) {
         SpvMessageSender.sendUnsignedTransactionToMbw(transaction, accountIndex)
+    }
+
+    private fun sendUnsignedTransactionToMbwSingleAddress(transaction: Transaction, guid: String) {
+        SpvMessageSender.sendUnsignedTransactionToMbwSingleAddress(transaction, guid)
     }
 
     private val transactionsReceived = AtomicInteger()
