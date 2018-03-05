@@ -19,7 +19,7 @@
             android:summary="@string/preferences_trusted_peer_summary"
             android:title="@string/preferences_trusted_peer_title" />
         <CheckBoxPreference
-            android:defaultValue="false"
+            android:defaultValue="true"
             android:key="trusted_peer_only"
             android:layout="@layout/preference_layout"
             android:summary="@string/preferences_trusted_peer_only_summary"
