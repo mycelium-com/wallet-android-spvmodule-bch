@@ -370,7 +370,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
                 //Start download blockchain
                 Log.i(LOG_TAG, "checkImpediments, peergroup startBlockChainDownload")
-                peerGroup!!.startBlockChainDownload(downloadProgressTracker)
+                try {
+                    peerGroup!!.startBlockChainDownload(downloadProgressTracker)
+                } catch (t : Throwable) {
+                    Log.e(LOG_TAG, t.localizedMessage, t)
+                    SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                }
             } else {
                 Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $peerGroup")
                 for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
