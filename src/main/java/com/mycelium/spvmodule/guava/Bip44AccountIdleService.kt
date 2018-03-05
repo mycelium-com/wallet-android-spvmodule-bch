@@ -838,6 +838,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     fun createUnsignedTransaction(sendRequest: SendRequest, accountIndex: Int) {
+        Log.d(LOG_TAG, "sendRequest = $sendRequest, accountIndex = $accountIndex")
         sendRequest.signInputs = false
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         sendUnsignedTransactionToMbw(sendRequest.tx, accountIndex)
@@ -851,14 +852,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
         propagate(Constants.CONTEXT)
-        sendRequest.signInputs = false
-        walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         broadcastTransaction(sendRequest.tx, accountIndex)
     }
 
     fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
         propagate(Constants.CONTEXT)
-        singleAddressAccountsMap[guid]?.completeTx(sendRequest)
         broadcastTransactionSingleAddress(sendRequest.tx, guid)
     }
 
