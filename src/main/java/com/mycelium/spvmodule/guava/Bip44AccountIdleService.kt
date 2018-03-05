@@ -73,6 +73,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
     private var chainDownloadPercentDone : Int = 0
+
+    // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
+    // but we should prevent competing with reading and files cleaning ourselves.
     val WRITE_THREADS_LIMIT = 100
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
@@ -575,6 +578,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun cleanupFiles(accountIndex: Int) {
+        semaphore.acquire(WRITE_THREADS_LIMIT)
         for (filename in spvModuleApplication.fileList()) {
             if (filename.startsWith(Constants.Files.WALLET_KEY_BACKUP_BASE58)
                     || filename.startsWith(backupFileName(accountIndex) + '.')
@@ -584,9 +588,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 file.delete()
             }
         }
+        semaphore.release(WRITE_THREADS_LIMIT)
     }
 
     private fun cleanupSingleAddressFiles(guid: String) {
+        semaphore.acquire(WRITE_THREADS_LIMIT)
         for (filename in spvModuleApplication.fileList()) {
             if (filename.startsWith(Constants.Files.WALLET_KEY_BACKUP_BASE58)
                     || filename.startsWith(backupSingleAddressFileName(guid) + '.')
@@ -596,6 +602,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 file.delete()
             }
         }
+        semaphore.release(WRITE_THREADS_LIMIT)
     }
 
     private var blockChain: BlockChain? = null
@@ -783,7 +790,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 .apply()
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
-        saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
+            saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
     }
 
     fun getPrivateKeysCount(accountIndex : Int) : Int {
