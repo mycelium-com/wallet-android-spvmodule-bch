@@ -76,7 +76,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
     // but we should prevent competing with reading and files cleaning ourselves.
-    val WRITE_THREADS_LIMIT = 100
+    private val WRITE_THREADS_LIMIT = 100
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
     fun getSyncProgress(): Int {
