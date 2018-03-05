@@ -47,6 +47,10 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 clone.action = SpvService.ACTION_SEND_FUNDS_SINGLE_ADDRESS
             }
 
+            IntentContract.CreateUnsignedTransaction.ACTION -> {
+                clone.action = SpvService.ACTION_CREATE_UNSIGNED_TRANSACTION
+            }
+
             IntentContract.BroadcastTransaction.ACTION -> {
                 val config = SpvModuleApplication.getApplication().configuration!!
                 val txBytes = intent.getByteArrayExtra(IntentContract.BroadcastTransaction.TX_EXTRA)
@@ -65,24 +69,22 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.ReceiveTransactionsSingleAddress.ACTION -> {
                 clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS
             }
-
-            IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV.ACTION -> {
-                val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
-                if (accountIndex == -1) {
+            IntentContract.RequestAccountLevelKeysToSPV.ACTION -> {
+                val accountIndexes = intent.getIntegerArrayListExtra(IntentContract.ACCOUNT_INDEXES_EXTRA)
+                val accountKeys = intent.getStringArrayListExtra(IntentContract.RequestAccountLevelKeysToSPV.ACCOUNT_KEYS)
+                if (accountIndexes.isEmpty() || accountKeys.isEmpty()) {
                     Log.e(LOG_TAG, "no account specified. Skipping ${intent.action}.")
                     return
-                } else if (SpvModuleApplication.getApplication().doesWalletAccountExist(accountIndex)) {
+                } /* else if (SpvModuleApplication.getApplication().doesWalletAccountExist(accountIndex)) {
                     Log.i(LOG_TAG, "Trying to create an account / wallet with accountIndex " +
                             "$accountIndex that already exists.")
                     return
-                }
-                val spendingKeyB58 = intent.getStringExtra(
-                        IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV.SPENDING_KEY_B58_EXTRA)
+                } */
                 val creationTimeSeconds = intent.getLongExtra(
-                        IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV
+                        IntentContract.RequestAccountLevelKeysToSPV
                                 .CREATION_TIME_SECONDS_EXTRA, 0)
                 SpvModuleApplication.getApplication()
-                        .addWalletAccountWithExtendedKey(spendingKeyB58, creationTimeSeconds, accountIndex)
+                        .createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
                 return
             }
 

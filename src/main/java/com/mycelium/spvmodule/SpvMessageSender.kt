@@ -64,10 +64,12 @@ class SpvMessageSender {
             SpvModuleApplication.sendMbw(intent)
         }
 
-        fun requestPrivateKey(accountIndex: Int) {
-            Log.d(LOG_TAG, "requestPrivateKey")
-            Intent("com.mycelium.wallet.requestPrivateExtendedKeyCoinTypeToMBW").run {
-                putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
+        fun requestAccountLevelKeys(accountIndexList: List<Int>, creationTimeSeconds : Long) {
+            Log.d(LOG_TAG, "requestAccountLevelKeys, accountIndexList = $accountIndexList, " +
+                    "creationTimeSeconds = $creationTimeSeconds")
+            Intent("com.mycelium.wallet.requestAccountLevelKeysToMBW").run {
+                putExtra(IntentContract.ACCOUNT_INDEXES_EXTRA, accountIndexList.toIntArray())
+                putExtra(IntentContract.CREATIONTIMESECONDS, creationTimeSeconds)
                 send(this)
             }
         }
@@ -103,6 +105,14 @@ class SpvMessageSender {
                 putExtra(IntentContract.TRANSACTION_HASH, txHash)
                 putExtra(IntentContract.IS_SUCCESS, isSuccess)
                 putExtra(IntentContract.MESSAGE, message)
+            }
+            send(intent)
+        }
+
+        fun sendUnsignedTransactionToMbw(transaction: Transaction, accountIndex: Int) {
+            val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbw").apply {
+                putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
+                putExtra(IntentContract.TRANSACTION_HASH, transaction.hashAsString)
             }
             send(intent)
         }

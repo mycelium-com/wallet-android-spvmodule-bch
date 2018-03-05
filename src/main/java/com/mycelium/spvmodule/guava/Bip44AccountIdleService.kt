@@ -14,6 +14,7 @@ import android.text.format.DateUtils
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
+import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.AbstractScheduledService
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
@@ -68,7 +69,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private val peerConnectivityListener: PeerConnectivityListener = PeerConnectivityListener()
     private val notificationManager = spvModuleApplication.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private lateinit var blockStore: BlockStore
-    private var spendingKeyB58 = sharedPreferences.getString(SPENDINGKEYB58_PREF, "")
     private var counterCheckImpediments: Int = 0
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
@@ -198,7 +198,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             val earliestKeyCreationTime = initializeEarliestKeyCreationTime()
             if (earliestKeyCreationTime > 0L) {
                 // TODO Return checkpoint initialization after putting correct checkpoints.txt to assets directory
-                // initializeCheckpoint(earliestKeyCreationTime)
+                 initializeCheckpoint(earliestKeyCreationTime)
             }
         }
         blockChain = BlockChain(Constants.NETWORK_PARAMETERS, (walletsAccountsMap.values + singleAddressAccountsMap.values).toList(),
@@ -370,7 +370,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
                 //Start download blockchain
                 Log.i(LOG_TAG, "checkImpediments, peergroup startBlockChainDownload")
-                peerGroup!!.startBlockChainDownload(downloadProgressTracker)
+                try {
+                    peerGroup!!.startBlockChainDownload(downloadProgressTracker)
+                } catch (t : Throwable) {
+                    Log.e(LOG_TAG, t.localizedMessage, t)
+                    SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                }
             } else {
                 Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $peerGroup")
                 for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
@@ -700,16 +705,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     @Synchronized
-    fun addWalletAccount(spendingKeyB58: String, creationTimeSeconds: Long,
+    fun addWalletAccount(creationTimeSeconds: Long,
                          accountIndex: Int) {
         Log.d(LOG_TAG, "addWalletAccount, accountIndex = $accountIndex," +
                 " creationTimeSeconds = $creationTimeSeconds")
         propagate(Constants.CONTEXT)
-        this.spendingKeyB58 = spendingKeyB58
-        sharedPreferences.edit()
-                .putString(SPENDINGKEYB58_PREF, spendingKeyB58)
-                .apply()
-        createMissingAccounts(spendingKeyB58, creationTimeSeconds)
+        createMissingAccounts(creationTimeSeconds)
     }
 
     @Synchronized
@@ -738,13 +739,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         singleAddressAccountsMap.clear()
         walletsAccountsMap.clear()
         sharedPreferences.edit()
-                .remove(SPENDINGKEYB58_PREF)
                 .remove(ACCOUNT_INDEX_STRING_SET_PREF)
                 .remove(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF)
                 .apply()
     }
 
-    private fun createMissingAccounts(spendingKeyB58: String, creationTimeSeconds: Long) {
+    private fun createMissingAccounts(creationTimeSeconds: Long) {
         var maxIndexWithActivity = -1
         for (accountIndexString in accountIndexStrings) {
             val accountIndex = accountIndexString.toInt()
@@ -753,24 +753,45 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 maxIndexWithActivity = Math.max(accountIndex, maxIndexWithActivity)
             }
         }
+        var listAccountsToCreate : MutableList<Int> = mutableListOf()
         for (i in maxIndexWithActivity + 1..maxIndexWithActivity + ACCOUNT_LOOKAHEAD) {
             if (walletsAccountsMap[i] == null) {
-                createOneAccount(spendingKeyB58, creationTimeSeconds, i)
+                listAccountsToCreate.add(i)
+                SpvMessageSender.requestAccountLevelKeys(listAccountsToCreate, creationTimeSeconds)
             }
         }
     }
 
-    private fun createOneAccount(spendingKeyB58: String, creationTimeSeconds: Long, accountIndex: Int) {
-        Log.d(LOG_TAG, "createOneAccount, accountIndex = $accountIndex," +
-                " creationTimeSeconds = $creationTimeSeconds")
+    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeyStrings: ArrayList<String>, creationTimeSeconds: Long) {
+        val accountIndexesIterator = accountIndexes.iterator()
+        val accountKeyStringsIterator = accountKeyStrings.iterator()
+        check(accountIndexes.size == accountKeyStrings.size)
+        while (accountIndexesIterator.hasNext()) {
+            val accountIndex = accountIndexesIterator.next()
+            val accountKeyString = accountKeyStringsIterator.next()
+            createOneAccount(accountIndex, DeterministicKey.deserializeB58(accountKeyString,
+                    NetworkParameters.fromID(NetworkParameters.ID_TESTNET)), creationTimeSeconds)
+        }
+        SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+    }
+
+    private fun createOneAccount(accountIndex: Int, accountLevelKey: DeterministicKey, creationTimeSeconds: Long) {
+        Log.d(LOG_TAG, "createOneAccount, accountLevelKey = $accountLevelKey")
         propagate(Constants.CONTEXT)
         //val walletAccount = Wallet.fromSpendingKey(Constants.NETWORK_PARAMETERS,
         //    DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS))
+
+
+        /*
         val coinTypeKey = DeterministicKey.deserializeB58(spendingKeyB58, Constants.NETWORK_PARAMETERS)
+
         coinTypeKey.creationTimeSeconds = creationTimeSeconds
         val accountLevelKey = HDKeyDerivation.deriveChildKey(coinTypeKey,
                 ChildNumber(accountIndex, true), creationTimeSeconds)
-        val walletAccount = Wallet.fromSpendingKey(Constants.NETWORK_PARAMETERS, accountLevelKey)
+                 */
+        val walletAccount = Wallet.fromWatchingKeyB58(Constants.NETWORK_PARAMETERS,
+                accountLevelKey.serializePubB58(Constants.NETWORK_PARAMETERS),
+                creationTimeSeconds, accountLevelKey.path)
         /*val walletAccount = Wallet.fromSeed(
                 Constants.NETWORK_PARAMETERS,
                 DeterministicSeed(bip39Passphrase, null, "", creationTimeSeconds),
@@ -816,8 +837,15 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         future.get()
     }
 
+    fun createUnsignedTransaction(sendRequest: SendRequest, accountIndex: Int) {
+        sendRequest.signInputs = false
+        walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
+        sendUnsignedTransactionToMbw(sendRequest.tx, accountIndex)
+    }
+
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
         propagate(Constants.CONTEXT)
+        sendRequest.signInputs = false
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         broadcastTransaction(sendRequest.tx, accountIndex)
     }
@@ -838,6 +866,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             blockchainState.putExtras(this)
             SpvModuleApplication.sendMbw(this)
         }
+    }
+
+    private fun sendUnsignedTransactionToMbw(transaction: Transaction, accountIndex: Int) {
+        SpvMessageSender.sendUnsignedTransactionToMbw(transaction, accountIndex)
     }
 
     private val transactionsReceived = AtomicInteger()
@@ -878,8 +910,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     val listenableFuture = peerGroup!!.stopAsync()
                     listenableFuture.addListener(
                             Runnable {
-                                spvModuleApplication.addWalletAccountWithExtendedKey(spendingKeyB58,
-                                        walletAccount.lastBlockSeenTimeSecs + 1,
+                                spvModuleApplication.addWalletAccountWithExtendedKey(walletAccount.lastBlockSeenTimeSecs + 1,
                                         accountIndex + 1)
                             },
                             Executors.newSingleThreadExecutor())
@@ -1392,8 +1423,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
         private val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
-        private val PASSPHRASE_PREF = "bip39Passphrase"
-        private val SPENDINGKEYB58_PREF = "spendingKeyB58"
         private val SYNC_PROGRESS_PREF = "syncprogress"
         private val ACCOUNT_LOOKAHEAD = 3
     }
