@@ -116,5 +116,13 @@ class SpvMessageSender {
             }
             send(intent)
         }
+
+        fun sendUnsignedTransactionToMbwSingleAddress(transaction: Transaction, guid: String) {
+            val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbwSingleAddress").apply {
+                putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
+                putExtra(IntentContract.TRANSACTION_HASH, transaction.hashAsString)
+            }
+            send(intent)
+        }
     }
 }

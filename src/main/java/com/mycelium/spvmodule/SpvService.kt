@@ -113,6 +113,7 @@ class SpvService : IntentService("SpvService") {
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
                     try {
+                        application.createUnsignedTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
                         application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString, true, "")
                     } catch (ex : Exception) {
