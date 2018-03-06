@@ -840,12 +840,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun createUnsignedTransaction(sendRequest: SendRequest, accountIndex: Int) {
         Log.d(LOG_TAG, "sendRequest = $sendRequest, accountIndex = $accountIndex")
         sendRequest.signInputs = false
+        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         sendUnsignedTransactionToMbw(sendRequest.tx, accountIndex)
     }
 
     fun createUnsignedTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
         sendRequest.signInputs = false
+        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
         sendUnsignedTransactionToMbwSingleAddress(sendRequest.tx, guid)
     }
