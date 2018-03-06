@@ -69,6 +69,14 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                         .broadcastTransaction(Transaction(Constants.NETWORK_PARAMETERS, txBytes), accountIndex)
             }
 
+            IntentContract.SendSignedTransactionSingleAddressToSPV.ACTION -> {
+                val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionToSPV.TX_EXTRA)
+                val accountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
+                SpvModuleApplication.getApplication()
+                        .broadcastTransactionSingleAddress(Transaction(Constants.NETWORK_PARAMETERS, txBytes), accountGuid)
+            }
+
+
             IntentContract.ReceiveTransactions.ACTION -> {
                 clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS
             }
