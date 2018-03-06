@@ -50,8 +50,8 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.BroadcastTransaction.ACTION -> {
                 val config = SpvModuleApplication.getApplication().configuration!!
                 val txBytes = intent.getByteArrayExtra(IntentContract.BroadcastTransaction.TX_EXTRA)
-                if (config.broadcastUsingWapi) {
-                    asyncWapiBroadcast(txBytes)
+                if (config.broadcastUsingAlternative) {
+                    asyncAlternativeBroadcast(txBytes)
                     return
                 } else {
                     clone.action = SpvService.ACTION_BROADCAST_TRANSACTION
@@ -116,7 +116,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
         }
     }
 
-    private fun asyncWapiBroadcast(tx: ByteArray) {
+    private fun asyncAlternativeBroadcast(tx: ByteArray) {
         Thread(Runnable {
             try {
                 val url = URL("https://${if (Constants.TEST) "testnet." else "" }blockexplorer.com/api/tx/send")
