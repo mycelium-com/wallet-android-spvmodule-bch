@@ -62,6 +62,13 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 }
             }
 
+            IntentContract.SendSignedTransactionToSPV.ACTION -> {
+                val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionToSPV.TX_EXTRA)
+                val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
+                SpvModuleApplication.getApplication()
+                        .broadcastTransaction(Transaction(Constants.NETWORK_PARAMETERS, txBytes), accountIndex)
+            }
+
             IntentContract.ReceiveTransactions.ACTION -> {
                 clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS
             }
