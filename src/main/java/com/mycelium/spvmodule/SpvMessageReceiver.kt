@@ -39,6 +39,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 context.sendBroadcast(resultIntent)
                 return
             }
+
             IntentContract.SendFunds.ACTION -> {
                 clone.action = SpvService.ACTION_SEND_FUNDS
             }

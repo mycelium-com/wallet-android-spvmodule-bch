@@ -388,8 +388,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 }
             }
             //Release wakelock
-            if (wakeLock != null && wakeLock!!.isHeld) {
-                wakeLock!!.release()
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
                 wakeLock = null
             }
             broadcastBlockchainState()
