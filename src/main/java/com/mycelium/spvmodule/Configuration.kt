@@ -9,20 +9,18 @@ class Configuration(private val prefs: SharedPreferences) {
 
     val trustedPeerHost: String?
         get() {
-            // TODO: figure out how to give our users preference on using our full nodes.
-            // With the server constantly being at its capacity, this does not work as is.
-            /* if (!prefs.contains(PREFS_KEY_TRUSTED_PEER)) {
+            if (!prefs.contains(PREFS_KEY_TRUSTED_PEER)) {
                 val nodeList = if (BuildConfig.APPLICATION_ID.contains(".test")) TRUSTED_FULL_NODES_TEST else TRUSTED_FULL_NODES_MAIN
                 prefs.edit().putString(PREFS_KEY_TRUSTED_PEER, nodeList[(Math.random() * nodeList.size).toInt()]).apply()
-            } */
+            }
             return Strings.emptyToNull(prefs.getString(PREFS_KEY_TRUSTED_PEER, "")!!.trim { it <= ' ' })
         }
 
     val trustedPeerOnly: Boolean
         get() = prefs.getBoolean(PREFS_KEY_TRUSTED_PEER_ONLY, true)
 
-    val broadcastUsingWapi: Boolean
-        get() = prefs.getBoolean(PREFS_KEY_BROADCAST_USING_WAPI, true)
+    val broadcastUsingAlternative: Boolean
+        get() = prefs.getBoolean(PREFS_KEY_BROADCAST_USING_ALTERNATIVE, true)
 
     val lastUsedAgo: Long
         get() = System.currentTimeMillis() - prefs.getLong(PREFS_KEY_LAST_USED, 0)
@@ -50,16 +48,17 @@ class Configuration(private val prefs: SharedPreferences) {
 
     companion object {
         private val TRUSTED_FULL_NODES_MAIN = arrayOf(
-                "mws2.mycelium.com",
-                "mws6.mycelium.com",
-                "mws7.mycelium.com",
-                "mws8.mycelium.com")
+                "bitcoin-abc-1.mycelium.com:8444",
+                "bitcoin-abc-2.mycelium.com:8444",
+                "bitcoin-abc-3.mycelium.com:8444")
         private val TRUSTED_FULL_NODES_TEST = arrayOf(
-                "node3.mycelium.com")
+                "bitcoin-abc-1.mycelium.com:18444",
+                "bitcoin-abc-2.mycelium.com:18444",
+                "bitcoin-abc-3.mycelium.com:18444")
         val PREFS_KEY_CONNECTIVITY_NOTIFICATION = "connectivity_notification"
         val PREFS_KEY_TRUSTED_PEER = "trusted_peer"
         val PREFS_KEY_TRUSTED_PEER_ONLY = "trusted_peer_only"
-        val PREFS_KEY_BROADCAST_USING_WAPI = "broadcast_using_wapi"
+        val PREFS_KEY_BROADCAST_USING_ALTERNATIVE = "broadcast_using_alternative"
         val PREFS_KEY_DATA_USAGE = "data_usage"
         val PREFS_KEY_SYNC_PROGRESS = "sync_progress"
         val PREFS_KEY_HEADER = "header"
