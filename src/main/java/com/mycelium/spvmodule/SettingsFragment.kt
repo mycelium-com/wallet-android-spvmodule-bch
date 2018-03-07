@@ -63,9 +63,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         backgroundHandler = Handler(backgroundThread!!.looper)
         val header = findPreference(Configuration.PREFS_KEY_HEADER) as HeaderPreference
         header.openListener = {
-            val walletPackage = "com.mycelium" +
-                    if (BuildConfig.FLAVOR == "prodnet") ".wallet" else ".testnetwallet" +
-                            if (BuildConfig.DEBUG) ".debug" else ""
+            val walletPackage = SpvModuleApplication.getMbwModuleName()
             if (activity?.intent?.getStringExtra("callingPackage") != walletPackage) {
                 val intent = Intent(Intent.ACTION_MAIN)
                 intent.`package` = walletPackage;

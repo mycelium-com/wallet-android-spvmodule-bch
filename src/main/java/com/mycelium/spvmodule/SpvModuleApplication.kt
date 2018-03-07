@@ -33,10 +33,6 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     override fun onMessage(callingPackageName: String, intent: Intent) = spvMessageReceiver.onMessage(callingPackageName, intent)
 
     override fun onCreate() {
-        // TODO: make sure the following debug log statements get removed by proguard
-        // Log.d(LOG_TAG, "this should not be visible in release mode")
-        // Log.e(LOG_TAG, "this should always be visible")
-        // Log.d(LOG_TAG, "This should not happen in release mode" + INSTANCE!!)
         INSTANCE = if (INSTANCE != null && INSTANCE !== this) {
             throw Error("Application was instanciated more than once?")
         } else {
@@ -45,7 +41,13 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         LinuxSecureRandom() // init proper random number generator
 
-        StrictMode.setThreadPolicy(StrictMode.ThreadPolicy.Builder().detectAll().permitDiskReads().permitDiskWrites().penaltyLog().build())
+        StrictMode.setThreadPolicy(
+                StrictMode.ThreadPolicy.Builder().
+                        detectAll().
+                        permitDiskReads().
+                        permitDiskWrites().
+                        penaltyLog().
+                        build())
 
         Threading.throwOnLockCycles()
         enableStrictMode()

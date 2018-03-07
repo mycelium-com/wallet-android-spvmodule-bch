@@ -197,8 +197,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         if (shouldInitializeCheckpoint) {
             val earliestKeyCreationTime = initializeEarliestKeyCreationTime()
             if (earliestKeyCreationTime > 0L) {
-                // TODO Return checkpoint initialization after putting correct checkpoints.txt to assets directory
-                 initializeCheckpoint(earliestKeyCreationTime)
+                initializeCheckpoint(earliestKeyCreationTime)
             }
         }
         blockChain = BlockChain(Constants.NETWORK_PARAMETERS, (walletsAccountsMap.values + singleAddressAccountsMap.values).toList(),
@@ -269,8 +268,15 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 if (hasTrustedPeer) {
                     Log.i(LOG_TAG, "check(), trusted peer '$trustedPeerHost' " +
                             if (connectTrustedPeerOnly) " only." else "")
+                    val parts = trustedPeerHost!!.split(":")
+                    val server = parts[0]
+                    val port = if (parts.size == 2) {
+                        Integer.parseInt(parts[1])
+                    } else {
+                        Constants.NETWORK_PARAMETERS.port
+                    }
 
-                    val addr = InetSocketAddress(trustedPeerHost, Constants.NETWORK_PARAMETERS.port)
+                    val addr = InetSocketAddress(server, port)
                     if (addr.address != null) {
                         peers.add(addr)
                         needsTrimPeersWorkaround = true
@@ -288,6 +294,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     }
                 }
 
+                if(peers.isEmpty()) {
+                    Log.e(LOG_TAG, "No valid peers available!")
+                }
                 return peers.toTypedArray()
             }
 
@@ -383,8 +392,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 }
             }
             //Release wakelock
-            if (wakeLock != null && wakeLock!!.isHeld) {
-                wakeLock!!.release()
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
                 wakeLock = null
             }
             broadcastBlockchainState()
@@ -854,11 +863,15 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
         propagate(Constants.CONTEXT)
+        sendRequest.useForkId = true
+        walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         broadcastTransaction(sendRequest.tx, accountIndex)
     }
 
     fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
         propagate(Constants.CONTEXT)
+        sendRequest.useForkId = true
+        singleAddressAccountsMap[guid]?.completeTx(sendRequest)
         broadcastTransactionSingleAddress(sendRequest.tx, guid)
     }
 
