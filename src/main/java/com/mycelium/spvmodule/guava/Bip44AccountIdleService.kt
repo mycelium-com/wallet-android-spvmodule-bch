@@ -827,12 +827,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
         propagate(Constants.CONTEXT)
+        sendRequest.useForkId = true
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         broadcastTransaction(sendRequest.tx, accountIndex)
     }
 
     fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
         propagate(Constants.CONTEXT)
+        sendRequest.useForkId = true
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
         broadcastTransactionSingleAddress(sendRequest.tx, guid)
     }
