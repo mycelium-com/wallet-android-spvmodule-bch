@@ -4,7 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import com.mycelium.modularizationtools.ModuleMessageReceiver
-import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModuleName
+import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModulePackage
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
 import org.json.JSONObject
@@ -17,7 +17,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
     @Synchronized
     override fun onMessage(callingPackageName: String, intent: Intent) {
         // while sub modules might talk to each other, for now we assume that spvmodule will only ever talk to mbw:
-        if(callingPackageName != getMbwModuleName()) {
+        if(callingPackageName != getMbwModulePackage()) {
             Log.e(LOG_TAG, "Ignoring unexpected package $callingPackageName calling with intent $intent.")
             return
         }

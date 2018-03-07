@@ -9,8 +9,10 @@ import android.text.SpannableStringBuilder
 import android.text.style.ImageSpan
 import android.util.AttributeSet
 import android.view.View
+import android.widget.Button
 import android.widget.TextView
 import com.mycelium.spvmodule.R
+import com.mycelium.spvmodule.SpvModuleApplication
 
 
 class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(context, attrs) {
@@ -18,6 +20,15 @@ class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(con
 
     override fun onBindViewHolder(holder: PreferenceViewHolder?) {
         super.onBindViewHolder(holder)
+        val isMBWInstalled = !context.packageManager.getInstalledPackages(0).none {
+            packageInfo -> packageInfo.packageName.equals(SpvModuleApplication.getMbwModulePackage())
+        }
+
+        if (!isMBWInstalled) {
+            (holder?.itemView?.findViewById<View>(R.id.open) as Button).setText(R.string.install_mycelium_wallet)
+            (holder.itemView?.findViewById<View>(R.id.installWarning))?.visibility = View.VISIBLE
+        }
+
         holder?.itemView?.apply {
             findViewById<View>(R.id.open)?.setOnClickListener {
                 openListener?.invoke()

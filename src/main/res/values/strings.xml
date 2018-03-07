@@ -91,6 +91,8 @@
     <string name="start_wallet_application">Open the wallet application</string>
     <string name="inner_module_description"><![CDATA[This module is part of _logo_ Mycelium. It allows to find unretrieved Bitcoin <font color="#f08c18">Cash</font> and instantly exchange it to Bitcoin. Full Bitcoin <font color="#f08c18">Cash</font> support is coming soon.]]></string>
     <string name="open_mycelium_wallet">Open Mycelium Wallet</string>
+    <string name="install_mycelium_wallet">Install Mycelium Wallet</string>
+    <string name="wallet_not_installed">Mycelium wallet is not installed\nIt is required for proper module functioning.</string>
     <string name="footer_text">You can always access Bitcoin <font color="#f08c18">Cash</font> module from Settings > Modules section, by tapping on it.</string>
     <string name="bitcoin_cash_setting_section">Module settings</string>
     <string name="inner_module_description_addition">If you are experienced user, you can fine tune your Bitcoin <font color="#f08c18">Cash</font> module bellow, otherwise go straight to Mycelium Wallet.</string>
