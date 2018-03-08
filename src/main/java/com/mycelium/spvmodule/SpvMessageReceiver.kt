@@ -64,8 +64,8 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             }
 
             IntentContract.SendSignedTransactionSingleAddressToSPV.ACTION -> {
-                val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionToSPV.TX_EXTRA)
-                val accountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
+                val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.TX_EXTRA)
+                val accountGuid = intent.getStringExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.SINGLE_ADDRESS_GUID)
                 SpvModuleApplication.getApplication()
                         .broadcastTransactionSingleAddress(Transaction(Constants.NETWORK_PARAMETERS, txBytes), accountGuid)
             }
