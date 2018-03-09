@@ -73,7 +73,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
     private var chainDownloadPercentDone : Int = 0
-    val WRITE_THREADS_LIMIT = 100
+
+    // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
+    // but we should prevent competing with reading and files cleaning ourselves.
+    private val WRITE_THREADS_LIMIT = 100
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
     fun getSyncProgress(): Int {
@@ -246,11 +249,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         peerGroup!!.addConnectedEventListener(peerConnectivityListener)
         peerGroup!!.addDisconnectedEventListener(peerConnectivityListener)
 
-        val trustedPeerHost = configuration.trustedPeerHost
-        val hasTrustedPeer = trustedPeerHost != null
-
-        val connectTrustedPeerOnly = hasTrustedPeer && configuration.trustedPeerOnly
-        peerGroup!!.maxConnections = if (connectTrustedPeerOnly) 1 else spvModuleApplication.maxConnectedPeers()
+        peerGroup!!.maxConnections = when(configuration.peerHostConfig) {
+            "mycelium" -> configuration.myceliumPeerHosts.size
+            "custom" -> 1
+            "random" -> spvModuleApplication.maxConnectedPeers()
+            else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
+        }
         peerGroup!!.setConnectTimeoutMillis(Constants.PEER_TIMEOUT_MS)
         peerGroup!!.setPeerDiscoveryTimeoutMillis(Constants.PEER_DISCOVERY_TIMEOUT_MS.toLong())
 
@@ -261,43 +265,30 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             override fun getPeers(services: Long, timeoutValue: Long, timeoutUnit: TimeUnit)
                     : Array<InetSocketAddress> {
                 propagate(Constants.CONTEXT)
-                val peers = LinkedList<InetSocketAddress>()
+                val peers = when(configuration.peerHostConfig) {
+                    "mycelium" -> peersFromUrls(configuration.myceliumPeerHosts)
+                    "custom" -> peersFromUrls(configuration.trustedPeerHost!!.split(",").toTypedArray())
+                    "random" -> normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)
+                    else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
+                }
 
-                var needsTrimPeersWorkaround = false
+                if(peers.isEmpty()) {
+                    Log.e(LOG_TAG, "No valid peers available!")
+                }
+                return peers
+            }
 
-                if (hasTrustedPeer) {
-                    Log.i(LOG_TAG, "check(), trusted peer '$trustedPeerHost' " +
-                            if (connectTrustedPeerOnly) " only." else "")
-                    val parts = trustedPeerHost!!.split(":")
+            private fun peersFromUrls(urls: Array<String>): Array<InetSocketAddress> {
+                return urls.map {
+                    val parts = it.split(":")
                     val server = parts[0]
                     val port = if (parts.size == 2) {
                         Integer.parseInt(parts[1])
                     } else {
                         Constants.NETWORK_PARAMETERS.port
                     }
-
-                    val addr = InetSocketAddress(server, port)
-                    if (addr.address != null) {
-                        peers.add(addr)
-                        needsTrimPeersWorkaround = true
-                    }
-                }
-
-                if (!connectTrustedPeerOnly) {
-                    peers.addAll(Arrays.asList(*normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)))
-                }
-
-                // workaround because PeerGroup will shuffle peers
-                if (needsTrimPeersWorkaround) {
-                    while (peers.size >= spvModuleApplication.maxConnectedPeers()) {
-                        peers.removeAt(peers.size - 1)
-                    }
-                }
-
-                if(peers.isEmpty()) {
-                    Log.e(LOG_TAG, "No valid peers available!")
-                }
-                return peers.toTypedArray()
+                    InetSocketAddress(server, port)
+                }.toTypedArray()
             }
 
             override fun shutdown() {
@@ -584,6 +575,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun cleanupFiles(accountIndex: Int) {
+        semaphore.acquire(WRITE_THREADS_LIMIT)
         for (filename in spvModuleApplication.fileList()) {
             if (filename.startsWith(Constants.Files.WALLET_KEY_BACKUP_BASE58)
                     || filename.startsWith(backupFileName(accountIndex) + '.')
@@ -593,9 +585,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 file.delete()
             }
         }
+        semaphore.release(WRITE_THREADS_LIMIT)
     }
 
     private fun cleanupSingleAddressFiles(guid: String) {
+        semaphore.acquire(WRITE_THREADS_LIMIT)
         for (filename in spvModuleApplication.fileList()) {
             if (filename.startsWith(Constants.Files.WALLET_KEY_BACKUP_BASE58)
                     || filename.startsWith(backupSingleAddressFileName(guid) + '.')
@@ -605,6 +599,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 file.delete()
             }
         }
+        semaphore.release(WRITE_THREADS_LIMIT)
     }
 
     private var blockChain: BlockChain? = null
@@ -827,12 +822,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
         propagate(Constants.CONTEXT)
+        sendRequest.useForkId = true
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         broadcastTransaction(sendRequest.tx, accountIndex)
     }
 
     fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
         propagate(Constants.CONTEXT)
+        sendRequest.useForkId = true
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
         broadcastTransactionSingleAddress(sendRequest.tx, guid)
     }
@@ -1401,7 +1398,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
         private val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
-        private val PASSPHRASE_PREF = "bip39Passphrase"
         private val SPENDINGKEYB58_PREF = "spendingKeyB58"
         private val SYNC_PROGRESS_PREF = "syncprogress"
         private val ACCOUNT_LOOKAHEAD = 3

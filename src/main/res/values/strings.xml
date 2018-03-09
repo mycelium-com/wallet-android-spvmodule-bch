@@ -72,8 +72,6 @@
     <string name="preferences_connectivity_notification_summary">Show current number of connected peers in the notification area.</string>
     <string name="preferences_trusted_peer_title">Trusted peer</string>
     <string name="preferences_trusted_peer_summary">IP or hostname of single peer to connect to.</string>
-    <string name="preferences_trusted_peer_resolve_progress">Resolving…</string>
-    <string name="preferences_trusted_peer_resolve_unknown_host">Unknown hostname!</string>
     <string name="preferences_trusted_peer_only_title">Skip regular peer discovery</string>
     <string name="preferences_trusted_peer_only_summary">Prevents connecting to any peers besides the trusted peer.</string>
     <string name="preferences_data_usage_title">Data usage</string>
@@ -84,8 +82,6 @@
     <string name="missing_transaction_id">missing transaction id</string>
     <string name="unconfirmed">unconfirmed</string>
     <string name="missing_account">missing account</string>
-    <string name="preferences_broadcast_using_alternative_summary">Use blockexplorer.com API for broadcasts</string>
-    <string name="preferences_broadcast_using_alternative_title">Broadcast using blockexplorer.com</string>
     <string name="pref_title_sync_progress">Sync progress: %d%%.</string>
     <string name="mycelium_wallet">Mycelium Wallet</string>
     <string name="start_wallet_application">Open the wallet application</string>

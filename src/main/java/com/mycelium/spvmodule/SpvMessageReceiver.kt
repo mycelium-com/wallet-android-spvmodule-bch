@@ -49,14 +49,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             }
 
             IntentContract.BroadcastTransaction.ACTION -> {
-                val config = SpvModuleApplication.getApplication().configuration!!
-                val txBytes = intent.getByteArrayExtra(IntentContract.BroadcastTransaction.TX_EXTRA)
-                if (config.broadcastUsingAlternative) {
-                    asyncAlternativeBroadcast(txBytes)
-                    return
-                } else {
-                    clone.action = SpvService.ACTION_BROADCAST_TRANSACTION
-                }
+                clone.action = SpvService.ACTION_BROADCAST_TRANSACTION
             }
 
             IntentContract.ReceiveTransactions.ACTION -> {
@@ -88,8 +81,8 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             }
 
             IntentContract.RequestSingleAddressPrivateKeyToSPV.ACTION -> {
-                var guid = intent.getStringExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.SINGLE_ADDRESS_GUID)
-                var privateKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.PRIVATE_KEY)
+                val guid = intent.getStringExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.SINGLE_ADDRESS_GUID)
+                val privateKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.PRIVATE_KEY)
                 SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, privateKey)
             }
 
@@ -115,40 +108,6 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             Log.d(LOG_TAG, "Starting Service $clone")
             context.startService(clone)
         }
-    }
-
-    private fun asyncAlternativeBroadcast(tx: ByteArray) {
-        Thread(Runnable {
-            try {
-                val url = URL("https://${if (Constants.TEST) "testnet." else "" }blockexplorer.com/api/tx/send")
-                val conn = url.openConnection() as HttpURLConnection
-                conn.setRequestMethod("POST")
-                conn.setRequestProperty("Content-Type", "application/json;charset=UTF-8")
-                conn.setRequestProperty("Accept", "application/json")
-                conn.setDoOutput(true)
-                conn.setDoInput(true)
-
-                val jsonParam = JSONObject()
-                jsonParam.put("rawtx", tx.map {String.format("%02X", it)}.joinToString(""))
-
-                Log.i("JSON", jsonParam.toString())
-                val os = DataOutputStream(conn.getOutputStream())
-                os.writeBytes(jsonParam.toString())
-
-                os.flush()
-                os.close()
-
-                val transaction = Transaction(Constants.NETWORK_PARAMETERS, tx)
-                val intent = Intent("com.mycelium.wallet.broadcaststatus")
-                intent.putExtra("tx", transaction.hash)
-                intent.putExtra("result", if(conn.responseCode == 200) "success" else "failure")
-                SpvModuleApplication.sendMbw(intent)
-
-                conn.disconnect()
-            } catch (e: Exception) {
-                Log.e(LOG_TAG, e.localizedMessage, e)
-            }
-        }).start()
     }
 
     private val LOG_TAG: String = this.javaClass.simpleName

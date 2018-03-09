@@ -25,14 +25,13 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
 import android.support.v4.content.LocalBroadcastManager
+import android.support.v7.preference.ListPreference
 import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
 import android.util.Log
 import android.view.View
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.view.HeaderPreference
-import java.net.InetAddress
-
 
 class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChangeListener {
     private var application: SpvModuleApplication? = null
@@ -44,8 +43,9 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     private var backgroundHandler: Handler? = null
 
     private var trustedPeerPreference: Preference? = null
-    private var trustedPeerOnlyPreference: Preference? = null
     private var syncProgressPreference: Preference? = null
+    private var nodeOptionPref: ListPreference? = null
+
     private val chainStateBroadcastReceiver: ChainStateBroadcastReceiver = SettingsFragment.ChainStateBroadcastReceiver(this)
 
     override fun onAttach(context: Context) {
@@ -72,7 +72,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
                 val walletPackage = mbwModulePackage
                 if (activity?.intent?.getStringExtra("callingPackage") != walletPackage) {
                     val intent = Intent(Intent.ACTION_MAIN)
-                    intent.`package` = walletPackage;
+                    intent.`package` = walletPackage
                     try {
                         startActivity(intent)
                     } catch (e: ActivityNotFoundException) {
@@ -87,11 +87,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
             }
         }
 
+        nodeOptionPref  = findPreference(Configuration.PREFS_NODE_OPTION) as ListPreference?
+        nodeOptionPref!!.onPreferenceChangeListener = this
         trustedPeerPreference = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER)
         trustedPeerPreference!!.onPreferenceChangeListener = this
-
-        trustedPeerOnlyPreference = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER_ONLY)
-        trustedPeerOnlyPreference!!.onPreferenceChangeListener = this
 
         val dataUsagePreference = findPreference(Configuration.PREFS_KEY_DATA_USAGE)
         dataUsagePreference.isEnabled = pm!!.resolveActivity(dataUsagePreference.intent, 0) != null
@@ -100,7 +99,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         updateSyncProgress()
 
         updateTrustedPeer()
-        LocalBroadcastManager.getInstance(application!!).registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
+        activity?.registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -120,8 +119,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     }
 
     override fun onDestroy() {
-        LocalBroadcastManager.getInstance(application!!).unregisterReceiver(chainStateBroadcastReceiver)
-        trustedPeerOnlyPreference!!.onPreferenceChangeListener = null
+        activity?.unregisterReceiver(chainStateBroadcastReceiver)
+        nodeOptionPref!!.onPreferenceChangeListener = null
         trustedPeerPreference!!.onPreferenceChangeListener = null
 
         backgroundThread!!.looper.quit()
@@ -132,11 +131,9 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     override fun onPreferenceChange(preference: Preference?, newValue: Any?): Boolean {
         // delay action because preference isn't persisted until after this method returns
         handler.post {
-            if (preference == trustedPeerPreference) {
+            if (preference in arrayOf(nodeOptionPref, trustedPeerPreference)) {
                 application!!.stopBlockchainService()
                 updateTrustedPeer()
-            } else if (preference == trustedPeerOnlyPreference) {
-                application!!.stopBlockchainService()
             }
         }
         return true
@@ -144,26 +141,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
 
     private fun updateTrustedPeer() {
         val trustedPeer = config!!.trustedPeerHost
-
-        if (trustedPeer == null) {
-            trustedPeerPreference!!.setSummary(R.string.preferences_trusted_peer_summary)
-            trustedPeerOnlyPreference!!.isEnabled = false
-        } else {
-            trustedPeerPreference!!.summary = trustedPeer + "\n[" + getString(R.string.preferences_trusted_peer_resolve_progress) + "]"
-            trustedPeerOnlyPreference!!.isEnabled = true
-
-            object : ResolveDnsTask(backgroundHandler!!) {
-                override fun onSuccess(address: InetAddress) {
-                    trustedPeerPreference!!.summary = trustedPeer
-                    Log.i(LOG_TAG, "trusted peer '$trustedPeer' resolved to $address")
-                }
-
-                override fun onUnknownHost() {
-                    trustedPeerPreference!!.summary = trustedPeer + "\n[" + getString(R.string.preferences_trusted_peer_resolve_unknown_host) + "]"
-                }
-            }.resolve(trustedPeer)
-        }
+        trustedPeerPreference!!.isVisible = nodeOptionPref!!.value == "custom"
+        trustedPeerPreference!!.setSummary(trustedPeer ?: getString(R.string.preferences_trusted_peer_summary))
     }
+
     companion object {
         val LOG_TAG = "SettingsFragment"
     }
