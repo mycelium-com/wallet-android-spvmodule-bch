@@ -249,11 +249,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         peerGroup!!.addConnectedEventListener(peerConnectivityListener)
         peerGroup!!.addDisconnectedEventListener(peerConnectivityListener)
 
-        val trustedPeerHost = configuration.trustedPeerHost
-        val hasTrustedPeer = trustedPeerHost != null
-
-        val connectTrustedPeerOnly = hasTrustedPeer && configuration.trustedPeerOnly
-        peerGroup!!.maxConnections = if (connectTrustedPeerOnly) 1 else spvModuleApplication.maxConnectedPeers()
+        peerGroup!!.maxConnections = when(configuration.peerHostConfig) {
+            "mycelium" -> configuration.myceliumPeerHosts.size
+            "custom" -> 1
+            "random" -> spvModuleApplication.maxConnectedPeers()
+            else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
+        }
         peerGroup!!.setConnectTimeoutMillis(Constants.PEER_TIMEOUT_MS)
         peerGroup!!.setPeerDiscoveryTimeoutMillis(Constants.PEER_DISCOVERY_TIMEOUT_MS.toLong())
 
@@ -264,43 +265,30 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             override fun getPeers(services: Long, timeoutValue: Long, timeoutUnit: TimeUnit)
                     : Array<InetSocketAddress> {
                 propagate(Constants.CONTEXT)
-                val peers = LinkedList<InetSocketAddress>()
+                val peers = when(configuration.peerHostConfig) {
+                    "mycelium" -> peersFromUrls(configuration.myceliumPeerHosts)
+                    "custom" -> peersFromUrls(configuration.trustedPeerHost!!.split(",").toTypedArray())
+                    "random" -> normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)
+                    else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
+                }
 
-                var needsTrimPeersWorkaround = false
+                if(peers.isEmpty()) {
+                    Log.e(LOG_TAG, "No valid peers available!")
+                }
+                return peers
+            }
 
-                if (hasTrustedPeer) {
-                    Log.i(LOG_TAG, "check(), trusted peer '$trustedPeerHost' " +
-                            if (connectTrustedPeerOnly) " only." else "")
-                    val parts = trustedPeerHost!!.split(":")
+            private fun peersFromUrls(urls: Array<String>): Array<InetSocketAddress> {
+                return urls.map {
+                    val parts = it.split(":")
                     val server = parts[0]
                     val port = if (parts.size == 2) {
                         Integer.parseInt(parts[1])
                     } else {
                         Constants.NETWORK_PARAMETERS.port
                     }
-
-                    val addr = InetSocketAddress(server, port)
-                    if (addr.address != null) {
-                        peers.add(addr)
-                        needsTrimPeersWorkaround = true
-                    }
-                }
-
-                if (!connectTrustedPeerOnly) {
-                    peers.addAll(Arrays.asList(*normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)))
-                }
-
-                // workaround because PeerGroup will shuffle peers
-                if (needsTrimPeersWorkaround) {
-                    while (peers.size >= spvModuleApplication.maxConnectedPeers()) {
-                        peers.removeAt(peers.size - 1)
-                    }
-                }
-
-                if(peers.isEmpty()) {
-                    Log.e(LOG_TAG, "No valid peers available!")
-                }
-                return peers.toTypedArray()
+                    InetSocketAddress(server, port)
+                }.toTypedArray()
             }
 
             override fun shutdown() {
