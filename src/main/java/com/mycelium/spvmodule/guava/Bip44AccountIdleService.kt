@@ -829,9 +829,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val wallet = walletsAccountsMap[accountIndex]!!
         wallet.commitTx(transaction)
         saveWalletAccountToFile(wallet, walletFile(accountIndex))
-        val transactionBroadcast = peerGroup!!.broadcastTransaction(transaction)
-        val future = transactionBroadcast.future()
-        future.get()
+        peerGroup!!.broadcastTransaction(transaction)
     }
 
     @Synchronized
@@ -840,9 +838,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val wallet = singleAddressAccountsMap[guid]!!
         wallet.commitTx(transaction)
         saveWalletAccountToFile(wallet, singleAddressWalletFile(guid))
-        val transactionBroadcast = peerGroup!!.broadcastTransaction(transaction)
-        val future = transactionBroadcast.future()
-        future.get()
+        peerGroup!!.broadcastTransaction(transaction)
     }
 
     fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
