@@ -66,7 +66,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
         Bip44AccountIdleService().startAsync()
-        CommunicationManager.getInstance(this).requestPair(getMbwModuleName())
+        CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())
     }
 
     fun stopBlockchainService() {
@@ -182,7 +182,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         private val LOG_TAG: String? = this::class.java.simpleName
 
-        fun getMbwModuleName(): String = when (BuildConfig.APPLICATION_ID) {
+        fun getMbwModulePackage(): String = when (BuildConfig.APPLICATION_ID) {
             "com.mycelium.module.spvbch" -> "com.mycelium.wallet"
             "com.mycelium.module.spvbch.debug" -> "com.mycelium.wallet.debug"
             "com.mycelium.module.spvbch.testnet" -> "com.mycelium.testnetwallet"
@@ -190,8 +190,13 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             else -> throw RuntimeException("No mbw module defined for BuildConfig " + BuildConfig.APPLICATION_ID)
         }
 
+        fun isMbwInstalled(context: Context): Boolean =
+                context.packageManager.getInstalledPackages(0).any { packageInfo ->
+                    packageInfo.packageName == getMbwModulePackage()
+                }
+
         fun sendMbw(intent: Intent) {
-            CommunicationManager.getInstance(getApplication()).send(getMbwModuleName(), intent)
+            CommunicationManager.getInstance(getApplication()).send(getMbwModulePackage(), intent)
         }
 
         fun doesWalletAccountExist(accountIndex: Int): Boolean =
