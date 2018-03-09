@@ -805,8 +805,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         wallet.commitTx(transaction)
         saveWalletAccountToFile(wallet, walletFile(accountIndex))
         val transactionBroadcast = peerGroup!!.broadcastTransaction(transaction)
-        val future = transactionBroadcast.future()
-        future.get()
+        transactionBroadcast.future()
     }
 
     @Synchronized
@@ -816,8 +815,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         wallet.commitTx(transaction)
         saveWalletAccountToFile(wallet, singleAddressWalletFile(guid))
         val transactionBroadcast = peerGroup!!.broadcastTransaction(transaction)
-        val future = transactionBroadcast.future()
-        future.get()
+        transactionBroadcast.future()
     }
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
