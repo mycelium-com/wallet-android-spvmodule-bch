@@ -88,10 +88,8 @@ class SpvService : IntentService("SpvService") {
                     sendRequest.signInputs = false
                     try {
                         application.createUnsignedTransaction(sendRequest, accountIndex)
-                        //application.broadcastTransaction(sendRequest, accountIndex)
-                        //SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString, true, "")
                     } catch (ex : Exception) {
-                        //SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
+                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
                 }
                 ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
@@ -114,10 +112,8 @@ class SpvService : IntentService("SpvService") {
 
                     try {
                         application.createUnsignedTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
-                        //application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
-                        //SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString, true, "")
                     } catch (ex : Exception) {
-                        //SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
+                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
                 }
                 ACTION_RECEIVE_TRANSACTIONS -> {
