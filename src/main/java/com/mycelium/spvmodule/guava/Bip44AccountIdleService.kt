@@ -831,6 +831,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return walletAccount!!.activeKeyChain.issuedExternalKeys
     }
 
+    fun getSingleAddressWalletAccount(guid: String) : Wallet {
+        return singleAddressAccountsMap.get(guid)!!
+    }
+
     @Synchronized
     fun broadcastTransaction(transaction: Transaction, accountIndex: Int) {
         propagate(Constants.CONTEXT)

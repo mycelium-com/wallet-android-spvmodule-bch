@@ -104,10 +104,12 @@ class SpvService : IntentService("SpvService") {
                                 + "rawAmount $rawAmount, feePerKb $txFeeStr and feePerFactor $txFeeFactor.")
                         return
                     }
+
+                    val wallet = application.getSingleAddressWalletAccount(singleAddressAccountGuid)
                     val address = Address.fromBase58(Constants.NETWORK_PARAMETERS, rawAddress)
                     val amount = Coin.valueOf(rawAmount)
                     val sendRequest = SendRequest.to(address, amount)
-                    sendRequest.changeAddress = address
+                    sendRequest.changeAddress = wallet.importedKeys.get(0).toAddress(Constants.NETWORK_PARAMETERS)
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
