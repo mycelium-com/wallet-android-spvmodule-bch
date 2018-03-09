@@ -855,7 +855,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     fun createUnsignedTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
-        sendRequest.signInputs = false
+        sendRequest.useForkId = true
         sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
         sendUnsignedTransactionToMbwSingleAddress(sendRequest.tx, guid)
@@ -870,7 +870,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
         propagate(Constants.CONTEXT)
-        sendRequest.useForkId = true
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
         broadcastTransactionSingleAddress(sendRequest.tx, guid)
     }
