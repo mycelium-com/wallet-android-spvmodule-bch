@@ -7,10 +7,6 @@ import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModuleName
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
-import org.json.JSONObject
-import java.io.DataOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.concurrent.Executors
 
 class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
@@ -103,10 +99,10 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 return
             }
 
-            IntentContract.RequestSingleAddressPrivateKeyToSPV.ACTION -> {
-                val guid = intent.getStringExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.SINGLE_ADDRESS_GUID)
-                val privateKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.PRIVATE_KEY)
-                SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, privateKey)
+            IntentContract.RequestSingleAddressPublicKeyToSPV.ACTION -> {
+                val guid = intent.getStringExtra(IntentContract.RequestSingleAddressPublicKeyToSPV.SINGLE_ADDRESS_GUID)
+                val publicKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPublicKeyToSPV.PUBLIC_KEY)
+                SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, publicKey)
             }
 
             IntentContract.RemoveHdWalletAccount.ACTION -> {

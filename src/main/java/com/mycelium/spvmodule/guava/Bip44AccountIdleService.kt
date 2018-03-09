@@ -730,8 +730,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     @Synchronized
-    fun addSingleAddressAccount(guid: String, privateKey: ByteArray) {
-        val ecKey = ECKey.fromPrivate(privateKey)
+    fun addSingleAddressAccount(guid: String, publicKey: ByteArray) {
+        val ecKey = ECKey.fromPublicOnly(publicKey)
         val walletAccount = Wallet.fromKeys(Constants.NETWORK_PARAMETERS, arrayListOf(ecKey))
         saveWalletAccountToFile(walletAccount, singleAddressWalletFile(guid))
 

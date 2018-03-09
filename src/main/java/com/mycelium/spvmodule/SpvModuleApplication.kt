@@ -18,6 +18,7 @@ import org.bitcoinj.core.Context.propagate
 import org.bitcoinj.crypto.LinuxSecureRandom
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.SendRequest
+import org.bitcoinj.wallet.Wallet
 
 class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var configuration: Configuration? = null
@@ -87,8 +88,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPrivateKey(guid: String, privateKey: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccount(guid, privateKey)
+    fun addSingleAddressAccountWithPrivateKey(guid: String, publicKey: ByteArray) {
+        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccount(guid, publicKey)
         restartBip44AccountIdleService(true)
     }
 
@@ -125,6 +126,9 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         }
     }
 
+    fun getSingleAddressWalletAccount(guid: String) : Wallet {
+        return Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
+    }
     fun broadcastTransaction(tx: Transaction, accountIndex: Int) {
         Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountIndex)
     }
