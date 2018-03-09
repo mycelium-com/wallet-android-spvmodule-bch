@@ -88,7 +88,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         updateSyncProgress()
 
         updateTrustedPeer()
-        LocalBroadcastManager.getInstance(application!!).registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
+        activity?.registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -108,7 +108,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     }
 
     override fun onDestroy() {
-        LocalBroadcastManager.getInstance(application!!).unregisterReceiver(chainStateBroadcastReceiver)
         activity?.unregisterReceiver(chainStateBroadcastReceiver)
         nodeOptionPref!!.onPreferenceChangeListener = null
         trustedPeerPreference!!.onPreferenceChangeListener = null
