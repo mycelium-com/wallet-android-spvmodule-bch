@@ -24,7 +24,6 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         private set
     private var activityManager: ActivityManager? = null
 
-    private var spvServiceIntent: Intent? = null
     private var blockchainServiceCancelCoinsReceivedIntent: Intent? = null
     var packageInfo: PackageInfo? = null
         private set
@@ -62,7 +61,6 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         configuration = Configuration(PreferenceManager.getDefaultSharedPreferences(this))
         activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
 
-        spvServiceIntent = Intent(this, SpvService::class.java)
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
         Bip44AccountIdleService().startAsync()
@@ -70,7 +68,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     fun stopBlockchainService() {
-        stopService(spvServiceIntent)
+        restartBip44AccountIdleService()
     }
 
     @Synchronized
