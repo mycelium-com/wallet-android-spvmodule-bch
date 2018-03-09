@@ -854,11 +854,15 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
-        Log.d(LOG_TAG, "sendRequest = $sendRequest, accountIndex = $accountIndex")
-        sendRequest.signInputs = false
+        sendRequest.useForkId = true
         sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
-        sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex)
+        val addresses = mutableListOf<String>()
+        for (input in sendRequest.tx.inputs){
+            addresses.add(input.connectedOutput!!
+                    .getAddressFromP2SH(Constants.NETWORK_PARAMETERS).toString())
+        }
+        sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex, addresses)
     }
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
@@ -893,8 +897,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    private fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction, accountIndex: Int) {
-        SpvMessageSender.sendUnsignedTransactionToMbw(operationId, transaction, accountIndex)
+    private fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction,
+                                             accountIndex: Int, addressesList : List<String>) {
+        SpvMessageSender.sendUnsignedTransactionToMbw(operationId, transaction, accountIndex,
+                addressesList)
     }
 
     private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, transaction: Transaction, guid: String) {
