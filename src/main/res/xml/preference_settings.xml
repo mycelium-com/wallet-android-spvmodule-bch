@@ -13,17 +13,20 @@
             android:layout="@layout/preference_layout"
             android:summary="@string/preferences_connectivity_notification_summary"
             android:title="@string/preferences_connectivity_notification_title" />
+        <ListPreference
+            android:key="node_option"
+            android:layout="@layout/preference_layout"
+            android:title="Select peers"
+            android:summary="%s"
+            android:defaultValue="mycelium"
+            android:entries="@array/nodeOptionNames"
+            android:entryValues="@array/nodeOptionValues" />
         <EditTextPreference
             android:key="trusted_peer"
             android:layout="@layout/preference_layout"
+            android:singleLine="false"
             android:summary="@string/preferences_trusted_peer_summary"
             android:title="@string/preferences_trusted_peer_title" />
-        <CheckBoxPreference
-            android:defaultValue="true"
-            android:key="trusted_peer_only"
-            android:layout="@layout/preference_layout"
-            android:summary="@string/preferences_trusted_peer_only_summary"
-            android:title="@string/preferences_trusted_peer_only_title" />
         <Preference
             android:key="sync_progress"
             android:summary=""
