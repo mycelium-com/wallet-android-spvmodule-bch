@@ -241,6 +241,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     private fun initializePeergroup() {
         Log.d(LOG_TAG, "initializePeergroup")
+        val customPeers = configuration.trustedPeerHost!!.split(",").toTypedArray()
         peerGroup = PeerGroup(Constants.NETWORK_PARAMETERS, blockChain)
         peerGroup!!.setDownloadTxDependencies(0) // recursive implementation causes StackOverflowError
 
@@ -251,7 +252,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         peerGroup!!.maxConnections = when(configuration.peerHostConfig) {
             "mycelium" -> configuration.myceliumPeerHosts.size
-            "custom" -> 1
+            "custom" -> customPeers.size
             "random" -> spvModuleApplication.maxConnectedPeers()
             else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
         }
@@ -267,7 +268,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 propagate(Constants.CONTEXT)
                 val peers = when(configuration.peerHostConfig) {
                     "mycelium" -> peersFromUrls(configuration.myceliumPeerHosts)
-                    "custom" -> peersFromUrls(configuration.trustedPeerHost!!.split(",").toTypedArray())
+                    "custom" -> peersFromUrls(customPeers)
                     "random" -> normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)
                     else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
                 }
