@@ -108,7 +108,6 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     }
 
     override fun onDestroy() {
-        LocalBroadcastManager.getInstance(application!!).unregisterReceiver(chainStateBroadcastReceiver)
         activity?.unregisterReceiver(chainStateBroadcastReceiver)
         nodeOptionPref!!.onPreferenceChangeListener = null
         trustedPeerPreference!!.onPreferenceChangeListener = null
