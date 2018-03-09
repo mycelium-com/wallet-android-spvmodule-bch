@@ -87,7 +87,7 @@ class SpvService : IntentService("SpvService") {
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
                     sendRequest.signInputs = false
                     try {
-                        application.createUnsignedTransaction(sendRequest, accountIndex)
+                        application.createUnsignedTransaction(operationId, sendRequest, accountIndex)
                     } catch (ex : Exception) {
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
@@ -107,11 +107,12 @@ class SpvService : IntentService("SpvService") {
                     val address = Address.fromBase58(Constants.NETWORK_PARAMETERS, rawAddress)
                     val amount = Coin.valueOf(rawAmount)
                     val sendRequest = SendRequest.to(address, amount)
+                    sendRequest.changeAddress = address
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
                     try {
-                        application.createUnsignedTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
+                        application.createUnsignedTransactionSingleAddress(operationId, sendRequest, singleAddressAccountGuid)
                     } catch (ex : Exception) {
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }

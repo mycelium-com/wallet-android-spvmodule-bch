@@ -57,17 +57,23 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             }
 
             IntentContract.SendSignedTransactionToSPV.ACTION -> {
+                val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
                 val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionToSPV.TX_EXTRA)
                 val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
+                val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
                 SpvModuleApplication.getApplication()
-                        .broadcastTransaction(Transaction(Constants.NETWORK_PARAMETERS, txBytes), accountIndex)
+                        .broadcastTransaction(tx, accountIndex)
+                SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, tx.hashAsString, true, "")
             }
 
             IntentContract.SendSignedTransactionSingleAddressToSPV.ACTION -> {
+                val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
                 val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.TX_EXTRA)
                 val accountGuid = intent.getStringExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.SINGLE_ADDRESS_GUID)
+                val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
                 SpvModuleApplication.getApplication()
-                        .broadcastTransactionSingleAddress(Transaction(Constants.NETWORK_PARAMETERS, txBytes), accountGuid)
+                        .broadcastTransactionSingleAddress(tx, accountGuid)
+                SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, tx.hashAsString, true, "")
             }
 
 

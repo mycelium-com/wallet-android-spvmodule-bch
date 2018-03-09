@@ -133,12 +133,12 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(tx, guid)
     }
 
-    fun createUnsignedTransaction(sendRequest: SendRequest, accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.createUnsignedTransaction(sendRequest, accountIndex)
+    fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
+        Bip44AccountIdleService.getInstance()!!.createUnsignedTransaction(operationId, sendRequest, accountIndex)
     }
 
-    fun createUnsignedTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
-        Bip44AccountIdleService.getInstance()!!.createUnsignedTransactionSingleAddress(sendRequest, guid)
+    fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
+        Bip44AccountIdleService.getInstance()!!.createUnsignedTransactionSingleAddress(operationId, sendRequest, guid)
     }
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
