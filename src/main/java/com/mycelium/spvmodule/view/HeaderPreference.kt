@@ -20,16 +20,14 @@ class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(con
 
     override fun onBindViewHolder(holder: PreferenceViewHolder?) {
         super.onBindViewHolder(holder)
-        val isMBWInstalled = !context.packageManager.getInstalledPackages(0).none {
-            packageInfo -> packageInfo.packageName.equals(SpvModuleApplication.getMbwModulePackage())
-        }
-
-        if (!isMBWInstalled) {
-            (holder?.itemView?.findViewById<View>(R.id.open) as Button).setText(R.string.install_mycelium_wallet)
-            (holder.itemView?.findViewById<View>(R.id.installWarning))?.visibility = View.VISIBLE
-        }
+        val isMBWInstalled = SpvModuleApplication.isMbwInstalled(context)
 
         holder?.itemView?.apply {
+            if (!isMBWInstalled) {
+                (holder.itemView?.findViewById<View>(R.id.open) as Button).setText(R.string.install_mycelium_wallet)
+                (holder.itemView?.findViewById<View>(R.id.installWarning))?.visibility = View.VISIBLE
+            }
+
             findViewById<View>(R.id.open)?.setOnClickListener {
                 openListener?.invoke()
             }

@@ -65,9 +65,8 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         val header = findPreference(Configuration.PREFS_KEY_HEADER) as HeaderPreference
         header.openListener = {
             val mbwModulePackage = SpvModuleApplication.getMbwModulePackage()
-            val isMBWInstalled = !context!!.packageManager.getInstalledPackages(0).none {
-                packageInfo -> packageInfo.packageName.equals(mbwModulePackage)
-            }
+
+            val isMBWInstalled = SpvModuleApplication.isMbwInstalled(context!!)
 
             if (isMBWInstalled) {
                 val walletPackage = mbwModulePackage

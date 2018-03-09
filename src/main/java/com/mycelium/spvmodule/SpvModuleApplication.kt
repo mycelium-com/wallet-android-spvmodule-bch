@@ -190,6 +190,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             else -> throw RuntimeException("No mbw module defined for BuildConfig " + BuildConfig.APPLICATION_ID)
         }
 
+        fun isMbwInstalled(context: Context): Boolean =
+                context.packageManager.getInstalledPackages(0).any { packageInfo ->
+                    packageInfo.packageName == getMbwModulePackage()
+                }
+
         fun sendMbw(intent: Intent) {
             CommunicationManager.getInstance(getApplication()).send(getMbwModulePackage(), intent)
         }
