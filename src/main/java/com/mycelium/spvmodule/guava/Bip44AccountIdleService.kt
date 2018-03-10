@@ -242,76 +242,77 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private fun initializePeergroup() {
         Log.d(LOG_TAG, "initializePeergroup")
         val customPeers = configuration.trustedPeerHost!!.split(",").toTypedArray()
-        peerGroup = PeerGroup(Constants.NETWORK_PARAMETERS, blockChain)
-        peerGroup!!.setDownloadTxDependencies(0) // recursive implementation causes StackOverflowError
+        peerGroup = PeerGroup(Constants.NETWORK_PARAMETERS, blockChain).apply {
+            setDownloadTxDependencies(0) // recursive implementation causes StackOverflowError
 
-        peerGroup!!.setUserAgent(Constants.USER_AGENT, spvModuleApplication.packageInfo!!.versionName)
+            setUserAgent(Constants.USER_AGENT, spvModuleApplication.packageInfo!!.versionName)
 
-        peerGroup!!.addConnectedEventListener(peerConnectivityListener)
-        peerGroup!!.addDisconnectedEventListener(peerConnectivityListener)
+            addConnectedEventListener(peerConnectivityListener)
+            addDisconnectedEventListener(peerConnectivityListener)
 
-        peerGroup!!.maxConnections = when(configuration.peerHostConfig) {
-            "mycelium" -> configuration.myceliumPeerHosts.size
-            "custom" -> customPeers.size
-            "random" -> spvModuleApplication.maxConnectedPeers()
-            else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
-        }
-        peerGroup!!.setConnectTimeoutMillis(Constants.PEER_TIMEOUT_MS)
-        peerGroup!!.setPeerDiscoveryTimeoutMillis(Constants.PEER_DISCOVERY_TIMEOUT_MS.toLong())
-
-        peerGroup!!.addPeerDiscovery(object : PeerDiscovery {
-            private val normalPeerDiscovery = MultiplexingDiscovery.forServices(Constants.NETWORK_PARAMETERS, 0)
-
-            @Throws(PeerDiscoveryException::class)
-            override fun getPeers(services: Long, timeoutValue: Long, timeoutUnit: TimeUnit)
-                    : Array<InetSocketAddress> {
-                propagate(Constants.CONTEXT)
-                val peers = when(configuration.peerHostConfig) {
-                    "mycelium" -> peersFromUrls(configuration.myceliumPeerHosts)
-                    "custom" -> peersFromUrls(customPeers)
-                    "random" -> normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)
-                    else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
-                }
-
-                if(peers.isEmpty()) {
-                    Log.e(LOG_TAG, "No valid peers available!")
-                }
-                return peers
+            maxConnections = when(configuration.peerHostConfig) {
+                "mycelium" -> configuration.myceliumPeerHosts.size
+                "custom" -> customPeers.size
+                "random" -> spvModuleApplication.maxConnectedPeers()
+                else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
             }
+            setConnectTimeoutMillis(Constants.PEER_TIMEOUT_MS)
+            setPeerDiscoveryTimeoutMillis(Constants.PEER_DISCOVERY_TIMEOUT_MS.toLong())
 
-            private fun peersFromUrls(urls: Array<String>): Array<InetSocketAddress> {
-                return urls.map {
-                    val parts = it.split(":")
-                    val server = parts[0]
-                    val port = if (parts.size == 2) {
-                        Integer.parseInt(parts[1])
-                    } else {
-                        Constants.NETWORK_PARAMETERS.port
+            addPeerDiscovery(object : PeerDiscovery {
+                private val normalPeerDiscovery = MultiplexingDiscovery.forServices(Constants.NETWORK_PARAMETERS, 0)
+
+                @Throws(PeerDiscoveryException::class)
+                override fun getPeers(services: Long, timeoutValue: Long, timeoutUnit: TimeUnit)
+                        : Array<InetSocketAddress> {
+                    propagate(Constants.CONTEXT)
+                    val peers = when(configuration.peerHostConfig) {
+                        "mycelium" -> peersFromUrls(configuration.myceliumPeerHosts)
+                        "custom" -> peersFromUrls(customPeers)
+                        "random" -> normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)
+                        else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
                     }
-                    InetSocketAddress(server, port)
-                }.toTypedArray()
-            }
 
-            override fun shutdown() {
-                normalPeerDiscovery.shutdown()
-            }
-        })
-        //Starting peerGroup;
-        Log.i(LOG_TAG, "initializePeergroup, peergroup startAsync")
-        peerGroup!!.startAsync()
+                    if(peers.isEmpty()) {
+                        Log.e(LOG_TAG, "No valid peers available!")
+                    }
+                    return peers
+                }
+
+                private fun peersFromUrls(urls: Array<String>): Array<InetSocketAddress> {
+                    return urls.map {
+                        val parts = it.split(":")
+                        val server = parts[0]
+                        val port = if (parts.size == 2) {
+                            Integer.parseInt(parts[1])
+                        } else {
+                            Constants.NETWORK_PARAMETERS.port
+                        }
+                        InetSocketAddress(server, port)
+                    }.toTypedArray()
+                }
+
+                override fun shutdown() {
+                    normalPeerDiscovery.shutdown()
+                }
+            })
+            //Starting peerGroup;
+            Log.i(LOG_TAG, "initializePeergroup, peergroup startAsync")
+            startAsync()
+        }
     }
 
     private fun stopPeergroup() {
         Log.d(LOG_TAG, "stopPeergroup")
         propagate(Constants.CONTEXT)
-        if (peerGroup != null) {
-            if (peerGroup!!.isRunning) {
-                peerGroup!!.stopAsync()
+        peerGroup?.apply {
+            if (isRunning) {
+                stopAsync()
             }
-            peerGroup!!.removeDisconnectedEventListener(peerConnectivityListener)
-            peerGroup!!.removeConnectedEventListener(peerConnectivityListener)
+            removeDisconnectedEventListener(peerConnectivityListener)
+            removeConnectedEventListener(peerConnectivityListener)
             for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
-                peerGroup!!.removeWallet(walletAccount)
+                removeWallet(walletAccount)
             }
         }
 
