@@ -74,9 +74,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     @Volatile
     private var chainDownloadPercentDone : Int = 0
 
-    // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
-    // but we should prevent competing with reading and files cleaning ourselves.
-    private val WRITE_THREADS_LIMIT = 100
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
     fun getSyncProgress(): Int {
@@ -145,7 +142,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val blockchainFile = getBlockchainFile()
         sharedPreferences.edit()
                 .remove(SYNC_PROGRESS_PREF)
-                .apply();
+                .apply()
         if (blockchainFile.exists())
             blockchainFile.delete()
     }
@@ -241,7 +238,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     private fun initializePeergroup() {
         Log.d(LOG_TAG, "initializePeergroup")
-        val customPeers = configuration.trustedPeerHost!!.split(",").toTypedArray()
+        val customPeers = (configuration.trustedPeerHost ?: "").split(",")
         peerGroup = PeerGroup(Constants.NETWORK_PARAMETERS, blockChain)
         peerGroup!!.setDownloadTxDependencies(0) // recursive implementation causes StackOverflowError
 
@@ -276,21 +273,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 if(peers.isEmpty()) {
                     Log.e(LOG_TAG, "No valid peers available!")
                 }
+                Log.d(LOG_TAG, "Using peers ${peers.joinToString(", ")}")
                 return peers
             }
 
-            private fun peersFromUrls(urls: Array<String>): Array<InetSocketAddress> {
-                return urls.map {
-                    val parts = it.split(":")
-                    val server = parts[0]
-                    val port = if (parts.size == 2) {
-                        Integer.parseInt(parts[1])
-                    } else {
-                        Constants.NETWORK_PARAMETERS.port
-                    }
-                    InetSocketAddress(server, port)
-                }.toTypedArray()
-            }
+            private fun peersFromUrls(urls: Collection<String>) = urls.map {
+                val serverWithPort = it.replace("tcp://", "")
+                val parts = serverWithPort.split(":")
+                val server = parts[0]
+                val port = if (parts.size == 2) {
+                    Integer.parseInt(parts[1])
+                } else {
+                    Constants.NETWORK_PARAMETERS.port
+                }
+                InetSocketAddress(server, port)
+            }.toTypedArray()
 
             override fun shutdown() {
                 normalPeerDiscovery.shutdown()
@@ -933,7 +930,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private fun notifyCurrentReceiveAddress() {
         val application = SpvModuleApplication.getApplication()
         val contentUri = TransactionContract.CurrentReceiveAddress.CONTENT_URI(application.packageName)
-        application.contentResolver.notifyChange(contentUri, null);
+        application.contentResolver.notifyChange(contentUri, null)
     }
 
     @Synchronized
@@ -1195,7 +1192,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "calculateMaxSpendableAmount, accountIndex = $accountIndex, txFee = $txFee, txFeeFactor = $txFeeFactor")
         val walletAccount = walletsAccountsMap[accountIndex] ?: return null
-        val balance = walletAccount.balance;
+        val balance = walletAccount.balance
         return balance.subtract(Constants.minerFeeValue(txFee, txFeeFactor))
     }
 
@@ -1262,7 +1259,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         private fun getDownloadPercentDone(): Int {
-            val downloadedHeight = blockchainState.bestChainHeight;
+            val downloadedHeight = blockchainState.bestChainHeight
             val mostCommonChainHeight = peerGroup?.mostCommonChainHeight
             if (mostCommonChainHeight != null) {
                 return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toInt()
@@ -1273,7 +1270,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         override fun startDownload(blocks: Int) {
             Log.d(LOG_TAG, "Downloading block chain of size " + blocks + ". " +
                     if (blocks > 1000) "This may take a while." else "")
-            setSyncProgress(getDownloadPercentDone());
+            setSyncProgress(getDownloadPercentDone())
         }
 
         private fun updateActivityHistory() {
@@ -1402,6 +1399,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private val SPENDINGKEYB58_PREF = "spendingKeyB58"
         private val SYNC_PROGRESS_PREF = "syncprogress"
         private val ACCOUNT_LOOKAHEAD = 3
+        // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
+        // but we should prevent competing with reading and files cleaning ourselves.
+        private val WRITE_THREADS_LIMIT = 100
     }
 
     fun doesWalletAccountExist(accountIndex: Int): Boolean =
