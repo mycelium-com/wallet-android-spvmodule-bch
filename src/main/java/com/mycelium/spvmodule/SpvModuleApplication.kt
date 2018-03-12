@@ -128,6 +128,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         return Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
     }
 
+    fun getWalletAccount(accountIndex: Int): Wallet {
+        return Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
+    }
+
     fun broadcastTransaction(tx: Transaction, accountIndex: Int) {
         Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountIndex)
     }

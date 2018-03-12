@@ -126,4 +126,5 @@ dependencies {
         force = true
     }
     implementation project(':view')
+    compile project(path: ':bitlib')
 }

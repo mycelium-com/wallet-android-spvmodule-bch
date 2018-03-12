@@ -2,6 +2,7 @@ package com.mycelium.spvmodule
 
 import android.content.Intent
 import android.util.Log
+import com.mrd.bitlib.StandardTransactionBuilder
 import com.mycelium.modularizationtools.CommunicationManager
 import org.bitcoinj.core.Address
 import org.bitcoinj.core.Transaction
@@ -106,6 +107,17 @@ class SpvMessageSender {
                 putExtra(IntentContract.TRANSACTION_HASH, txHash)
                 putExtra(IntentContract.IS_SUCCESS, isSuccess)
                 putExtra(IntentContract.MESSAGE, message)
+            }
+            send(intent)
+        }
+
+        fun sendUnsignedTransactionToMbw(operationId: String,
+                                         unsignedTransaction: StandardTransactionBuilder.UnsignedTransaction,
+                                         accountIndex: Int) {
+            val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbw").apply {
+                putExtra(IntentContract.UNSIGNED_TRANSACTION, unsignedTransaction)
+                putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
+                putExtra(IntentContract.OPERATION_ID, operationId)
             }
             send(intent)
         }

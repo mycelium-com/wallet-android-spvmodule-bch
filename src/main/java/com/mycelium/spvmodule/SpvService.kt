@@ -21,6 +21,12 @@ import android.app.IntentService
 import android.app.NotificationManager
 import android.content.*
 import android.util.Log
+import com.mrd.bitlib.StandardTransactionBuilder
+import com.mrd.bitlib.crypto.PublicKey
+import com.mrd.bitlib.crypto.PublicKeyRing
+import com.mrd.bitlib.model.NetworkParameters
+import com.mrd.bitlib.model.TransactionOutput
+import com.mrd.bitlib.model.UnspentTransactionOutput
 import com.mycelium.modularizationtools.CommunicationManager
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.propagate
