@@ -19,6 +19,7 @@ package com.mycelium.spvmodule
 
 import android.content.*
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -63,17 +64,27 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         backgroundHandler = Handler(backgroundThread!!.looper)
         val header = findPreference(Configuration.PREFS_KEY_HEADER) as HeaderPreference
         header.openListener = {
-            val walletPackage = SpvModuleApplication.getMbwModuleName()
-            if (activity?.intent?.getStringExtra("callingPackage") != walletPackage) {
-                val intent = Intent(Intent.ACTION_MAIN)
-                intent.`package` = walletPackage
-                try {
-                    startActivity(intent)
-                } catch (e: ActivityNotFoundException) {
-                    Log.e("PreferenceActivity", "Something wrong with wallet", e)
+            val mbwModulePackage = SpvModuleApplication.getMbwModulePackage()
+
+            val isMBWInstalled = SpvModuleApplication.isMbwInstalled(context!!)
+
+            if (isMBWInstalled) {
+                val walletPackage = mbwModulePackage
+                if (activity?.intent?.getStringExtra("callingPackage") != walletPackage) {
+                    val intent = Intent(Intent.ACTION_MAIN)
+                    intent.`package` = walletPackage
+                    try {
+                        startActivity(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        Log.e("PreferenceActivity", "Something wrong with wallet", e)
+                    }
                 }
+                activity?.finish()
+            } else {
+                val installIntent = Intent(Intent.ACTION_VIEW)
+                installIntent.data = Uri.parse("https://play.google.com/store/apps/details?id=" + mbwModulePackage)
+                startActivity(installIntent)
             }
-            activity?.finish()
         }
 
         nodeOptionPref  = findPreference(Configuration.PREFS_NODE_OPTION) as ListPreference?

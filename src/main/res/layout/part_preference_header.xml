@@ -20,6 +20,16 @@
         android:textSize="12sp"
         android:text="@string/inner_module_description_addition" />
 
+    <TextView
+        android:id="@+id/installWarning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:textColor="@android:color/holo_red_dark"
+        android:visibility="gone"
+        android:text="@string/wallet_not_installed" />
+
     <Button
         android:id="@+id/open"
         android:layout_width="wrap_content"
