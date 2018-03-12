@@ -5,6 +5,7 @@ import android.content.Intent
 import android.util.Log
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModulePackage
+import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
 import java.util.concurrent.Executors
 
