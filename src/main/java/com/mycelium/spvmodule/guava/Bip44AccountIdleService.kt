@@ -1261,13 +1261,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun getAccountBalance(accountIndex: Int): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = walletsAccountsMap.get(accountIndex)
-        Log.d(LOG_TAG, "getAccountBalance, accountIndex = $accountIndex")
         return walletAccount?.getBalance(Wallet.BalanceType.ESTIMATED)?.getValue()?: 0
     }
 
     fun getAccountReceiving(accountIndex: Int): Long {
         propagate(Constants.CONTEXT)
-        Log.d(LOG_TAG, "getAccountReceiving, accountIndex = $accountIndex")
         val walletAccount = walletsAccountsMap.get(accountIndex)?: return 0
         var receiving = 0L
         walletAccount.pendingTransactions.forEach {
@@ -1280,7 +1278,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun getAccountSending(accountIndex: Int): Long {
         propagate(Constants.CONTEXT)
-        Log.d(LOG_TAG, "getAccountSending, accountIndex = $accountIndex")
         val walletAccount = walletsAccountsMap.get(accountIndex)?: return 0
         var sending = 0L
         walletAccount.pendingTransactions.forEach {
@@ -1294,13 +1291,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun getSingleAddressAccountBalance(guid: String): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = singleAddressAccountsMap.get(guid)
-        Log.d(LOG_TAG, "getAccountBalance, guid = $guid")
         return walletAccount?.getBalance(Wallet.BalanceType.ESTIMATED)?.getValue()?: 0
     }
 
     fun getSingleAddressAccountReceiving(guid: String): Long {
         propagate(Constants.CONTEXT)
-        Log.d(LOG_TAG, "getAccountReceiving, guid = $guid")
         val walletAccount = singleAddressAccountsMap.get(guid)?: return 0
         var receiving = 0L
         walletAccount.pendingTransactions.forEach {
@@ -1313,7 +1308,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun getSingleAddressAccountSending(guid: String): Long {
         propagate(Constants.CONTEXT)
-        Log.d(LOG_TAG, "getAccountSending, guid = $guid")
         val walletAccount = singleAddressAccountsMap.get(guid)?: return 0
         var sending = 0L
         walletAccount.pendingTransactions.forEach {
@@ -1326,7 +1320,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun getAccountCurrentReceiveAddress(accountIndex: Int): org.bitcoinj.core.Address? {
         propagate(Constants.CONTEXT)
-        Log.d(LOG_TAG, "getAccountCurrentReceiveAddress, accountIndex = $accountIndex")
         val walletAccount = walletsAccountsMap.get(accountIndex)?: return null
         return walletAccount.currentReceiveAddress() ?: walletAccount.freshReceiveAddress()
     }
