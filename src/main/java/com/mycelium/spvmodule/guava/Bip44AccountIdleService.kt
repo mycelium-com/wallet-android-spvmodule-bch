@@ -870,8 +870,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     com.mrd.bitlib.model.NetworkParameters.productionNetwork
                 }
         for (key in getWalletAccount(accountIndex).activeKeyChain.leafKeys) {
-            publicKeyRing.addPublicKey(PublicKey(key.serializePublic(Constants.NETWORK_PARAMETERS)),
-                    networkParameters)
+            publicKeyRing.addPublicKey(PublicKey(key.pubKey), networkParameters)
         }
         publicKeyRing.addPublicKey(PublicKey(getWalletAccount(accountIndex).watchingKey.pubKey), networkParameters)
 
