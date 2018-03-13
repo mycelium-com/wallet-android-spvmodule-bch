@@ -53,7 +53,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         enableStrictMode()
         propagate(Constants.CONTEXT)
 
-        Log.i(LOG_TAG, "=== starting app using configuration: ${if (Constants.TEST) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
+        Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
 
         super.onCreate()
 
@@ -197,6 +197,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         private val LOG_TAG: String? = this::class.java.simpleName
 
+        // TODO: move this to build.gradle. For now, moving it there by adding
+        // buildConfigField "String", "DEBUG_STRING", "\".debug/\"" to buildTypes and
+        // buildConfigField "String", "MBW_MODULE_PACKAGE", "\"com.mycelium.wallet/com.testnet.wallet\" + DEBUG_STRING"
+        // to productFlavors failed, as BuildConfig doesn't reliably get refreshed on build variant changes!?!?
         fun getMbwModulePackage(): String = when (BuildConfig.APPLICATION_ID) {
             "com.mycelium.module.spvbch" -> "com.mycelium.wallet"
             "com.mycelium.module.spvbch.debug" -> "com.mycelium.wallet.debug"
