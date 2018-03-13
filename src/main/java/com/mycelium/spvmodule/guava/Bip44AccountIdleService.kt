@@ -888,12 +888,13 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         for (input in sendRequest.tx.inputs) {
-            unspentTransactionOutputs.add(UnspentTransactionOutput(
-                    OutPoint(com.mrd.bitlib.util.Sha256Hash(input.connectedOutput!!.outPointFor.hash.bytes),
-                            input.connectedOutput!!.outPointFor.index.toInt()),
-                    getWalletAccount(accountIndex).lastBlockSeenHeight,
-                    input.value!!.value, ScriptOutput.fromScriptBytes(
-                    input.connectedOutput!!.scriptBytes)))
+            unspentTransactionOutputs.add(
+                    UnspentTransactionOutput(
+                            OutPoint(com.mrd.bitlib.util.Sha256Hash(input.connectedOutput!!.outPointFor.hash.bytes),
+                                    input.connectedOutput!!.outPointFor.index.toInt()),
+                            getWalletAccount(accountIndex).lastBlockSeenHeight,
+                            input.connectedOutput!!.value.value, ScriptOutput.fromScriptBytes(
+                            input.connectedOutput!!.scriptBytes)))
         }
 
         val unsignedTransaction : com.mrd.bitlib.StandardTransactionBuilder.UnsignedTransaction =
