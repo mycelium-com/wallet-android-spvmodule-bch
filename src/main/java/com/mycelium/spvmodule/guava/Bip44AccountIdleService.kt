@@ -869,13 +869,17 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 } else {
                     com.mrd.bitlib.model.NetworkParameters.productionNetwork
                 }
+        for (key in getWalletAccount(accountIndex).activeKeyChain.leafKeys) {
+            publicKeyRing.addPublicKey(PublicKey(key.serializePublic(Constants.NETWORK_PARAMETERS)),
+                    networkParameters)
+        }
         publicKeyRing.addPublicKey(PublicKey(getWalletAccount(accountIndex).watchingKey.pubKey), networkParameters)
 
         val transactionOutputs : MutableList<com.mrd.bitlib.model.TransactionOutput> = mutableListOf()
         val unspentTransactionOutputs : MutableList<UnspentTransactionOutput> = mutableListOf()
 
         sendRequest.useForkId = true
-        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
+        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
 
         for (output in sendRequest.tx.outputs) {
@@ -889,7 +893,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                             input.connectedOutput!!.outPointFor.index.toInt()),
                     getWalletAccount(accountIndex).lastBlockSeenHeight,
                     input.value!!.value, ScriptOutput.fromScriptBytes(
-                    input.connectedOutput!!.scriptPubKey.program)))
+                    input.connectedOutput!!.scriptBytes)))
         }
 
         val unsignedTransaction : com.mrd.bitlib.StandardTransactionBuilder.UnsignedTransaction =
@@ -918,7 +922,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
         sendRequest.useForkId = true
-        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
+        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
 
         val walletAccount = getSingleAddressAccountWallet(guid)
@@ -948,7 +952,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                             input.connectedOutput!!.outPointFor.index.toInt()),
                     height,
                     input.value!!.value, ScriptOutput.fromScriptBytes(
-                    input.connectedOutput!!.scriptPubKey.program)))
+                    input.connectedOutput!!.scriptBytes)))
         }
 
         val unsignedTransaction : com.mrd.bitlib.StandardTransactionBuilder.UnsignedTransaction =
