@@ -248,8 +248,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         peerGroup!!.addDisconnectedEventListener(peerConnectivityListener)
 
         peerGroup!!.maxConnections = when(configuration.peerHostConfig) {
-            "mycelium" -> configuration.myceliumPeerHosts.size
-            "custom" -> customPeers.size
+            "mycelium" -> spvModuleApplication.maxConnectedPeers(configuration.myceliumPeerHosts.size)
+            "custom" -> spvModuleApplication.maxConnectedPeers(customPeers.size)
             "random" -> spvModuleApplication.maxConnectedPeers()
             else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
         }
