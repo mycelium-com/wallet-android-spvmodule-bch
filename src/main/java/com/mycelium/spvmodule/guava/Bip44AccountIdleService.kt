@@ -868,7 +868,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val networkParameters = walletsAccountsMap[accountIndex]?.networkParameters
         val txUTXOs = ArrayList<ByteArray>()
         for (input in sendRequest.tx.inputs){
-            val utxo = UTXO(input.connectedOutput!!.hash, input.connectedOutput!!.index.toLong(),
+            val utxo = UTXO(input.connectedOutput!!.parentTransactionHash, input.connectedOutput!!.index.toLong(),
                     input.connectedOutput!!.value,
                     input.connectedOutput!!.parentTransaction!!.confidence.appearedAtChainHeight,
                     input.connectedOutput!!.parentTransaction!!.isCoinBase,
