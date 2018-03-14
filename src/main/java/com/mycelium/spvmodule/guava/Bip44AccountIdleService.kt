@@ -860,107 +860,22 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
-
-        val publicKeyRing = PublicKeyRing()
-        val networkParameters : com.mrd.bitlib.model.NetworkParameters =
-                if (Constants.NETWORK_PARAMETERS == org.bitcoinj.core.NetworkParameters
-                                .fromID(org.bitcoinj.core.NetworkParameters.ID_TESTNET)) {
-                    com.mrd.bitlib.model.NetworkParameters.testNetwork
-                } else {
-                    com.mrd.bitlib.model.NetworkParameters.productionNetwork
-                }
-        for (key in getWalletAccount(accountIndex).activeKeyChain.leafKeys) {
-            publicKeyRing.addPublicKey(PublicKey(key.pubKey), networkParameters)
-        }
-        publicKeyRing.addPublicKey(PublicKey(getWalletAccount(accountIndex).watchingKey.pubKey), networkParameters)
-
-        val transactionOutputs : MutableList<com.mrd.bitlib.model.TransactionOutput> = mutableListOf()
-        val unspentTransactionOutputs : MutableList<UnspentTransactionOutput> = mutableListOf()
-
-        sendRequest.useForkId = true
-        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
-        walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
-
-        for (output in sendRequest.tx.outputs) {
-            transactionOutputs.add(com.mrd.bitlib.model.TransactionOutput(output.value.value,
-                    ScriptOutput.fromScriptBytes(output.scriptBytes)))
-        }
-
-        for (input in sendRequest.tx.inputs) {
-            unspentTransactionOutputs.add(
-                    UnspentTransactionOutput(
-                            OutPoint(com.mrd.bitlib.util.Sha256Hash(input.outpoint.hash.bytes),
-                                    input.outpoint.index.toInt()),
-                            input.connectedOutput!!.parentTransactionDepthInBlocks,
-                            input.connectedOutput!!.value.value,
-                            ScriptOutput.fromScriptBytes(
-                                    input.connectedOutput!!.scriptBytes)))
-        }
-
-        val unsignedTransaction : com.mrd.bitlib.StandardTransactionBuilder.UnsignedTransaction =
-                StandardTransactionBuilder.UnsignedTransaction(transactionOutputs,
-                        unspentTransactionOutputs, publicKeyRing, networkParameters)
-
-        /*
         sendRequest.useForkId = true
         sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
-        val chainHeight = walletsAccountsMap[accountIndex]?.lastBlockSeenHeight
         val addresses = mutableListOf<String>()
-        //val transactionOutputs : MutableList<Wallet.FreeStandingTransactionOutput> = mutableListOf()
         for (input in sendRequest.tx.inputs){
             addresses.add(input.connectedOutput!!
                     .getAddressFromP2SH(Constants.NETWORK_PARAMETERS).toString())
-            transactionOutputs.add(
-                    walletsAccountsMap[accountIndex]?.getFreeStandingTransactionOutput(input.outpoint)!!)
-            input.connectedOutput!!
         }
-
         sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex, addresses)
-        */
-        sendUnsignedTransactionToMbw(operationId, unsignedTransaction, accountIndex)
     }
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
         sendRequest.useForkId = true
-        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
+        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
-
-        val walletAccount = getSingleAddressAccountWallet(guid)
-
-        val publicKeyRing = PublicKeyRing()
-        val networkParameters : com.mrd.bitlib.model.NetworkParameters =
-                if (Constants.NETWORK_PARAMETERS == org.bitcoinj.core.NetworkParameters
-                                .fromID(org.bitcoinj.core.NetworkParameters.ID_TESTNET)) {
-                    com.mrd.bitlib.model.NetworkParameters.testNetwork
-                } else {
-                    com.mrd.bitlib.model.NetworkParameters.productionNetwork
-                }
-        publicKeyRing.addPublicKey(PublicKey(walletAccount!!.importedKeys[0].pubKey), networkParameters)
-
-        val transactionOutputs : MutableList<com.mrd.bitlib.model.TransactionOutput> = mutableListOf()
-        val unspentTransactionOutputs : MutableList<UnspentTransactionOutput> = mutableListOf()
-
-        val height = walletAccount!!.lastBlockSeenHeight
-        for (output in sendRequest.tx.outputs) {
-            transactionOutputs.add(com.mrd.bitlib.model.TransactionOutput(output.value.value,
-                    ScriptOutput.fromScriptBytes(output.scriptBytes)))
-        }
-
-        for (input in sendRequest.tx.inputs) {
-            unspentTransactionOutputs.add(UnspentTransactionOutput(
-                    OutPoint(com.mrd.bitlib.util.Sha256Hash(input.outpoint.hash.bytes),
-                            input.outpoint.index.toInt()),
-                    input.connectedOutput!!.parentTransactionDepthInBlocks,
-                    input.value!!.value, ScriptOutput.fromScriptBytes(
-                    input.connectedOutput!!.scriptBytes)))
-        }
-
-        val unsignedTransaction : com.mrd.bitlib.StandardTransactionBuilder.UnsignedTransaction =
-                StandardTransactionBuilder.UnsignedTransaction(transactionOutputs,
-                        unspentTransactionOutputs, publicKeyRing, networkParameters)
-
-        sendUnsignedTransactionToMbwSingleAddress(operationId, unsignedTransaction, guid)
+        sendUnsignedTransactionToMbwSingleAddress(operationId, sendRequest.tx, guid)
     }
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
@@ -1000,7 +915,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 addressesList)
     }
 
-    private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: StandardTransactionBuilder.UnsignedTransaction, guid: String) {
+    private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, guid: String) {
         SpvMessageSender.sendUnsignedTransactionToMbwSingleAddress(operationId, unsignedTransaction, guid)
     }
 
