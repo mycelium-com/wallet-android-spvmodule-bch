@@ -144,7 +144,7 @@ class SpvMessageSender {
                 putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
                 putExtra(IntentContract.OPERATION_ID, operationId)
                 putExtra(IntentContract.TRANSACTION_BYTES, unsignedTransaction.bitcoinSerialize())
-                putStringArrayListExtra(IntentContract.CONNECTED_OUTPUTS, ArrayList(txOutputHex))
+                putExtra(IntentContract.CONNECTED_OUTPUTS, txOutputHex.toTypedArray())
             }
             send(intent)
         }

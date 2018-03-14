@@ -863,7 +863,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
         sendRequest.useForkId = true
-        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
+        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         val networkParameters = walletsAccountsMap[accountIndex]?.networkParameters
         val txUTXOs = ArrayList<ByteArray>()
@@ -884,14 +884,23 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
         sendRequest.useForkId = true
-        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
+        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
+        sendRequest.signInputs = false
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
-
-        val txOutointsHexList = ArrayList<String>()
-        for(input in sendRequest.tx.inputs) {
-            txOutointsHexList.add(Hex.toHexString(input.connectedOutput!!.bitcoinSerialize()))
+        val networkParameters = singleAddressAccountsMap[guid]?.networkParameters
+        val txUTXOsHexList = ArrayList<String>()
+        for (input in sendRequest.tx.inputs){
+            val utxo = UTXO(input.connectedOutput!!.parentTransactionHash, input.connectedOutput!!.index.toLong(),
+                    input.connectedOutput!!.value,
+                    input.connectedOutput!!.parentTransaction!!.confidence.appearedAtChainHeight,
+                    input.connectedOutput!!.parentTransaction!!.isCoinBase,
+                    Script(input.connectedOutput!!.scriptBytes),
+                    input.connectedOutput!!.getAddressFromP2PKHScript(networkParameters)!!.toBase58())
+            val bos = ByteArrayOutputStream()
+            utxo.serializeToStream(bos)
+            txUTXOsHexList.add(Hex.toHexString(bos.toByteArray()))
         }
-        sendUnsignedTransactionToMbwSingleAddress(operationId, sendRequest.tx, txOutointsHexList, guid)
+        sendUnsignedTransactionToMbwSingleAddress(operationId, sendRequest.tx, txUTXOsHexList, guid)
     }
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
