@@ -123,22 +123,28 @@ class SpvMessageSender {
         }
 
         fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction,
-                                         accountIndex: Int, addressesList : List<String>) {
+                                         accountIndex: Int, txUTXOs: List<ByteArray>) {
             val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbw").apply {
                 putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
                 putExtra(IntentContract.OPERATION_ID, operationId)
                 putExtra(IntentContract.TRANSACTION_BYTES, transaction.bitcoinSerialize())
-                putExtra(IntentContract.ADDRESSES, addressesList.toTypedArray())
+                var index = 0
+                for (utxo in txUTXOs) {
+                    putExtra(IntentContract.CONNECTED_OUTPUTS+index++, utxo)
+                }
             }
+
             send(intent)
         }
 
-        fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, txOutputHex : List<String>, guid: String) {
+        fun sendUnsignedTransactionToMbwSingleAddress(operationId: String,
+                                                      unsignedTransaction: Transaction,
+                                                      txOutputHex : List<String>, guid: String) {
             val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbwSingleAddress").apply {
                 putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
                 putExtra(IntentContract.OPERATION_ID, operationId)
                 putExtra(IntentContract.TRANSACTION_BYTES, unsignedTransaction.bitcoinSerialize())
-                putExtra(IntentContract.CONNECTED_OUTPUTS, txOutputHex.toTypedArray())
+                putStringArrayListExtra(IntentContract.CONNECTED_OUTPUTS, ArrayList(txOutputHex))
             }
             send(intent)
         }

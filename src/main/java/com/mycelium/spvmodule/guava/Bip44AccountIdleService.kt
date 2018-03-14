@@ -38,6 +38,7 @@ import org.bitcoinj.crypto.HDKeyDerivation
 import org.bitcoinj.net.discovery.MultiplexingDiscovery
 import org.bitcoinj.net.discovery.PeerDiscovery
 import org.bitcoinj.net.discovery.PeerDiscoveryException
+import org.bitcoinj.script.Script
 import org.bitcoinj.store.BlockStore
 import org.bitcoinj.store.SPVBlockStore
 import org.bitcoinj.utils.Threading
@@ -864,12 +865,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         sendRequest.useForkId = true
         sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
-        val addresses = mutableListOf<String>()
+        val networkParameters = walletsAccountsMap[accountIndex]?.networkParameters
+        val txUTXOs = ArrayList<ByteArray>()
         for (input in sendRequest.tx.inputs){
-            addresses.add(input.connectedOutput!!
-                    .getAddressFromP2SH(Constants.NETWORK_PARAMETERS).toString())
+            val utxo = UTXO(input.connectedOutput!!.hash, input.connectedOutput!!.index.toLong(),
+                    input.connectedOutput!!.value,
+                    input.connectedOutput!!.parentTransaction!!.confidence.appearedAtChainHeight,
+                    input.connectedOutput!!.parentTransaction!!.isCoinBase,
+                    Script(input.connectedOutput!!.scriptBytes),
+                    input.connectedOutput!!.getAddressFromP2PKHScript(networkParameters)!!.toBase58())
+            val bos : ByteArrayOutputStream = ByteArrayOutputStream()
+            utxo.serializeToStream(bos)
+            txUTXOs.add(bos.toByteArray())
         }
-        sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex, addresses)
+        sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex,
+                txUTXOs)
     }
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
@@ -916,9 +926,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction,
-                                             accountIndex: Int, addressesList : List<String>) {
+                                             accountIndex: Int, txUTXOs : ArrayList<ByteArray>) {
         SpvMessageSender.sendUnsignedTransactionToMbw(operationId, transaction, accountIndex,
-                addressesList)
+                txUTXOs)
     }
 
     private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, txOutputHex: List<String>, guid: String) {
