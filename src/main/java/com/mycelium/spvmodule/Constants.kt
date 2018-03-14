@@ -62,13 +62,10 @@ interface Constants {
     }
 
     companion object {
-        val TAG = "c.m.spv"
-        val TEST = BuildConfig.APPLICATION_ID.contains("test")
-
         /**
          * Network this wallet is on (e.g. testnet or mainnet).
          */
-        val NETWORK_PARAMETERS: NetworkParameters = if (TEST) TestNet3Params.get() else MainNetParams.get()
+        val NETWORK_PARAMETERS: NetworkParameters = if (BuildConfig.IS_TESTNET) TestNet3Params.get() else MainNetParams.get()
 
         /**
          * Bitcoinj global context.

@@ -5,12 +5,7 @@ import android.content.Intent
 import android.util.Log
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModulePackage
-import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
-import org.json.JSONObject
-import java.io.DataOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.concurrent.Executors
 
 class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
