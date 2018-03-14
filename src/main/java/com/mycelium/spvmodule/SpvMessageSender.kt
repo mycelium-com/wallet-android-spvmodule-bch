@@ -133,11 +133,12 @@ class SpvMessageSender {
             send(intent)
         }
 
-        fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, guid: String) {
+        fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, txOutputHex : List<String>, guid: String) {
             val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbwSingleAddress").apply {
                 putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
                 putExtra(IntentContract.OPERATION_ID, operationId)
                 putExtra(IntentContract.TRANSACTION_BYTES, unsignedTransaction.bitcoinSerialize())
+                putExtra(IntentContract.CONNECTED_OUTPUTS, txOutputHex.toTypedArray())
             }
             send(intent)
         }

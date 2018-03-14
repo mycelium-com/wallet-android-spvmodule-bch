@@ -42,6 +42,7 @@ import org.bitcoinj.store.BlockStore
 import org.bitcoinj.store.SPVBlockStore
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.*
+import org.spongycastle.util.encoders.Hex
 import java.io.*
 import java.net.InetSocketAddress
 import java.util.*
@@ -875,7 +876,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         sendRequest.useForkId = true
         sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_DUMMY_SIG
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
-        sendUnsignedTransactionToMbwSingleAddress(operationId, sendRequest.tx, guid)
+
+        val txOutointsHexList = ArrayList<String>()
+        for(input in sendRequest.tx.inputs) {
+            txOutointsHexList.add(Hex.toHexString(input.connectedOutput!!.bitcoinSerialize()))
+        }
+        sendUnsignedTransactionToMbwSingleAddress(operationId, sendRequest.tx, txOutointsHexList, guid)
     }
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
@@ -915,8 +921,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 addressesList)
     }
 
-    private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, guid: String) {
-        SpvMessageSender.sendUnsignedTransactionToMbwSingleAddress(operationId, unsignedTransaction, guid)
+    private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, txOutputHex: List<String>, guid: String) {
+        SpvMessageSender.sendUnsignedTransactionToMbwSingleAddress(operationId, unsignedTransaction, txOutputHex, guid)
     }
 
     private val transactionsReceived = AtomicInteger()
