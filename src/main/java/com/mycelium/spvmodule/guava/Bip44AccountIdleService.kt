@@ -864,9 +864,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
         sendRequest.useForkId = true
         sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
+        sendRequest.signInputs = false
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         val networkParameters = walletsAccountsMap[accountIndex]?.networkParameters
-        val txUTXOs = ArrayList<ByteArray>()
+        val utxosHex = ArrayList<String>()
         for (input in sendRequest.tx.inputs){
             val utxo = UTXO(input.connectedOutput!!.parentTransactionHash, input.connectedOutput!!.index.toLong(),
                     input.connectedOutput!!.value,
@@ -874,12 +875,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     input.connectedOutput!!.parentTransaction!!.isCoinBase,
                     Script(input.connectedOutput!!.scriptBytes),
                     input.connectedOutput!!.getAddressFromP2PKHScript(networkParameters)!!.toBase58())
-            val bos : ByteArrayOutputStream = ByteArrayOutputStream()
+            val bos = ByteArrayOutputStream()
             utxo.serializeToStream(bos)
-            txUTXOs.add(bos.toByteArray())
+            utxosHex.add(Hex.toHexString(bos.toByteArray()))
         }
         sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex,
-                txUTXOs)
+                utxosHex)
     }
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
@@ -935,9 +936,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     private fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction,
-                                             accountIndex: Int, txUTXOs : ArrayList<ByteArray>) {
+                                             accountIndex: Int, utxosHex: List<String>) {
         SpvMessageSender.sendUnsignedTransactionToMbw(operationId, transaction, accountIndex,
-                txUTXOs)
+                utxosHex)
     }
 
     private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, txOutputHex: List<String>, guid: String) {
