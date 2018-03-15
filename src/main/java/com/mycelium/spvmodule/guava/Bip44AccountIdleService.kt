@@ -14,14 +14,8 @@ import android.text.format.DateUtils
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
-import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.AbstractScheduledService
 import com.mrd.bitlib.StandardTransactionBuilder
-import com.mrd.bitlib.crypto.PublicKey
-import com.mrd.bitlib.crypto.PublicKeyRing
-import com.mrd.bitlib.model.OutPoint
-import com.mrd.bitlib.model.ScriptOutput
-import com.mrd.bitlib.model.UnspentTransactionOutput
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.model.TransactionDetails
@@ -32,9 +26,7 @@ import org.bitcoinj.core.Context.propagate
 import org.bitcoinj.core.listeners.DownloadProgressTracker
 import org.bitcoinj.core.listeners.PeerConnectedEventListener
 import org.bitcoinj.core.listeners.PeerDisconnectedEventListener
-import org.bitcoinj.crypto.ChildNumber
 import org.bitcoinj.crypto.DeterministicKey
-import org.bitcoinj.crypto.HDKeyDerivation
 import org.bitcoinj.net.discovery.MultiplexingDiscovery
 import org.bitcoinj.net.discovery.PeerDiscovery
 import org.bitcoinj.net.discovery.PeerDiscoveryException
@@ -487,7 +479,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         semaphore.release(WRITE_THREADS_LIMIT)
 
         if (!wallet!!.isConsistent) {
-            Toast.makeText(spvModuleApplication, "inconsistent wallet: " + walletAccountFile, Toast.LENGTH_LONG).show()
+            Toast.makeText(spvModuleApplication, "inconsistent wallet: $walletAccountFile", Toast.LENGTH_LONG).show()
             wallet = restoreSingleAddressWalletFromBackup(guid)
         }
 
@@ -777,7 +769,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 maxIndexWithActivity = Math.max(accountIndex, maxIndexWithActivity)
             }
         }
-        var listAccountsToCreate : MutableList<Int> = mutableListOf()
+        val listAccountsToCreate : MutableList<Int> = mutableListOf()
         for (i in maxIndexWithActivity + 1..maxIndexWithActivity + ACCOUNT_LOOKAHEAD) {
             if (walletsAccountsMap[i] == null) {
                 listAccountsToCreate.add(i)
@@ -839,9 +831,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return walletAccount!!.activeKeyChain.issuedExternalKeys
     }
 
-    fun getSingleAddressWalletAccount(guid: String) : Wallet {
-        return singleAddressAccountsMap.get(guid)!!
-    }
+    fun getSingleAddressWalletAccount(guid: String) : Wallet = singleAddressAccountsMap.get(guid)!!
 
     @Synchronized
     fun broadcastTransaction(transaction: Transaction, accountIndex: Int) {
@@ -867,18 +857,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         sendRequest.signInputs = false
         walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
         val networkParameters = walletsAccountsMap[accountIndex]?.networkParameters
-        val utxosHex = ArrayList<String>()
-        for (input in sendRequest.tx.inputs){
-            val utxo = UTXO(input.connectedOutput!!.parentTransactionHash, input.connectedOutput!!.index.toLong(),
-                    input.connectedOutput!!.value,
-                    input.connectedOutput!!.parentTransaction!!.confidence.appearedAtChainHeight,
-                    input.connectedOutput!!.parentTransaction!!.isCoinBase,
-                    Script(input.connectedOutput!!.scriptBytes),
-                    input.connectedOutput!!.getAddressFromP2PKHScript(networkParameters)!!.toBase58())
-            val bos = ByteArrayOutputStream()
-            utxo.serializeToStream(bos)
-            utxosHex.add(Hex.toHexString(bos.toByteArray()))
-        }
+        val utxosHex = getUtxosHex(sendRequest.tx.inputs, networkParameters)
         sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex,
                 utxosHex)
     }
@@ -889,19 +868,27 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         sendRequest.signInputs = false
         singleAddressAccountsMap[guid]?.completeTx(sendRequest)
         val networkParameters = singleAddressAccountsMap[guid]?.networkParameters
-        val txUTXOsHexList = ArrayList<String>()
-        for (input in sendRequest.tx.inputs){
-            val utxo = UTXO(input.connectedOutput!!.parentTransactionHash, input.connectedOutput!!.index.toLong(),
-                    input.connectedOutput!!.value,
-                    input.connectedOutput!!.parentTransaction!!.confidence.appearedAtChainHeight,
-                    input.connectedOutput!!.parentTransaction!!.isCoinBase,
-                    Script(input.connectedOutput!!.scriptBytes),
-                    input.connectedOutput!!.getAddressFromP2PKHScript(networkParameters)!!.toBase58())
-            val bos = ByteArrayOutputStream()
-            utxo.serializeToStream(bos)
-            txUTXOsHexList.add(Hex.toHexString(bos.toByteArray()))
+        val utxosHex = getUtxosHex(sendRequest.tx.inputs, networkParameters)
+        sendUnsignedTransactionToMbwSingleAddress(operationId, sendRequest.tx, utxosHex, guid)
+    }
+
+    private fun getUtxosHex(inputs: List<TransactionInput>, networkParameters: NetworkParameters?): ArrayList<String> {
+        val utxosHex = ArrayList<String>()
+        inputs.map {
+            it.connectedOutput!!.apply {
+                val utxo = UTXO(parentTransactionHash,
+                        index.toLong(),
+                        value,
+                        parentTransaction!!.confidence.appearedAtChainHeight,
+                        parentTransaction!!.isCoinBase,
+                        Script(scriptBytes),
+                        getAddressFromP2PKHScript(networkParameters)!!.toBase58())
+                val bos = ByteArrayOutputStream()
+                utxo.serializeToStream(bos)
+                utxosHex.add(Hex.toHexString(bos.toByteArray()))
+            }
         }
-        sendUnsignedTransactionToMbwSingleAddress(operationId, sendRequest.tx, txUTXOsHexList, guid)
+        return utxosHex
     }
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
@@ -927,12 +914,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             blockchainState.putExtras(this)
             SpvModuleApplication.sendMbw(this)
         }
-    }
-
-    private fun sendUnsignedTransactionToMbw(operationId: String,
-                                             unsignedTransaction: StandardTransactionBuilder.UnsignedTransaction,
-                                             accountIndex: Int) {
-        SpvMessageSender.sendUnsignedTransactionToMbw(operationId, unsignedTransaction, accountIndex)
     }
 
     private fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction,
