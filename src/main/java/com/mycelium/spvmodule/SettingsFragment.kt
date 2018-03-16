@@ -25,6 +25,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
+import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.preference.ListPreference
 import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
