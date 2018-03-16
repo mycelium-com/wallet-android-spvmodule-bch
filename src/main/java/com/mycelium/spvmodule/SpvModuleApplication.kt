@@ -74,8 +74,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         restartBip44AccountIdleService()
     }
 
-    fun getInitalizingLock() : Lock {
-        return Bip44AccountIdleService.getInstance()!!.getInitalizingLock()
+    fun waitUntilInitialized()  {
+        return Bip44AccountIdleService.getInstance()!!.waitUntilInitialized()
     }
 
     @Synchronized

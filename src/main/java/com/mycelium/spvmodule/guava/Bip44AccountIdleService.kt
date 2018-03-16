@@ -15,7 +15,6 @@ import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
 import com.google.common.util.concurrent.AbstractScheduledService
-import com.mrd.bitlib.StandardTransactionBuilder
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.model.TransactionDetails
@@ -44,7 +43,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
 
 class Bip44AccountIdleService : AbstractScheduledService() {
     private val singleAddressAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
@@ -52,7 +50,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var downloadProgressTracker: DownloadProgressTracker? = null
     private val connectivityReceiver = ConnectivityReceiver()
 
-    private val initializingLock : Lock = ReentrantLock(true)
+    private val initializingMonitor = Object()
+    @Volatile
+    private var ready = false
+
     private var wakeLock: PowerManager.WakeLock? = null
     private var peerGroup: PeerGroup? = null
 
@@ -78,6 +79,17 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var chainDownloadPercentDone : Int = 0
 
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
+
+    fun waitUntilInitialized() {
+        synchronized(initializingMonitor){
+            while (!ready) {
+                try {
+                    initializingMonitor.wait();
+                } catch (e: InterruptedException) {
+                }
+            }
+        }
+    }
 
     fun getSyncProgress(): Int {
         return if (chainDownloadPercentDone == 0) {
@@ -119,7 +131,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     override fun startUp() {
-        initializingLock.lock();
+        ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
         propagate(Constants.CONTEXT)
@@ -135,7 +147,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         initializeWalletsAccounts()
         shareCurrentWalletState()
         initializePeergroup()
-        initializingLock.unlock();
+
+        synchronized (initializingMonitor) {
+            ready = true
+            initializingMonitor.notifyAll()
+        }
     }
 
     private fun getBlockchainFile() : File {
@@ -725,8 +741,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         broadcastPeerState(peerCount)
     }
 
-    fun getInitalizingLock() : Lock {
-        return initializingLock
+    fun getInitalizingMonitor() : Object {
+        return initializingMonitor
     }
 
     @Synchronized
