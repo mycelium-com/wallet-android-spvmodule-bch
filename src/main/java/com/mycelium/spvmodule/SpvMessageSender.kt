@@ -2,7 +2,9 @@ package com.mycelium.spvmodule
 
 import android.content.Intent
 import android.util.Log
+import com.mrd.bitlib.StandardTransactionBuilder
 import com.mycelium.modularizationtools.CommunicationManager
+import org.bitcoinj.core.Address
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.core.TransactionConfidence
 import org.bitcoinj.core.TransactionOutput
@@ -64,10 +66,12 @@ class SpvMessageSender {
             SpvModuleApplication.sendMbw(intent)
         }
 
-        fun requestPrivateKey(accountIndex: Int) {
-            Log.d(LOG_TAG, "requestPrivateKey")
-            Intent("com.mycelium.wallet.requestPrivateExtendedKeyCoinTypeToMBW").run {
-                putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
+        fun requestAccountLevelKeys(accountIndexList: List<Int>, creationTimeSeconds : Long) {
+            Log.d(LOG_TAG, "requestAccountLevelKeys, accountIndexList = $accountIndexList, " +
+                    "creationTimeSeconds = $creationTimeSeconds")
+            Intent("com.mycelium.wallet.requestAccountLevelKeysToMBW").run {
+                putExtra(IntentContract.ACCOUNT_INDEXES_EXTRA, accountIndexList.toIntArray())
+                putExtra(IntentContract.CREATIONTIMESECONDS, creationTimeSeconds)
                 send(this)
             }
         }
@@ -103,6 +107,41 @@ class SpvMessageSender {
                 putExtra(IntentContract.TRANSACTION_HASH, txHash)
                 putExtra(IntentContract.IS_SUCCESS, isSuccess)
                 putExtra(IntentContract.MESSAGE, message)
+            }
+            send(intent)
+        }
+
+        fun sendUnsignedTransactionToMbw(operationId: String,
+                                         unsignedTransaction: StandardTransactionBuilder.UnsignedTransaction,
+                                         accountIndex: Int) {
+            val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbw").apply {
+                putExtra(IntentContract.UNSIGNED_TRANSACTION, unsignedTransaction)
+                putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
+                putExtra(IntentContract.OPERATION_ID, operationId)
+            }
+            send(intent)
+        }
+
+        fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction,
+                                         accountIndex: Int, utxosHex : List<String>) {
+            val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbw").apply {
+                putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
+                putExtra(IntentContract.OPERATION_ID, operationId)
+                putExtra(IntentContract.TRANSACTION_BYTES, transaction.bitcoinSerialize())
+                putExtra(IntentContract.CONNECTED_OUTPUTS, utxosHex.toTypedArray())
+            }
+
+            send(intent)
+        }
+
+        fun sendUnsignedTransactionToMbwSingleAddress(operationId: String,
+                                                      unsignedTransaction: Transaction,
+                                                      txOutputHex : List<String>, guid: String) {
+            val intent = Intent("com.mycelium.wallet.sendUnsignedTransactionToMbwSingleAddress").apply {
+                putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
+                putExtra(IntentContract.OPERATION_ID, operationId)
+                putExtra(IntentContract.TRANSACTION_BYTES, unsignedTransaction.bitcoinSerialize())
+                putExtra(IntentContract.CONNECTED_OUTPUTS, txOutputHex.toTypedArray())
             }
             send(intent)
         }

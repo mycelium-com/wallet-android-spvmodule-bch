@@ -18,6 +18,7 @@ import org.bitcoinj.core.Context.propagate
 import org.bitcoinj.crypto.LinuxSecureRandom
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.SendRequest
+import org.bitcoinj.wallet.Wallet
 
 class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var configuration: Configuration? = null
@@ -72,7 +73,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     @Synchronized
-    fun addWalletAccountWithExtendedKey(spendingKeyB58: String, creationTimeSeconds: Long,
+    fun addWalletAccountWithExtendedKey(creationTimeSeconds: Long,
                                         accountIndex: Int) {
         Log.d(LOG_TAG, "addWalletAccountWithExtendedKey, accountIndex = $accountIndex, " +
                 "doesWalletAccountExist for accountIndex ${accountIndex + 3} " +
@@ -81,13 +82,12 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             return
         }
 
-        Bip44AccountIdleService.getInstance()!!.addWalletAccount(spendingKeyB58, creationTimeSeconds, accountIndex)
-        restartBip44AccountIdleService()
+        Bip44AccountIdleService.getInstance()!!.addWalletAccount(creationTimeSeconds, accountIndex)
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPrivateKey(guid: String, privateKey: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccount(guid, privateKey)
+    fun addSingleAddressAccountWithPrivateKey(guid: String, publicKey: ByteArray) {
+        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccount(guid, publicKey)
         restartBip44AccountIdleService(true)
     }
 
@@ -124,17 +124,34 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         }
     }
 
+    fun getSingleAddressWalletAccount(guid: String) : Wallet {
+        return Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
+    }
+
+    fun getWalletAccount(accountIndex: Int): Wallet {
+        return Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
+    }
+
     fun broadcastTransaction(tx: Transaction, accountIndex: Int) {
         Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountIndex)
+    }
+
+    fun broadcastTransactionSingleAddress(tx: Transaction, guid: String) {
+        Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(tx, guid)
+    }
+
+    fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
+        Bip44AccountIdleService.getInstance()!!.createUnsignedTransaction(operationId, sendRequest, accountIndex)
+    }
+
+    fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
+        Bip44AccountIdleService.getInstance()!!.createUnsignedTransactionSingleAddress(operationId, sendRequest, guid)
     }
 
     fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
         Bip44AccountIdleService.getInstance()!!.broadcastTransaction(sendRequest, accountIndex)
     }
 
-    fun broadcastTransactionSingleAddress(tx: Transaction, guid: String) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(tx, guid)
-    }
 
     fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
         Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(sendRequest, guid)
@@ -211,5 +228,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
                 INSTANCE!!.doesSingleAddressWalletAccountExist(guid)
+    }
+
+    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeys: ArrayList<String>,
+                       creationTimeSeconds: Long) {
+        Bip44AccountIdleService.getInstance()!!.createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
     }
 }

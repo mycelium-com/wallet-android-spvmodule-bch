@@ -21,6 +21,12 @@ import android.app.IntentService
 import android.app.NotificationManager
 import android.content.*
 import android.util.Log
+import com.mrd.bitlib.StandardTransactionBuilder
+import com.mrd.bitlib.crypto.PublicKey
+import com.mrd.bitlib.crypto.PublicKeyRing
+import com.mrd.bitlib.model.NetworkParameters
+import com.mrd.bitlib.model.TransactionOutput
+import com.mrd.bitlib.model.UnspentTransactionOutput
 import com.mycelium.modularizationtools.CommunicationManager
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.propagate
@@ -85,10 +91,9 @@ class SpvService : IntentService("SpvService") {
                     val sendRequest = SendRequest.to(address, amount)
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
-
+                    sendRequest.signInputs = false
                     try {
-                        application.broadcastTransaction(sendRequest, accountIndex)
-                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString, true, "")
+                        application.createUnsignedTransaction(operationId, sendRequest, accountIndex)
                     } catch (ex : Exception) {
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
@@ -105,15 +110,17 @@ class SpvService : IntentService("SpvService") {
                                 + "rawAmount $rawAmount, feePerKb $txFeeStr and feePerFactor $txFeeFactor.")
                         return
                     }
+
+                    val wallet = application.getSingleAddressWalletAccount(singleAddressAccountGuid)
                     val address = Address.fromBase58(Constants.NETWORK_PARAMETERS, rawAddress)
                     val amount = Coin.valueOf(rawAmount)
                     val sendRequest = SendRequest.to(address, amount)
+                    sendRequest.changeAddress = wallet.importedKeys.get(0).toAddress(Constants.NETWORK_PARAMETERS)
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
                     try {
-                        application.broadcastTransactionSingleAddress(sendRequest, singleAddressAccountGuid)
-                        SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, sendRequest.tx.hashAsString, true, "")
+                        application.createUnsignedTransactionSingleAddress(operationId, sendRequest, singleAddressAccountGuid)
                     } catch (ex : Exception) {
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
@@ -122,7 +129,8 @@ class SpvService : IntentService("SpvService") {
                     accountIndex = getAccountIndex(intent) ?: return
                     if (!SpvModuleApplication.doesWalletAccountExist(accountIndex)) {
                         // Ask for private Key
-                        SpvMessageSender.requestPrivateKey(accountIndex)
+                        SpvMessageSender.requestAccountLevelKeys(mutableListOf(accountIndex),
+                                Date().time / 1000)
                         return
                     } else {
                         application.launchBlockchainScanIfNecessary()
@@ -184,6 +192,7 @@ class SpvService : IntentService("SpvService") {
         val ACTION_PEER_STATE = PACKAGE_NAME + ".peer_state"
         val ACTION_PEER_STATE_NUM_PEERS = "num_peers"
         val ACTION_BLOCKCHAIN_STATE = PACKAGE_NAME + ".blockchain_state"
+        val ACTION_SEND_UNSIGNED_TX = PACKAGE_NAME + ".send_unsigned_tx"
         val ACTION_CANCEL_COINS_RECEIVED = PACKAGE_NAME + ".cancel_coins_received"
         val ACTION_ADD_ACCOUNT = PACKAGE_NAME + ".reset_blockchain"
         val ACTION_BROADCAST_TRANSACTION = PACKAGE_NAME + ".broadcast_transaction"
@@ -192,6 +201,7 @@ class SpvService : IntentService("SpvService") {
         val ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS = PACKAGE_NAME + ".receive_transactions_single_address"
         val ACTION_SEND_FUNDS = PACKAGE_NAME + ".send_funds"
         val ACTION_SEND_FUNDS_SINGLE_ADDRESS = PACKAGE_NAME + ".send_funds_single_address"
+        val ACTION_CREATE_UNSIGNED_TRANSACTION: String = PACKAGE_NAME + ".create_unsigned_transaction"
 
         val intentsQueue: Queue<Intent> = ConcurrentLinkedQueue<Intent>()
     }
