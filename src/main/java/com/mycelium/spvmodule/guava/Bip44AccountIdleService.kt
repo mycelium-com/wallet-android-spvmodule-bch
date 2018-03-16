@@ -1205,7 +1205,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         walletAccount.pendingTransactions.forEach {
             val received = it.getValueSentToMe(walletAccount)
             val netSent = it.getValueSentFromMe(walletAccount).minus(received)
-            sending += if(netSent.isPositive) netSent.value else 0
+            sending += if(netSent.isPositive && !it.isPending) netSent.value else 0
         }
         return sending
     }
@@ -1235,7 +1235,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         walletAccount.pendingTransactions.forEach {
             val received = it.getValueSentToMe(walletAccount)
             val netSent = it.getValueSentFromMe(walletAccount).minus(received)
-            sending += if(netSent.isPositive) netSent.value else 0
+            sending += if(netSent.isPositive && !it.isPending) netSent.value else 0
         }
         return sending
     }
