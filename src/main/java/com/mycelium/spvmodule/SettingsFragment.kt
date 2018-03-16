@@ -135,10 +135,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         handler.post {
             if (newValue == "custom" || newValue == "random") {
                 AlertDialog.Builder(context)
-                        .setTitle("Warning")
-                        .setMessage("By choosing random or custom full nodes your are risking to expose all your addresses to companies like Chainalysis and lose your transactions anonymity. Processed further only if you fully understand the consequences!")
-                        .setPositiveButton("Continue") { _, _ -> applyChanges(preference) }
-                        .setNegativeButton("Cancel") { _, _ -> revertChanges(oldValue) }
+                        .setTitle(getString(R.string.warning))
+                        .setMessage(getString(R.string.random_nodes_warning))
+                        .setPositiveButton(getString(R.string.Continue)) { _, _ -> applyChanges(preference) }
+                        .setNegativeButton(getString(R.string.cancel)) { _, _ -> revertChanges(oldValue) }
                         .create().show()
             } else {
                 applyChanges(preference)

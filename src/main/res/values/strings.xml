@@ -93,4 +93,8 @@
     <string name="bitcoin_cash_setting_section">Module settings</string>
     <string name="inner_module_description_addition">If you are experienced user, you can fine tune your Bitcoin <font color="#f08c18">Cash</font> module bellow, otherwise go straight to Mycelium Wallet.</string>
     <string name="sync_progress">Sync progress:</string>
+    <string name="warning">Warning</string>
+    <string name="random_nodes_warning">By choosing random or custom full nodes your are risking to expose all your addresses to companies like Chainalysis and lose your transactions anonymity.\n\nProceed further only if you fully understand the consequences!</string>
+    <string name="Continue">Continue</string>
+    <string name="cancel">Cancel</string>
 </resources>
