@@ -7,10 +7,6 @@ import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModulePackage
 import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
-import org.json.JSONObject
-import java.io.DataOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.concurrent.Executors
 
 class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
@@ -48,9 +44,34 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 clone.action = SpvService.ACTION_SEND_FUNDS_SINGLE_ADDRESS
             }
 
+            IntentContract.CreateUnsignedTransaction.ACTION -> {
+                clone.action = SpvService.ACTION_CREATE_UNSIGNED_TRANSACTION
+            }
+
             IntentContract.BroadcastTransaction.ACTION -> {
                 clone.action = SpvService.ACTION_BROADCAST_TRANSACTION
             }
+
+            IntentContract.SendSignedTransactionToSPV.ACTION -> {
+                val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
+                val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionToSPV.TX_EXTRA)
+                val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
+                val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
+                SpvModuleApplication.getApplication()
+                        .broadcastTransaction(tx, accountIndex)
+                SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, tx.hashAsString, true, "")
+            }
+
+            IntentContract.SendSignedTransactionSingleAddressToSPV.ACTION -> {
+                val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
+                val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.TX_EXTRA)
+                val accountGuid = intent.getStringExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.SINGLE_ADDRESS_GUID)
+                val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
+                SpvModuleApplication.getApplication()
+                        .broadcastTransactionSingleAddress(tx, accountGuid)
+                SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, tx.hashAsString, true, "")
+            }
+
 
             IntentContract.ReceiveTransactions.ACTION -> {
                 clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS
@@ -59,31 +80,29 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.ReceiveTransactionsSingleAddress.ACTION -> {
                 clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS
             }
-
-            IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV.ACTION -> {
-                val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
-                if (accountIndex == -1) {
+            IntentContract.RequestAccountLevelKeysToSPV.ACTION -> {
+                val accountIndexes = intent.getIntegerArrayListExtra(IntentContract.ACCOUNT_INDEXES_EXTRA)
+                val accountKeys = intent.getStringArrayListExtra(IntentContract.RequestAccountLevelKeysToSPV.ACCOUNT_KEYS)
+                if (accountIndexes.isEmpty() || accountKeys.isEmpty()) {
                     Log.e(LOG_TAG, "no account specified. Skipping ${intent.action}.")
                     return
-                } else if (SpvModuleApplication.getApplication().doesWalletAccountExist(accountIndex)) {
+                } /* else if (SpvModuleApplication.getApplication().doesWalletAccountExist(accountIndex)) {
                     Log.i(LOG_TAG, "Trying to create an account / wallet with accountIndex " +
                             "$accountIndex that already exists.")
                     return
-                }
-                val spendingKeyB58 = intent.getStringExtra(
-                        IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV.SPENDING_KEY_B58_EXTRA)
+                } */
                 val creationTimeSeconds = intent.getLongExtra(
-                        IntentContract.RequestPrivateExtendedKeyCoinTypeToSPV
+                        IntentContract.RequestAccountLevelKeysToSPV
                                 .CREATION_TIME_SECONDS_EXTRA, 0)
                 SpvModuleApplication.getApplication()
-                        .addWalletAccountWithExtendedKey(spendingKeyB58, creationTimeSeconds, accountIndex)
+                        .createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
                 return
             }
 
-            IntentContract.RequestSingleAddressPrivateKeyToSPV.ACTION -> {
-                val guid = intent.getStringExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.SINGLE_ADDRESS_GUID)
-                val privateKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPrivateKeyToSPV.PRIVATE_KEY)
-                SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, privateKey)
+            IntentContract.RequestSingleAddressPublicKeyToSPV.ACTION -> {
+                val guid = intent.getStringExtra(IntentContract.RequestSingleAddressPublicKeyToSPV.SINGLE_ADDRESS_GUID)
+                val publicKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPublicKeyToSPV.PUBLIC_KEY)
+                SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, publicKey)
             }
 
             IntentContract.RemoveHdWalletAccount.ACTION -> {

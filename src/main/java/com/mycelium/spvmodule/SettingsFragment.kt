@@ -17,6 +17,7 @@
 
 package com.mycelium.spvmodule
 
+import android.app.AlertDialog
 import android.content.*
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -99,7 +100,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         updateSyncProgress()
 
         updateTrustedPeer()
-        activity?.registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
+        LocalBroadcastManager.getInstance(application!!).registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -119,7 +120,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     }
 
     override fun onDestroy() {
-        activity?.unregisterReceiver(chainStateBroadcastReceiver)
+        LocalBroadcastManager.getInstance(application!!).unregisterReceiver(chainStateBroadcastReceiver)
         nodeOptionPref!!.onPreferenceChangeListener = null
         trustedPeerPreference!!.onPreferenceChangeListener = null
 
@@ -130,13 +131,31 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
 
     override fun onPreferenceChange(preference: Preference?, newValue: Any?): Boolean {
         // delay action because preference isn't persisted until after this method returns
+        val oldValue = (preference as ListPreference).value
         handler.post {
-            if (preference in arrayOf(nodeOptionPref, trustedPeerPreference)) {
-                application!!.stopBlockchainService()
-                updateTrustedPeer()
+            if (newValue == "custom" || newValue == "random") {
+                AlertDialog.Builder(context)
+                        .setTitle(getString(R.string.warning))
+                        .setMessage(getString(R.string.random_nodes_warning))
+                        .setPositiveButton(getString(R.string.Continue)) { _, _ -> applyChanges(preference) }
+                        .setNegativeButton(getString(R.string.cancel)) { _, _ -> revertChanges(oldValue) }
+                        .create().show()
+            } else {
+                applyChanges(preference)
             }
         }
         return true
+    }
+
+    private fun revertChanges(oldValue: String?) {
+        nodeOptionPref?.value = oldValue
+    }
+
+    private fun applyChanges(preference: Preference?) {
+        if (preference in arrayOf(nodeOptionPref, trustedPeerPreference)) {
+            application!!.stopBlockchainService()
+            updateTrustedPeer()
+        }
     }
 
     private fun updateTrustedPeer() {

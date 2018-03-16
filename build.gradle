@@ -81,11 +81,25 @@ android {
             applicationId 'com.mycelium.module.spvbch'
             versionName = defaultConfig.versionName
             signingConfig signingConfigs.release
+            buildConfigField 'boolean', 'IS_TESTNET', 'false'
+            buildConfigField 'String[]', 'TRUSTED_FULL_NODES', '{' +
+                    '"tcp://bitcoin-abc-1.mycelium.com:8444",' +
+                    '"tcp://bitcoin-abc-2.mycelium.com:8444",' +
+                    '"tcp://bitcoin-abc-3.mycelium.com:8444",' +
+                    '"tcp://bitcoin-abc-4.mycelium.com:8444"' +
+                    '}'
         }
         btctestnet {
             applicationId 'com.mycelium.module.spvbch.testnet'
             versionName = defaultConfig.versionName + '-TESTNET'
             signingConfig signingConfigs.btctestnet
+            buildConfigField 'boolean', 'IS_TESTNET', 'true'
+            buildConfigField 'String[]', 'TRUSTED_FULL_NODES', '{' +
+                    '"tcp://bitcoin-abc-1.mycelium.com:18444",' +
+                    '"tcp://bitcoin-abc-2.mycelium.com:18444",' +
+                    '"tcp://bitcoin-abc-3.mycelium.com:18444",' +
+                    '"tcp://bitcoin-abc-4.mycelium.com:18444"' +
+                    '}'
         }
     }
 }
@@ -106,8 +120,11 @@ dependencies {
     implementation project(includePrefix +':modulespvcontract')
     implementation project(includePrefix +':myceliummodularizationtools')
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation 'com.squareup.retrofit2:retrofit:2.3.0'
+    implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
     implementation(guavaArtifact) {
         force = true
     }
     implementation project(':view')
+    compile project(path: ':bitlib')
 }
