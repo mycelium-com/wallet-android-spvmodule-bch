@@ -43,6 +43,8 @@ import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
+import java.util.concurrent.locks.Lock
+import java.util.concurrent.locks.ReentrantLock
 
 class Bip44AccountIdleService : AbstractScheduledService() {
     private val singleAddressAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
@@ -50,6 +52,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var downloadProgressTracker: DownloadProgressTracker? = null
     private val connectivityReceiver = ConnectivityReceiver()
 
+    private val initializingLock : Lock = ReentrantLock(true)
     private var wakeLock: PowerManager.WakeLock? = null
     private var peerGroup: PeerGroup? = null
 
@@ -116,6 +119,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     override fun startUp() {
+        initializingLock.lock();
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
         propagate(Constants.CONTEXT)
@@ -131,6 +135,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         initializeWalletsAccounts()
         shareCurrentWalletState()
         initializePeergroup()
+        initializingLock.unlock();
     }
 
     private fun getBlockchainFile() : File {
@@ -718,6 +723,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         // send broadcast
         broadcastPeerState(peerCount)
+    }
+
+    fun getInitalizingLock() : Lock {
+        return initializingLock
     }
 
     @Synchronized

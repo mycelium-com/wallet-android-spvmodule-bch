@@ -12,6 +12,13 @@ import java.util.concurrent.Executors
 class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
     @Synchronized
     override fun onMessage(callingPackageName: String, intent: Intent) {
+
+        val lock = SpvModuleApplication.getApplication().getInitalizingLock()
+        //Wait until Bip44AccountIdleService' startup is finished
+        lock.lock()
+        //We don't need to hold the lock on this thread, so unlock immediately
+        lock.unlock()
+
         // while sub modules might talk to each other, for now we assume that spvmodule will only ever talk to mbw:
         if(callingPackageName != getMbwModulePackage()) {
             Log.e(LOG_TAG, "Ignoring unexpected package $callingPackageName calling with intent $intent.")
