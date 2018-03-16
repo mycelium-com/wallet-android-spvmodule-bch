@@ -71,7 +71,7 @@ class Configuration(private val prefs: SharedPreferences) {
         get() = prefs.getString(PREFS_NODE_OPTION, "mycelium")
 
     val trustedPeerHost
-        get() = Strings.emptyToNull(prefs.getString(PREFS_KEY_TRUSTED_PEER, "")!!.trim { it <= ' ' })
+        get() = prefs.getString(PREFS_KEY_TRUSTED_PEER, "")!!.trim { it <= ' ' }
 
     val myceliumPeerHosts: Set<String>
         get() = prefs.getStringSet(PREFS_MYCELIUM_FULL_NODES, mutableSetOf(*BuildConfig.TRUSTED_FULL_NODES))

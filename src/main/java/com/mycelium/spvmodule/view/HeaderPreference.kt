@@ -23,10 +23,11 @@ class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(con
         val isMBWInstalled = SpvModuleApplication.isMbwInstalled(context)
 
         holder?.itemView?.apply {
-            if (!isMBWInstalled) {
-                (holder.itemView?.findViewById<View>(R.id.open) as Button).setText(R.string.install_mycelium_wallet)
-                (holder.itemView?.findViewById<View>(R.id.installWarning))?.visibility = View.VISIBLE
-            }
+            val buttonText = if (isMBWInstalled) R.string.open_mycelium_wallet else R.string.install_mycelium_wallet
+            val textVisibility = if (isMBWInstalled) View.GONE else View.VISIBLE
+
+            (holder.itemView?.findViewById<View>(R.id.open) as Button).setText(buttonText)
+            (holder.itemView?.findViewById<View>(R.id.installWarning))?.visibility = textVisibility
 
             findViewById<View>(R.id.open)?.setOnClickListener {
                 openListener?.invoke()

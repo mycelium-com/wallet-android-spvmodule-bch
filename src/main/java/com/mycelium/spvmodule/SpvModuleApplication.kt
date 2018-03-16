@@ -169,6 +169,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Bip44AccountIdleService.getInstance()!!.checkImpediments()
     }
 
+    fun maxConnectedPeers(max :Int): Int {
+        val maxConnectedPeers = maxConnectedPeers()
+        return if (max < maxConnectedPeers) max else maxConnectedPeers
+    }
+
     fun maxConnectedPeers(): Int =
             if (activityManager!!.memoryClass <= Constants.MEMORY_CLASS_LOWEND) {
                 4

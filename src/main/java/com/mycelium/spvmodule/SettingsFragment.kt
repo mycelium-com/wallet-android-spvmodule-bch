@@ -17,6 +17,7 @@
 
 package com.mycelium.spvmodule
 
+import android.app.AlertDialog
 import android.content.*
 import android.content.pm.PackageManager
 import android.net.Uri
@@ -24,7 +25,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Process
-import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.preference.ListPreference
 import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
@@ -99,7 +99,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         updateSyncProgress()
 
         updateTrustedPeer()
-        activity?.registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
+        LocalBroadcastManager.getInstance(application!!).registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -119,7 +119,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     }
 
     override fun onDestroy() {
-        activity?.unregisterReceiver(chainStateBroadcastReceiver)
+        LocalBroadcastManager.getInstance(application!!).unregisterReceiver(chainStateBroadcastReceiver)
         nodeOptionPref!!.onPreferenceChangeListener = null
         trustedPeerPreference!!.onPreferenceChangeListener = null
 
@@ -130,13 +130,31 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
 
     override fun onPreferenceChange(preference: Preference?, newValue: Any?): Boolean {
         // delay action because preference isn't persisted until after this method returns
+        val oldValue = (preference as ListPreference).value
         handler.post {
-            if (preference in arrayOf(nodeOptionPref, trustedPeerPreference)) {
-                application!!.stopBlockchainService()
-                updateTrustedPeer()
+            if (newValue == "custom" || newValue == "random") {
+                AlertDialog.Builder(context)
+                        .setTitle("Warning")
+                        .setMessage("By choosing random or custom full nodes your are risking to expose all your addresses to companies like Chainalysis and lose your transactions anonymity. Processed further only if you fully understand the consequences!")
+                        .setPositiveButton("Continue") { _, _ -> applyChanges(preference) }
+                        .setNegativeButton("Cancel") { _, _ -> revertChanges(oldValue) }
+                        .create().show()
+            } else {
+                applyChanges(preference)
             }
         }
         return true
+    }
+
+    private fun revertChanges(oldValue: String?) {
+        nodeOptionPref?.value = oldValue
+    }
+
+    private fun applyChanges(preference: Preference?) {
+        if (preference in arrayOf(nodeOptionPref, trustedPeerPreference)) {
+            application!!.stopBlockchainService()
+            updateTrustedPeer()
+        }
     }
 
     private fun updateTrustedPeer() {
