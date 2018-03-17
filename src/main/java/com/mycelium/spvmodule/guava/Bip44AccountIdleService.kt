@@ -259,76 +259,77 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private fun initializePeergroup() {
         Log.d(LOG_TAG, "initializePeergroup")
         val customPeers = (configuration.trustedPeerHost ?: "").split(",")
-        peerGroup = PeerGroup(Constants.NETWORK_PARAMETERS, blockChain)
-        peerGroup!!.setDownloadTxDependencies(0) // recursive implementation causes StackOverflowError
+        peerGroup = PeerGroup(Constants.NETWORK_PARAMETERS, blockChain).apply {
+            setDownloadTxDependencies(0) // recursive implementation causes StackOverflowError
 
-        peerGroup!!.setUserAgent(Constants.USER_AGENT, spvModuleApplication.packageInfo!!.versionName)
+            setUserAgent(Constants.USER_AGENT, spvModuleApplication.packageInfo!!.versionName)
 
-        peerGroup!!.addConnectedEventListener(peerConnectivityListener)
-        peerGroup!!.addDisconnectedEventListener(peerConnectivityListener)
+            addConnectedEventListener(peerConnectivityListener)
+            addDisconnectedEventListener(peerConnectivityListener)
 
-        peerGroup!!.maxConnections = when(configuration.peerHostConfig) {
-            "mycelium" -> spvModuleApplication.maxConnectedPeers(configuration.myceliumPeerHosts.size)
-            "custom" -> spvModuleApplication.maxConnectedPeers(customPeers.size)
-            "random" -> spvModuleApplication.maxConnectedPeers()
-            else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
+            maxConnections = when (configuration.peerHostConfig) {
+                "mycelium" -> spvModuleApplication.maxConnectedPeers(configuration.myceliumPeerHosts.size)
+                "custom" -> spvModuleApplication.maxConnectedPeers(customPeers.size)
+                "random" -> spvModuleApplication.maxConnectedPeers()
+                else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
+            }
+            setConnectTimeoutMillis(Constants.PEER_TIMEOUT_MS)
+            setPeerDiscoveryTimeoutMillis(Constants.PEER_DISCOVERY_TIMEOUT_MS.toLong())
+
+            addPeerDiscovery(object : PeerDiscovery {
+                private val normalPeerDiscovery = MultiplexingDiscovery.forServices(Constants.NETWORK_PARAMETERS, 0)
+
+                @Throws(PeerDiscoveryException::class)
+                override fun getPeers(services: Long, timeoutValue: Long, timeoutUnit: TimeUnit)
+                        : Array<InetSocketAddress> {
+                    propagate(Constants.CONTEXT)
+                    val peers = when (configuration.peerHostConfig) {
+                        "mycelium" -> peersFromUrls(configuration.myceliumPeerHosts)
+                        "custom" -> peersFromUrls(customPeers)
+                        "random" -> normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)
+                        else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
+                    }
+
+                    if (peers.isEmpty()) {
+                        Log.e(LOG_TAG, "No valid peers available!")
+                    }
+                    Log.d(LOG_TAG, "Using peers ${peers.joinToString(", ")}")
+                    return peers
+                }
+
+                private fun peersFromUrls(urls: Collection<String>) = urls.map {
+                    val serverWithPort = it.replace("tcp://", "")
+                    val parts = serverWithPort.split(":")
+                    val server = parts[0]
+                    val port = if (parts.size == 2) {
+                        Integer.parseInt(parts[1])
+                    } else {
+                        Constants.NETWORK_PARAMETERS.port
+                    }
+                    InetSocketAddress(server, port)
+                }.toTypedArray()
+
+                override fun shutdown() {
+                    normalPeerDiscovery.shutdown()
+                }
+            })
+            //Starting peerGroup;
+            Log.i(LOG_TAG, "initializePeergroup, peergroup startAsync")
+            startAsync()
         }
-        peerGroup!!.setConnectTimeoutMillis(Constants.PEER_TIMEOUT_MS)
-        peerGroup!!.setPeerDiscoveryTimeoutMillis(Constants.PEER_DISCOVERY_TIMEOUT_MS.toLong())
-
-        peerGroup!!.addPeerDiscovery(object : PeerDiscovery {
-            private val normalPeerDiscovery = MultiplexingDiscovery.forServices(Constants.NETWORK_PARAMETERS, 0)
-
-            @Throws(PeerDiscoveryException::class)
-            override fun getPeers(services: Long, timeoutValue: Long, timeoutUnit: TimeUnit)
-                    : Array<InetSocketAddress> {
-                propagate(Constants.CONTEXT)
-                val peers = when(configuration.peerHostConfig) {
-                    "mycelium" -> peersFromUrls(configuration.myceliumPeerHosts)
-                    "custom" -> peersFromUrls(customPeers)
-                    "random" -> normalPeerDiscovery.getPeers(services, timeoutValue, timeoutUnit)
-                    else -> throw RuntimeException("unknown peerHostConfig ${configuration.peerHostConfig}")
-                }
-
-                if(peers.isEmpty()) {
-                    Log.e(LOG_TAG, "No valid peers available!")
-                }
-                Log.d(LOG_TAG, "Using peers ${peers.joinToString(", ")}")
-                return peers
-            }
-
-            private fun peersFromUrls(urls: Collection<String>) = urls.map {
-                val serverWithPort = it.replace("tcp://", "")
-                val parts = serverWithPort.split(":")
-                val server = parts[0]
-                val port = if (parts.size == 2) {
-                    Integer.parseInt(parts[1])
-                } else {
-                    Constants.NETWORK_PARAMETERS.port
-                }
-                InetSocketAddress(server, port)
-            }.toTypedArray()
-
-            override fun shutdown() {
-                normalPeerDiscovery.shutdown()
-            }
-        })
-        //Starting peerGroup;
-        Log.i(LOG_TAG, "initializePeergroup, peergroup startAsync")
-        peerGroup!!.startAsync()
     }
 
     private fun stopPeergroup() {
         Log.d(LOG_TAG, "stopPeergroup")
         propagate(Constants.CONTEXT)
-        if (peerGroup != null) {
-            if (peerGroup!!.isRunning) {
-                peerGroup!!.stopAsync()
+        peerGroup?.apply {
+            if (isRunning) {
+                stopAsync()
             }
-            peerGroup!!.removeDisconnectedEventListener(peerConnectivityListener)
-            peerGroup!!.removeConnectedEventListener(peerConnectivityListener)
+            removeDisconnectedEventListener(peerConnectivityListener)
+            removeConnectedEventListener(peerConnectivityListener)
             for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
-                peerGroup!!.removeWallet(walletAccount)
+                removeWallet(walletAccount)
             }
         }
 
@@ -369,43 +370,44 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         counterCheckImpediments = 0
         //Second condition (downloadProgressTracker) prevent the case where the peergroup is
         // currently downloading the blockchain.
-        if (peerGroup != null && peerGroup!!.isRunning
-                && (downloadProgressTracker == null || downloadProgressTracker!!.future.isDone)) {
-            if (wakeLock == null) {
-                // if we still hold a wakelock, we don't leave it dangling to block until later.
-                val powerManager = spvModuleApplication.getSystemService(Context.POWER_SERVICE) as PowerManager
-                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                        "${spvModuleApplication.packageName} blockchain sync")
-            }
-            if (!wakeLock!!.isHeld) {
-                wakeLock!!.acquire()
-            }
-            for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
-                peerGroup!!.addWallet(walletAccount)
-            }
-            if (impediments.isEmpty() && peerGroup != null) {
-                downloadProgressTracker = DownloadProgressTrackerExt()
-
-                //Start download blockchain
-                Log.i(LOG_TAG, "checkImpediments, peergroup startBlockChainDownload")
-                try {
-                    peerGroup!!.startBlockChainDownload(downloadProgressTracker)
-                } catch (t : Throwable) {
-                    Log.e(LOG_TAG, t.localizedMessage, t)
-                    SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+        peerGroup?.apply {
+            if (isRunning == true && downloadProgressTracker?.future?.isDone != false) {
+                if (wakeLock == null) {
+                    // if we still hold a wakelock, we don't leave it dangling to block until later.
+                    val powerManager = spvModuleApplication.getSystemService(Context.POWER_SERVICE) as PowerManager
+                    wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                            "${spvModuleApplication.packageName} blockchain sync")
                 }
-            } else {
-                Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $peerGroup")
+                if (!wakeLock!!.isHeld) {
+                    wakeLock!!.acquire()
+                }
                 for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
-                    peerGroup!!.removeWallet(walletAccount)
+                    addWallet(walletAccount)
                 }
+                if (impediments.isEmpty() && peerGroup != null) {
+                    downloadProgressTracker = DownloadProgressTrackerExt()
+
+                    //Start download blockchain
+                    Log.i(LOG_TAG, "checkImpediments, peergroup startBlockChainDownload")
+                    try {
+                        startBlockChainDownload(downloadProgressTracker)
+                    } catch (t: Throwable) {
+                        Log.e(LOG_TAG, t.localizedMessage, t)
+                        SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                    }
+                } else {
+                    Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $peerGroup")
+                    for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
+                        removeWallet(walletAccount)
+                    }
+                }
+                //Release wakelock
+                if (wakeLock?.isHeld == true) {
+                    wakeLock?.release()
+                    wakeLock = null
+                }
+                broadcastBlockchainState()
             }
-            //Release wakelock
-            if (wakeLock?.isHeld == true) {
-                wakeLock?.release()
-                wakeLock = null
-            }
-            broadcastBlockchainState()
         }
     }
 
