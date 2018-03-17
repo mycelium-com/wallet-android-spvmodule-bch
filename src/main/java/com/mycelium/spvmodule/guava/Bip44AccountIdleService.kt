@@ -42,7 +42,6 @@ import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
-import java.util.concurrent.locks.Lock
 
 class Bip44AccountIdleService : AbstractScheduledService() {
     private val singleAddressAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
@@ -197,7 +196,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             val walletAccount = getAccountWallet(accountIndex)
             if (walletAccount != null) {
                 walletsAccountsMap[accountIndex] = walletAccount
-                if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint == true) {
+                if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint) {
                     shouldInitializeCheckpoint = false
                 }
             }

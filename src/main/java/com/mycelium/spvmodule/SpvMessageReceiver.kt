@@ -12,7 +12,6 @@ import java.util.concurrent.Executors
 class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
     @Synchronized
     override fun onMessage(callingPackageName: String, intent: Intent) {
-
         //Wait until the application is initialized
         SpvModuleApplication.getApplication().waitUntilInitialized()
 

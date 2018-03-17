@@ -19,8 +19,6 @@ import org.bitcoinj.crypto.LinuxSecureRandom
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.SendRequest
 import org.bitcoinj.wallet.Wallet
-import java.util.concurrent.locks.Lock
-import java.util.concurrent.locks.ReentrantLock
 
 class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var configuration: Configuration? = null
@@ -74,9 +72,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         restartBip44AccountIdleService()
     }
 
-    fun waitUntilInitialized()  {
-        return Bip44AccountIdleService.getInstance()!!.waitUntilInitialized()
-    }
+    fun waitUntilInitialized() = Bip44AccountIdleService.getInstance()!!.waitUntilInitialized()
 
     @Synchronized
     fun addWalletAccountWithExtendedKey(creationTimeSeconds: Long,
