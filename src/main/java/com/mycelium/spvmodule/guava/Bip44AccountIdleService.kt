@@ -82,7 +82,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         synchronized(initializingMonitor){
             while (!ready) {
                 try {
-                    initializingMonitor.wait();
+                    initializingMonitor.wait()
                 } catch (e: InterruptedException) {
                 }
             }
@@ -734,10 +734,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         broadcastPeerState(peerCount)
     }
 
-    fun getInitalizingMonitor() : Object {
-        return initializingMonitor
-    }
-
     @Synchronized
     fun addWalletAccount(creationTimeSeconds: Long,
                          accountIndex: Int) {
@@ -907,19 +903,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return utxosHex
     }
 
-    fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
-        propagate(Constants.CONTEXT)
-        sendRequest.useForkId = true
-        walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
-        broadcastTransaction(sendRequest.tx, accountIndex)
-    }
-
-    fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
-        propagate(Constants.CONTEXT)
-        singleAddressAccountsMap[guid]?.completeTx(sendRequest)
-        broadcastTransactionSingleAddress(sendRequest.tx, guid)
-    }
-
     private fun broadcastBlockchainState() {
         val localBroadcast = Intent(SpvService.ACTION_BLOCKCHAIN_STATE)
         localBroadcast.`package` = spvModuleApplication.packageName
@@ -1032,7 +1015,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         if ((downloadProgressTracker != null && !downloadProgressTracker!!.future.isDone)) {
             Log.d(LOG_TAG, "checkIfDownloadIsIdling, activityHistory.size = ${activityHistory.size}")
             // determine if block and transaction activity is idling
-            var isIdle = false
+            val isIdle: Boolean
             if (activityHistory.isEmpty()) {
                 isIdle = true
             } else {
@@ -1254,13 +1237,13 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val sendRequest = SendRequest.to(address, amount)
         sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
-        try {
+        return try {
             walletAccount.completeTx(sendRequest)
-            return TransactionContract.CheckSendAmount.Result.RESULT_OK
+            TransactionContract.CheckSendAmount.Result.RESULT_OK
         } catch (ex :InsufficientMoneyException) {
-            return TransactionContract.CheckSendAmount.Result.RESULT_NOT_ENOUGH_FUNDS
+            TransactionContract.CheckSendAmount.Result.RESULT_NOT_ENOUGH_FUNDS
         } catch (ex :Exception) {
-            return TransactionContract.CheckSendAmount.Result.RESULT_INVALID
+            TransactionContract.CheckSendAmount.Result.RESULT_INVALID
         }
     }
 
@@ -1436,17 +1419,17 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private var INSTANCE: Bip44AccountIdleService? = null
         fun getInstance(): Bip44AccountIdleService? = INSTANCE
         private val LOG_TAG = Bip44AccountIdleService::class.java.simpleName
-        private val BLOCKCHAIN_STATE_BROADCAST_THROTTLE_MS = DateUtils.SECOND_IN_MILLIS
-        private val APPWIDGET_THROTTLE_MS = DateUtils.SECOND_IN_MILLIS
-        private val MAX_HISTORY_SIZE = 10
-        private val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
-        private val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
-        private val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
-        private val SYNC_PROGRESS_PREF = "syncprogress"
-        private val ACCOUNT_LOOKAHEAD = 3
+        private const val BLOCKCHAIN_STATE_BROADCAST_THROTTLE_MS = DateUtils.SECOND_IN_MILLIS
+        private const val APPWIDGET_THROTTLE_MS = DateUtils.SECOND_IN_MILLIS
+        private const val MAX_HISTORY_SIZE = 10
+        private const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
+        private const val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
+        private const val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
+        private const val SYNC_PROGRESS_PREF = "syncprogress"
+        private const val ACCOUNT_LOOKAHEAD = 3
         // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
         // but we should prevent competing with reading and files cleaning ourselves.
-        private val WRITE_THREADS_LIMIT = 100
+        private const val WRITE_THREADS_LIMIT = 100
     }
 
     fun doesWalletAccountExist(accountIndex: Int): Boolean =
