@@ -30,52 +30,52 @@ class TransactionContentProvider : ContentProvider() {
     override fun query(uri: Uri?, projection: Array<out String>?, selection: String?,
                        selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
         checkSignature(callingPackage)
-        var cursor = MatrixCursor(emptyArray(), 0)
         val match = URI_MATCHER.match(uri)
-        val service = Bip44AccountIdleService.getInstance() ?: return cursor
+        val service = Bip44AccountIdleService.getInstance() ?: return MatrixCursor(emptyArray(), 0)
         when (match) {
-            TRANSACTION_SUMMARY_ID ->
-                if (selection == TransactionSummary.SELECTION_ACCOUNT_INDEX) {
-                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                    val accountIndex = selectionArgs!!.get(0)
-
-                    val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
-                    cursor = TransactionsSummaryCursor(transactionsSummary.size)
-
-                    addTransactionsToCursorSince(transactionsSummary, cursor, 0)
-                    return cursor
-                } else if (selection == TransactionSummary.SELECTION_ACCOUNT_INDEX_SINCE) {
-                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                    val accountIndex = selectionArgs!!.get(0)
-                    val since = selectionArgs.get(1)
-                    val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
-                    cursor = TransactionsSummaryCursor(transactionsSummary.size)
-
-                    addTransactionsToCursorSince(transactionsSummary, cursor, since.toLong())
-                    return cursor
-                } else if (selection == TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID) {
-                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                    val guid = selectionArgs!!.get(0)
-                    val since = 0L
-                    val transactionsSummary = service.getTransactionsSummary(guid)
-                    cursor = TransactionsSummaryCursor(transactionsSummary.size)
-
-                    addTransactionsToCursorSince(transactionsSummary, cursor, since)
-                    return cursor
-                } else if (selection == TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID_SINCE) {
-                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                    val guid = selectionArgs!!.get(0)
-                    val since = selectionArgs.get(1)
-                    val transactionsSummary = service.getTransactionsSummary(guid)
-                    cursor = TransactionsSummaryCursor(transactionsSummary.size)
-
-                    addTransactionsToCursorSince(transactionsSummary, cursor, since.toLong())
-                    return cursor
+            TRANSACTION_SUMMARY_ID -> {
+                Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST $selection")
+                when (selection) {
+                    TransactionSummary.SELECTION_ACCOUNT_INDEX -> {
+                        val accountIndex = selectionArgs!!.get(0)
+                        val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
+                        return TransactionsSummaryCursor(transactionsSummary.size).apply {
+                            addTransactionsToCursorSince(transactionsSummary, this, 0)
+                        }
+                    }
+                    TransactionSummary.SELECTION_ACCOUNT_INDEX_SINCE -> {
+                        val accountIndex = selectionArgs!!.get(0)
+                        val since = selectionArgs.get(1)
+                        val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
+                        return TransactionsSummaryCursor(transactionsSummary.size).apply {
+                            addTransactionsToCursorSince(transactionsSummary, this, since.toLong())
+                        }
+                    }
+                    TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID -> {
+                        val guid = selectionArgs!!.get(0)
+                        val since = 0L
+                        val transactionsSummary = service.getTransactionsSummary(guid)
+                        return TransactionsSummaryCursor(transactionsSummary.size).apply {
+                            addTransactionsToCursorSince(transactionsSummary, this, since)
+                        }
+                    }
+                    TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID_SINCE -> {
+                        val guid = selectionArgs!!.get(0)
+                        val since = selectionArgs.get(1)
+                        val transactionsSummary = service.getTransactionsSummary(guid)
+                        return TransactionsSummaryCursor(transactionsSummary.size).apply {
+                            addTransactionsToCursorSince(transactionsSummary, this, since.toLong())
+                        }
+                    }
+                    else -> {
+                        Log.e(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST failed for selection $selection")
+                    }
                 }
+            }
 
             TRANSACTION_DETAILS_ID ->
                 if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX) {
-                    cursor = TransactionDetailsCursor()
+                    val cursor = TransactionDetailsCursor()
                     val accountIndex = selectionArgs!!.get(0)
                     val hash = uri!!.lastPathSegment
                     val transactionDetails = service.getTransactionDetails(accountIndex.toInt(), hash) ?: return cursor
@@ -90,9 +90,10 @@ class TransactionContentProvider : ContentProvider() {
                         inputs,                          //TransactionContract.Transaction.INPUTS
                         outputs)                         //TransactionContract.Transaction.OUTPUTS
                     cursor.addRow(columnValues)
+                    return cursor
                 }
             ACCOUNT_BALANCE_ID, ACCOUNT_BALANCE_LIST -> {
-                cursor = AccountBalanceCursor()
+                val cursor = AccountBalanceCursor()
                 if (selection == AccountBalance.SELECTION_ACCOUNT_INDEX) {
                     // this is the ACCOUNT_BALANCE_ID case but we don't read the selection from the url (yet?)
                     listOf(selectionArgs!!.get(0).toInt()).forEach { accountIndex ->
@@ -126,9 +127,10 @@ class TransactionContentProvider : ContentProvider() {
                         cursor.addRow(columnValues)
                     }
                 }
+                return cursor
             }
             CURRENT_RECEIVE_ADDRESS_LIST, CURRENT_RECEIVE_ADDRESS_ID -> {
-                cursor = CurrentReceiveAddressCursor()
+                val cursor = CurrentReceiveAddressCursor()
                 if (selection == CurrentReceiveAddress.SELECTION_ACCOUNT_INDEX) {
                     // this is the CURRENT_RECEIVE_ADDRESS_ID case but we don't read the selection from the url (yet?)
                     val accountIndex = selectionArgs!![0].toInt()
@@ -146,9 +148,10 @@ class TransactionContentProvider : ContentProvider() {
                     )
                     cursor.addRow(columnValues)
                 }
+                return cursor
             }
             VALIDATE_QR_CODE_ID -> {
-                cursor = ValidateQrCodeCursor()
+                val cursor = ValidateQrCodeCursor()
                 if (selection == ValidateQrCode.SELECTION_COMPLETE) {
                     //val accountIndex = selectionArgs!![0].toInt()
                     val qrCode = selectionArgs!![1]
@@ -159,9 +162,10 @@ class TransactionContentProvider : ContentProvider() {
                     )
                     cursor.addRow(columnValues)
                 }
+                return cursor
             }
             CALCULATE_MAX_SPENDABLE_ID -> {
-                cursor = CalculateMaxSpendableCursor()
+                val cursor = CalculateMaxSpendableCursor()
                 if (selection == CalculateMaxSpendable.SELECTION_COMPLETE) {
                     val accountIndex = selectionArgs!![0].toInt()
                     val txFeeStr = selectionArgs[1]
@@ -175,9 +179,10 @@ class TransactionContentProvider : ContentProvider() {
                     )
                     cursor.addRow(columnValues)
                 }
+                return cursor
             }
             CHECK_SEND_AMOUNT_ID -> {
-                cursor = CheckSendAmountCursor()
+                val cursor = CheckSendAmountCursor()
                 if (selection == CheckSendAmount.SELECTION_COMPLETE) {
                     val accountIndex = selectionArgs!![0].toInt()
                     val txFeeStr = selectionArgs[1]
@@ -193,23 +198,28 @@ class TransactionContentProvider : ContentProvider() {
                     )
                     cursor.addRow(columnValues)
                 }
+                return cursor
             }
-
             GET_SYNC_PROGRESS_ID -> {
-                cursor = SyncProgressCursor()
-                cursor.addRow(listOf(Bip44AccountIdleService.getInstance()!!.getSyncProgress()))
+                return SyncProgressCursor().apply {
+                    addRow(listOf(Bip44AccountIdleService.getInstance()!!.getSyncProgress()))
+                }
             }
-
             GET_PRIVATE_KEYS_COUNT_ID -> {
                 val accountIndex = selectionArgs!![0].toInt()
-                cursor = GetPrivateKeysCountCursor()
-                cursor.addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)))
+                return GetPrivateKeysCountCursor().apply {
+                    addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)))
+                }
+            }
+            UriMatcher.NO_MATCH -> {
+                Log.e(LOG_TAG, "no match for uri $uri")
             }
             else -> {
+                Log.e(LOG_TAG, "unhandled match $match")
                 // Do nothing.
             }
         }
-        return cursor
+        return MatrixCursor(emptyArray(), 0)
     }
 
     /**
