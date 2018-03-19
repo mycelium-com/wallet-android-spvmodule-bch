@@ -382,10 +382,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     wakeLock!!.acquire()
                 }
                 for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
-                    if (!walletsAccountsMap.values.contains(walletAccount) && !singleAddressAccountsMap.values.contains(walletAccount))
-                        addWallet(walletAccount)
+                    addWallet(walletAccount)
                 }
-
                 if (impediments.isEmpty() && peerGroup != null) {
                     downloadProgressTracker = DownloadProgressTrackerExt()
 
@@ -1393,6 +1391,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         override fun doneDownload() {
             setSyncProgress(100)
             Log.d(LOG_TAG, "doneDownload(), Blockchain is fully downloaded.")
+            for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
+                peerGroup!!.removeWallet(walletAccount)
+            }
             super.doneDownload()
             /*
             if(peerGroup!!.isRunning) {
