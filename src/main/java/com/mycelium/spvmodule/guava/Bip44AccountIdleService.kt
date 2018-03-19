@@ -144,7 +144,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, getBlockchainFile())
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
-        shareCurrentWalletState()
         initializePeergroup()
 
         synchronized (initializingMonitor) {
@@ -165,12 +164,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 .apply()
         if (blockchainFile.exists())
             blockchainFile.delete()
-    }
-
-    private fun shareCurrentWalletState() {
-        (walletsAccountsMap.values + singleAddressAccountsMap.values).forEach {
-            notifyTransactions(it.getTransactions(true), it.unspents.toSet())
-        }
     }
 
     private fun initializeWalletAccountsListeners() {
@@ -386,7 +379,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                         addWallet(walletAccount)
                     } catch(e: Exception) {}
                 }
-                if (impediments.isEmpty() && peerGroup != null) {
+                if (impediments.isEmpty()) {
                     downloadProgressTracker = DownloadProgressTrackerExt()
 
                     //Start download blockchain
@@ -852,11 +845,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     fun getPrivateKeysCount(accountIndex : Int) : Int {
-        //If we don't have an account with corresponding index
-        if (walletsAccountsMap.get(accountIndex) == null)
-            return 0
-        val walletAccount = walletsAccountsMap.get(accountIndex)
-        return walletAccount!!.activeKeyChain.issuedExternalKeys
+        return walletsAccountsMap.get(accountIndex)?.activeKeyChain?.issuedExternalKeys
+                //If we don't have an account with corresponding index
+                ?: return 0
     }
 
     fun getSingleAddressWalletAccount(guid: String) : Wallet = singleAddressAccountsMap.get(guid)!!
@@ -1000,9 +991,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             }
         }
 
-        override fun onChanged(walletAccount: Wallet) {
-            notifyTransactions(walletAccount.getTransactions(true), walletAccount.unspents.toSet())
-        }
+        override fun onChanged(walletAccount: Wallet) {}
     }
 
     private val singleAddressWalletEventListener = object : ThrottlingWalletChangeListener(APPWIDGET_THROTTLE_MS) {
@@ -1021,9 +1010,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             transactionsReceived.incrementAndGet()
         }
 
-        override fun onChanged(walletAccount: Wallet) {
-            notifyTransactions(walletAccount.getTransactions(true), walletAccount.unspents.toSet())
-        }
+        override fun onChanged(walletAccount: Wallet) {}
     }
 
     private fun notifySatoshisReceived(satoshisReceived: Long, satoshisSent: Long, accountIndex: Int) {
@@ -1042,26 +1029,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         application.contentResolver.notifyChange(contentUri, null)
     }
 
-    @Synchronized
-    private fun notifyTransactions(transactions: Set<Transaction>, utxos: Set<TransactionOutput>) {
-        if (!transactions.isEmpty()) {
-            // send the new transaction and the *complete* utxo set of the account
-            SpvMessageSender.sendTransactions(transactions, utxos)
-        }
-    }
-
-    fun sendTransactions(accountIndex: Int) {
-        val walletAccount = walletsAccountsMap.get(accountIndex) ?: return
-        notifyTransactions(walletAccount.getTransactions(true), walletAccount.unspents.toSet())
-    }
-
-    fun sendTransactionsSingleAddress(guid: String) {
-        val walletAccount = singleAddressAccountsMap.get(guid)
-        if (walletAccount != null) {
-            notifyTransactions(walletAccount.getTransactions(true), walletAccount.unspents.toSet())
-        }
-    }
-
     private val activityHistory = LinkedList<ActivityHistoryEntry>()
 
     private fun checkIfDownloadIsIdling() {
@@ -1072,16 +1039,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             if (activityHistory.isEmpty()) {
                 isIdle = true
             } else {
-                for (i in activityHistory.indices) {
-                    val entry = activityHistory[i]
-                    /* Log.d(LOG_TAG, "checkIfDownloadIsIdling, activityHistory indice is $i, " +
-                    "entry.numBlocksDownloaded = ${entry.numBlocksDownloaded}, " +
-                    "entry.numTransactionsReceived = ${entry.numTransactionsReceived}") */
-                    if (entry.numBlocksDownloaded == 0) {
-                        isIdle = true
-                        break
-                    }
-                }
+                isIdle = activityHistory.any { it.numBlocksDownloaded == 0 }
                 activityHistory.clear()
             }
             // if idling, shutdown service
@@ -1107,7 +1065,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             var destAddress: Address? = null
 
             for (transactionOutput in transactionBitcoinJ.outputs) {
-
                 val toAddress = transactionOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
 
                 if (!transactionOutput.isMine(walletAccount)) {
@@ -1121,11 +1078,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             //val isQueuedOutgoing = (transactionBitcoinJ.isPending
             //       || transactionBitcoinJ.confidence == TransactionConfidence.ConfidenceType.BUILDING)
             val isQueuedOutgoing = false //TODO Change the UI so MBW understand BitcoinJ confidence type.
-            val destAddressOptional: Optional<Address> = if (destAddress != null) {
-                Optional.of(destAddress)
-            } else {
-                Optional.absent()
-            }
+            val destAddressOptional: Optional<Address> = Optional.fromNullable(destAddress)
             val bitcoinJValue = transactionBitcoinJ.getValue(walletAccount)
             val isIncoming = bitcoinJValue.isPositive
 
@@ -1142,8 +1095,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     transactionBitcoinJ.updateTime.time / 1000,
                     height,
                     confirmations, isQueuedOutgoing, null, destAddressOptional, toAddresses)
-            //Log.d(LOG_TAG, "getTransactionsSummary, accountIndex = $accountIndex, " +
-            //       "transactionSummary = ${transactionSummary.toString()} ")
             transactionsSummary.add(transactionSummary)
         }
         return transactionsSummary.toList()
@@ -1162,10 +1113,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "getTransactionsSummary, guid = $guid")
 
-        if (!singleAddressAccountsMap.containsKey(guid))
-            return mutableListOf<TransactionSummary>()
-
-        return getTransactionsSummary(singleAddressAccountsMap.get(guid)!!)
+        val walletAccount = singleAddressAccountsMap.get(guid)
+                ?: return mutableListOf<TransactionSummary>()
+        return getTransactionsSummary(walletAccount)
     }
 
     fun getTransactionDetails(accountIndex: Int, hash: String): TransactionDetails? {
