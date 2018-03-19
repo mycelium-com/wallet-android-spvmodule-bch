@@ -15,7 +15,6 @@ import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
 import com.google.common.util.concurrent.AbstractScheduledService
-import com.mrd.bitlib.StandardTransactionBuilder
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.model.TransactionDetails
@@ -50,6 +49,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var downloadProgressTracker: DownloadProgressTracker? = null
     private val connectivityReceiver = ConnectivityReceiver()
 
+    private val initializingMonitor = Object()
+    @Volatile
+    private var ready = false
+
     private var wakeLock: PowerManager.WakeLock? = null
     private var peerGroup: PeerGroup? = null
 
@@ -75,6 +78,17 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var chainDownloadPercentDone : Int = 0
 
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
+
+    fun waitUntilInitialized() {
+        synchronized(initializingMonitor){
+            while (!ready) {
+                try {
+                    initializingMonitor.wait();
+                } catch (e: InterruptedException) {
+                }
+            }
+        }
+    }
 
     fun getSyncProgress(): Int {
         return if (chainDownloadPercentDone == 0) {
@@ -116,6 +130,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     override fun startUp() {
+        ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
         propagate(Constants.CONTEXT)
@@ -131,6 +146,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         initializeWalletsAccounts()
         shareCurrentWalletState()
         initializePeergroup()
+
+        synchronized (initializingMonitor) {
+            ready = true
+            initializingMonitor.notifyAll()
+        }
     }
 
     private fun getBlockchainFile() : File {
@@ -176,7 +196,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             val walletAccount = getAccountWallet(accountIndex)
             if (walletAccount != null) {
                 walletsAccountsMap[accountIndex] = walletAccount
-                if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint == true) {
+                if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint) {
                     shouldInitializeCheckpoint = false
                 }
             }
@@ -720,6 +740,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         // send broadcast
         broadcastPeerState(peerCount)
+    }
+
+    fun getInitalizingMonitor() : Object {
+        return initializingMonitor
     }
 
     @Synchronized
