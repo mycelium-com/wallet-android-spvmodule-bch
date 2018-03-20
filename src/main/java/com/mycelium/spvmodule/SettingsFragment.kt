@@ -132,7 +132,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
 
     override fun onPreferenceChange(preference: Preference?, newValue: Any?): Boolean {
         // delay action because preference isn't persisted until after this method returns
-        val oldValue = (preference as ListPreference).value
+        var oldValue = ""
+        if (preference == nodeOptionPref) {
+            oldValue = (preference as ListPreference).value
+        }
         handler.post {
             if (newValue == "custom" || newValue == "random") {
                 AlertDialog.Builder(context)
