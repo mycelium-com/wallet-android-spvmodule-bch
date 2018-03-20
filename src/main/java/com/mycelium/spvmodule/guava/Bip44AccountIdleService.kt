@@ -72,21 +72,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var counterCheckImpediments: Int = 0
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
-    private var chainDownloadPercentDone : Int = 0
+    private var chainDownloadPercentDone : Float = 0f
 
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
-    fun getSyncProgress(): Int {
-        return if (chainDownloadPercentDone == 0) {
-            sharedPreferences.getInt(SYNC_PROGRESS_PREF, 0)
+    fun getSyncProgress(): Float {
+        return if (chainDownloadPercentDone == 0f) {
+            sharedPreferences.getFloat(SYNC_PROGRESS_PREF, 0f)
         } else {
             chainDownloadPercentDone
         }
     }
 
-    fun setSyncProgress(value: Int) {
+    fun setSyncProgress(value: Float) {
         chainDownloadPercentDone = value
-        sharedPreferences.edit().putInt(SYNC_PROGRESS_PREF, value).apply()
+        sharedPreferences.edit().putFloat(SYNC_PROGRESS_PREF, value).apply()
     }
 
     override fun shutDown() {
@@ -1334,13 +1334,13 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     Utils.dateTimeFormat(date)))
         }
 
-        private fun getDownloadPercentDone(): Int {
+        private fun getDownloadPercentDone(): Float {
             val downloadedHeight = blockchainState.bestChainHeight
             val mostCommonChainHeight = peerGroup?.mostCommonChainHeight
             if (mostCommonChainHeight != null) {
-                return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toInt()
+                return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toFloat()
             }
-            return 0
+            return 0f
         }
 
         override fun startDownload(blocks: Int) {
@@ -1365,7 +1365,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun doneDownload() {
-            setSyncProgress(100)
+            setSyncProgress(100f)
             Log.d(LOG_TAG, "doneDownload(), Blockchain is fully downloaded.")
             for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
                 peerGroup!!.removeWallet(walletAccount)
@@ -1472,7 +1472,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
         private val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
-        private val SYNC_PROGRESS_PREF = "syncprogress"
+        private val SYNC_PROGRESS_PREF = "syncprogressf"
         private val ACCOUNT_LOOKAHEAD = 3
         // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
         // but we should prevent competing with reading and files cleaning ourselves.

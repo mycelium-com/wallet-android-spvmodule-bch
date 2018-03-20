@@ -33,6 +33,7 @@ import android.util.Log
 import android.view.View
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.view.HeaderPreference
+import java.text.DecimalFormat
 
 class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChangeListener {
     private var application: SpvModuleApplication? = null
@@ -109,8 +110,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     }
 
     private fun updateSyncProgress() {
+        val syncProgress = Bip44AccountIdleService.getInstance()!!.getSyncProgress();
+        val format = DecimalFormat(if (syncProgress < 0.1f) "#.###" else "#")
         syncProgressPreference?.title = getString(R.string.pref_title_sync_progress
-                , Bip44AccountIdleService.getInstance()!!.getSyncProgress())
+                , format.format(syncProgress))
     }
 
     class ChainStateBroadcastReceiver(private var fragment: SettingsFragment) : BroadcastReceiver() {

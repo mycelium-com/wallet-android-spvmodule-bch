@@ -33,7 +33,7 @@ class BlockchainState(
         val bestChainDate: Date,
         val bestChainHeight: Int,
         val replaying: Boolean,
-        val chainDownloadPercentDone: Int,
+        val chainDownloadPercentDone: Float,
         impediments: Set<Impediment>) {
 
     enum class Impediment {
