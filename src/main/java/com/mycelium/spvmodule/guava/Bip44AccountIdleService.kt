@@ -707,27 +707,30 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         if (!connectivityNotificationEnabled || peerCount == 0) {
             notificationManager.cancel(Constants.NOTIFICATION_ID_CONNECTED)
         } else {
-            val notification = Notification.Builder(spvModuleApplication)
-            notification.setSmallIcon(R.drawable.stat_sys_peers, if (peerCount > 4) 4 else peerCount)
-            notification.setContentTitle(spvModuleApplication.getString(R.string.app_name))
-            var contentText = spvModuleApplication.getString(R.string.notification_peers_connected_msg, peerCount)
-            val daysBehind = (Date().time - blockchainState.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
-            if (daysBehind > 1) {
-                contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_behind, daysBehind)
-            }
-            if (blockchainState.impediments.size > 0) {
-                // TODO: this is potentially unreachable as the service stops when offline.
-                // Not sure if impediment STORAGE ever shows. Probably both should show.
-                val impedimentsString = blockchainState.impediments.joinToString { it.toString() }
-                contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_impediment, impedimentsString)
-            }
-            notification.setStyle(Notification.BigTextStyle().bigText(contentText))
-            notification.setContentText(contentText)
+            val notification = Notification.Builder(spvModuleApplication).apply {
+                setSmallIcon(R.drawable.stat_sys_peers, if (peerCount > 4) 4 else peerCount)
+                setContentTitle(spvModuleApplication.getString(R.string.app_name))
+                var contentText = spvModuleApplication.getString(R.string.notification_peers_connected_msg, peerCount)
+                val daysBehind = (Date().time - blockchainState.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
+                if (daysBehind > 1) {
+                    contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_behind, daysBehind)
+                    setProgress(1000, (1000 * Math.pow(1.002, (-1 * daysBehind).toDouble())).toInt(), false)
+                }
+                if (blockchainState.impediments.size > 0) {
+                    // TODO: this is potentially unreachable as the service stops when offline.
+                    // Not sure if impediment STORAGE ever shows. Probably both should show.
+                    val impedimentsString = blockchainState.impediments.joinToString { it.toString() }
+                    contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_impediment, impedimentsString)
+                }
+                setStyle(Notification.BigTextStyle().bigText(contentText))
+                setContentText(contentText)
 
-            notification.setContentIntent(PendingIntent.getActivity(spvModuleApplication, 0,
-                    Intent(spvModuleApplication, PreferenceActivity::class.java), 0))
-            notification.setWhen(System.currentTimeMillis())
-            notification.setOngoing(true)
+                setContentIntent(PendingIntent.getActivity(spvModuleApplication, 0,
+                        Intent(spvModuleApplication, PreferenceActivity::class.java), 0))
+                setWhen(System.currentTimeMillis())
+                setNumber(peerCount)
+                setOngoing(true)
+            }
             notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification.build())
         }
 
@@ -797,13 +800,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val accountIndexesIterator = accountIndexes.iterator()
         val accountKeyStringsIterator = accountKeyStrings.iterator()
         check(accountIndexes.size == accountKeyStrings.size)
-        val network = if (BuildConfig.IS_TESTNET) NetworkParameters.ID_TESTNET else NetworkParameters.ID_MAINNET
-        val networkParameters = NetworkParameters.fromID(network)
         while (accountIndexesIterator.hasNext()) {
             val accountIndex = accountIndexesIterator.next()
             val accountKeyString = accountKeyStringsIterator.next()
             createOneAccount(accountIndex, DeterministicKey.deserializeB58(accountKeyString,
-                    networkParameters), creationTimeSeconds)
+                    Constants.NETWORK_PARAMETERS), creationTimeSeconds)
         }
         SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
     }
@@ -1038,7 +1039,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    fun getTransactionsSummary(walletAccount : Wallet): List<TransactionSummary> {
+    private fun getTransactionsSummary(walletAccount : Wallet): List<TransactionSummary> {
         val transactionsSummary = mutableListOf<TransactionSummary>()
         val transactions = walletAccount.getTransactions(false).sortedWith(kotlin.Comparator { o1, o2 -> o2.updateTime.compareTo(o1.updateTime) })
 
@@ -1150,25 +1151,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun getAccountReceiving(accountIndex: Int): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = walletsAccountsMap.get(accountIndex)?: return 0
-        var receiving = 0L
-        walletAccount.pendingTransactions.forEach {
+        return walletAccount.pendingTransactions.sumByLong {
             val sent = it.getValueSentFromMe(walletAccount)
             val netReceived = it.getValueSentToMe(walletAccount).minus(sent)
-            receiving += if(netReceived.isPositive) netReceived.value else 0
+            if(netReceived.isPositive) netReceived.value else 0
         }
-        return receiving
     }
 
     fun getAccountSending(accountIndex: Int): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = walletsAccountsMap.get(accountIndex)?: return 0
-        var sending = 0L
-        walletAccount.pendingTransactions.forEach {
+        return walletAccount.pendingTransactions.sumByLong {
             val received = it.getValueSentToMe(walletAccount)
             val netSent = it.getValueSentFromMe(walletAccount).minus(received)
-            sending += if(netSent.isPositive) netSent.value else 0
+            if(netSent.isPositive) netSent.value else 0
         }
-        return sending
     }
 
     fun getSingleAddressAccountBalance(guid: String): Long {
@@ -1180,25 +1177,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun getSingleAddressAccountReceiving(guid: String): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = singleAddressAccountsMap.get(guid)?: return 0
-        var receiving = 0L
-        walletAccount.pendingTransactions.forEach {
+        return walletAccount.pendingTransactions.sumByLong {
             val sent = it.getValueSentFromMe(walletAccount)
             val netReceived = it.getValueSentToMe(walletAccount).minus(sent)
-            receiving += if(netReceived.isPositive) netReceived.value else 0
+            if(netReceived.isPositive) netReceived.value else 0
         }
-        return receiving
     }
 
     fun getSingleAddressAccountSending(guid: String): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = singleAddressAccountsMap.get(guid)?: return 0
-        var sending = 0L
-        walletAccount.pendingTransactions.forEach {
+        return walletAccount.pendingTransactions.sumByLong {
             val received = it.getValueSentToMe(walletAccount)
             val netSent = it.getValueSentFromMe(walletAccount).minus(received)
-            sending += if(netSent.isPositive) netSent.value else 0
+            if(netSent.isPositive) netSent.value else 0
         }
-        return sending
     }
 
     fun getAccountCurrentReceiveAddress(accountIndex: Int): org.bitcoinj.core.Address? {
@@ -1295,11 +1288,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         private fun getDownloadPercentDone(): Int {
             val downloadedHeight = blockchainState.bestChainHeight
-            val mostCommonChainHeight = peerGroup?.mostCommonChainHeight
-            if (mostCommonChainHeight != null) {
-                return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toInt()
-            }
-            return 0
+            val mostCommonChainHeight = peerGroup?.mostCommonChainHeight ?: return 0
+            return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toInt()
         }
 
         override fun startDownload(blocks: Int) {
@@ -1440,4 +1430,15 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     fun doesSingleAddressWalletAccountExist(guid: String) : Boolean =
             null != singleAddressAccountsMap.get(guid)
+}
+
+// TODO: in bitcoin we are often dealing with long, where kotlin decided to only provide int, so we
+// might want to pack more of these handy functions into the right place.
+// https://stackoverflow.com/questions/37537049/why-doesnt-sumbyselector-return-long#37537228
+private inline fun <T> Iterable<T>.sumByLong(selector: (T) -> Long): Long {
+    var sum = 0L
+    for (element in this) {
+        sum += selector(element)
+    }
+    return sum
 }
