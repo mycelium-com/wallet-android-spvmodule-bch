@@ -126,9 +126,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         }
     }
 
-    fun getSingleAddressWalletAccount(guid: String) : Wallet {
-        return Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
-    }
+    fun getSingleAddressWalletAccount(guid: String) : Wallet =
+            Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
 
     fun getWalletAccount(accountIndex: Int): Wallet {
         return Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
@@ -148,23 +147,6 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
         Bip44AccountIdleService.getInstance()!!.createUnsignedTransactionSingleAddress(operationId, sendRequest, guid)
-    }
-
-    fun broadcastTransaction(sendRequest: SendRequest, accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransaction(sendRequest, accountIndex)
-    }
-
-
-    fun broadcastTransactionSingleAddress(sendRequest: SendRequest, guid: String) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(sendRequest, guid)
-    }
-
-    fun sendTransactions(accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.sendTransactions(accountIndex)
-    }
-
-    fun sendTransactionsSingleAddress(guid: String) {
-        Bip44AccountIdleService.getInstance()!!.sendTransactionsSingleAddress(guid)
     }
 
     fun launchBlockchainScanIfNecessary() {

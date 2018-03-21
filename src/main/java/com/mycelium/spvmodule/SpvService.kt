@@ -21,13 +21,6 @@ import android.app.IntentService
 import android.app.NotificationManager
 import android.content.*
 import android.util.Log
-import com.mrd.bitlib.StandardTransactionBuilder
-import com.mrd.bitlib.crypto.PublicKey
-import com.mrd.bitlib.crypto.PublicKeyRing
-import com.mrd.bitlib.model.NetworkParameters
-import com.mrd.bitlib.model.TransactionOutput
-import com.mrd.bitlib.model.UnspentTransactionOutput
-import com.mycelium.modularizationtools.CommunicationManager
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.propagate
 import org.bitcoinj.wallet.SendRequest
@@ -134,7 +127,6 @@ class SpvService : IntentService("SpvService") {
                         return
                     } else {
                         application.launchBlockchainScanIfNecessary()
-                        application.sendTransactions(accountIndex)
                     }
                 }
                 ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS -> {
@@ -142,11 +134,10 @@ class SpvService : IntentService("SpvService") {
 
                     if (!SpvModuleApplication.doesSingleAddressWalletAccountExist(singleAddressAccountGuid)) {
                         // Ask for private Key
-                        SpvMessageSender.requestPrivateKeySingleaddress(singleAddressAccountGuid)
+                        SpvMessageSender.requestPublicKeySingleaddress(singleAddressAccountGuid)
                         return
                     } else {
                         application.launchBlockchainScanIfNecessary()
-                        application.sendTransactionsSingleAddress(singleAddressAccountGuid)
                     }
                 }
                 else -> {

@@ -1,18 +1,20 @@
 package com.mycelium.spvmodule.providers.data
 
 import android.database.MatrixCursor
-import com.mycelium.spvmodule.providers.TransactionContract
+import com.mycelium.spvmodule.providers.TransactionContract.TransactionSummary.*
 
-/**
- * Created by Nelson on 17/10/2017.
- */
 class TransactionsSummaryCursor(initialCapacity: Int)
-    : MatrixCursor(arrayOf(TransactionContract.TransactionSummary._ID, TransactionContract.TransactionSummary.VALUE,
-        TransactionContract.TransactionSummary.IS_INCOMING, TransactionContract.TransactionSummary.TIME,
-        TransactionContract.TransactionSummary.HEIGHT, TransactionContract.TransactionSummary.CONFIRMATIONS,
-        TransactionContract.TransactionSummary.IS_QUEUED_OUTGOING, TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_LENGTH,
-        TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_RBF_RISK, TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_DOUBLE_SPEND,
-        TransactionContract.TransactionSummary.DESTINATION_ADDRESS, TransactionContract.TransactionSummary.TO_ADDRESSES),
-        initialCapacity) {
-
-}
+    : MatrixCursor(arrayOf(
+        _ID,
+        VALUE,
+        IS_INCOMING,
+        TIME,
+        HEIGHT,
+        CONFIRMATIONS,
+        IS_QUEUED_OUTGOING,
+        CONFIRMATION_RISK_PROFILE_LENGTH,
+        CONFIRMATION_RISK_PROFILE_RBF_RISK,
+        CONFIRMATION_RISK_PROFILE_DOUBLE_SPEND,
+        DESTINATION_ADDRESS,
+        TO_ADDRESSES),
+        initialCapacity)
