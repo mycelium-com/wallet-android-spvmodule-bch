@@ -811,11 +811,13 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         val accountIndexesIterator = accountIndexes.iterator()
         val accountKeyStringsIterator = accountKeyStrings.iterator()
         check(accountIndexes.size == accountKeyStrings.size)
+        val network = if (BuildConfig.IS_TESTNET) NetworkParameters.ID_TESTNET else NetworkParameters.ID_MAINNET
+        val networkParameters = NetworkParameters.fromID(network)
         while (accountIndexesIterator.hasNext()) {
             val accountIndex = accountIndexesIterator.next()
             val accountKeyString = accountKeyStringsIterator.next()
             createOneAccount(accountIndex, DeterministicKey.deserializeB58(accountKeyString,
-                    NetworkParameters.fromID(NetworkParameters.ID_TESTNET)), creationTimeSeconds)
+                    networkParameters), creationTimeSeconds)
         }
         SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
     }
