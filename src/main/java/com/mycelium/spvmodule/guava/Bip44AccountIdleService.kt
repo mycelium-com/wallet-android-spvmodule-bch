@@ -75,7 +75,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private var counterCheckImpediments: Int = 0
     private var countercheckIfDownloadIsIdling: Int = 0
     @Volatile
-    private var chainDownloadPercentDone : Int = 0
+    private var chainDownloadPercentDone : Float = 0f
 
     private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
@@ -90,17 +90,17 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    fun getSyncProgress(): Int {
-        return if (chainDownloadPercentDone == 0) {
-            sharedPreferences.getInt(SYNC_PROGRESS_PREF, 0)
+    fun getSyncProgress(): Float {
+        return if (chainDownloadPercentDone == 0f) {
+            sharedPreferences.getFloat(SYNC_PROGRESS_PREF, 0f)
         } else {
             chainDownloadPercentDone
         }
     }
 
-    fun setSyncProgress(value: Int) {
+    fun setSyncProgress(value: Float) {
         chainDownloadPercentDone = value
-        sharedPreferences.edit().putInt(SYNC_PROGRESS_PREF, value).apply()
+        sharedPreferences.edit().putFloat(SYNC_PROGRESS_PREF, value).apply()
     }
 
     override fun shutDown() {
@@ -1286,7 +1286,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     Utils.dateTimeFormat(date)))
         }
 
-        private fun getDownloadPercentDone(): Int {
+        private fun getDownloadPercentDone(): Float {
             val downloadedHeight = blockchainState.bestChainHeight
             val mostCommonChainHeight = peerGroup?.mostCommonChainHeight
                     ?: return 0f
@@ -1315,7 +1315,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
 
         override fun doneDownload() {
-            setSyncProgress(100)
+            setSyncProgress(100f)
             Log.d(LOG_TAG, "doneDownload(), Blockchain is fully downloaded.")
             super.doneDownload()
             /*

@@ -12,52 +12,30 @@ import org.bitcoinj.params.TestNet3Params
 interface Constants {
     interface Files {
         companion object {
-            val _FILENAME_NETWORK_SUFFIX = if (NETWORK_PARAMETERS.id == NetworkParameters.ID_MAINNET) "" else "-testnet"
-
             /**
              * Filename of the wallet.
              */
-            val WALLET_FILENAME_PROTOBUF = "wallet-protobuf" + _FILENAME_NETWORK_SUFFIX
+            val WALLET_FILENAME_PROTOBUF = "wallet-protobuf"
 
             /**
              * Filename of the automatic key backup (old format, can only be read).
              */
-            val WALLET_KEY_BACKUP_BASE58 = "key-backup-base58" + _FILENAME_NETWORK_SUFFIX
+            val WALLET_KEY_BACKUP_BASE58 = "key-backup-base58"
 
             /**
              * Filename of the automatic wallet backup.
              */
-            val WALLET_KEY_BACKUP_PROTOBUF = "key-backup-protobuf" + _FILENAME_NETWORK_SUFFIX
-
-            /**
-             * Path to external storage
-             */
-            val EXTERNAL_STORAGE_DIR = Environment.getExternalStorageDirectory()
-
-            /**
-             * Manual backups go here.
-             */
-            val EXTERNAL_WALLET_BACKUP_DIR = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-
-            /**
-             * Filename of the manual key backup (old format, can only be read).
-             */
-            val EXTERNAL_WALLET_KEY_BACKUP = "bitcoin-wallet-keys" + _FILENAME_NETWORK_SUFFIX
-
-            /**
-             * Filename of the manual wallet backup.
-             */
-            val EXTERNAL_WALLET_BACKUP = "bitcoin-wallet-backup" + _FILENAME_NETWORK_SUFFIX
+            val WALLET_KEY_BACKUP_PROTOBUF = "key-backup-protobuf"
 
             /**
              * Filename of the block store for storing the chain.
              */
-            val BLOCKCHAIN_FILENAME = "blockchain" + _FILENAME_NETWORK_SUFFIX
+            val BLOCKCHAIN_FILENAME = "blockchain"
 
             /**
              * Filename of the block checkpoints file.
              */
-            val CHECKPOINTS_FILENAME = "checkpoints-bch$_FILENAME_NETWORK_SUFFIX.txt"
+            val CHECKPOINTS_FILENAME = "checkpoints-bch.txt"
         }
     }
 

@@ -23,8 +23,8 @@ android {
     defaultConfig {
         minSdkVersion 19
         targetSdkVersion 25
-        versionCode 300802
-        versionName "3.0.8.2"
+        versionCode 300803
+        versionName "3.0.8.3"
         multiDexEnabled true
     }
 
