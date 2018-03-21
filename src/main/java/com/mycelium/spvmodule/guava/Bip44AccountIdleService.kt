@@ -1288,8 +1288,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         private fun getDownloadPercentDone(): Int {
             val downloadedHeight = blockchainState.bestChainHeight
-            val mostCommonChainHeight = peerGroup?.mostCommonChainHeight ?: return 0
-            return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toInt()
+            val mostCommonChainHeight = peerGroup?.mostCommonChainHeight
+                    ?: return 0f
+            return 100f * downloadedHeight / mostCommonChainHeight
         }
 
         override fun startDownload(blocks: Int) {
