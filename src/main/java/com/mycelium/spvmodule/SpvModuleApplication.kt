@@ -72,6 +72,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         restartBip44AccountIdleService()
     }
 
+    fun waitUntilInitialized() = Bip44AccountIdleService.getInstance()!!.waitUntilInitialized()
+
     @Synchronized
     fun addWalletAccountWithExtendedKey(creationTimeSeconds: Long,
                                         accountIndex: Int) {

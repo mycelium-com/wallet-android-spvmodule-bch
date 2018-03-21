@@ -12,6 +12,9 @@ import java.util.concurrent.Executors
 class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
     @Synchronized
     override fun onMessage(callingPackageName: String, intent: Intent) {
+        //Wait until the application is initialized
+        SpvModuleApplication.getApplication().waitUntilInitialized()
+
         // while sub modules might talk to each other, for now we assume that spvmodule will only ever talk to mbw:
         if(callingPackageName != getMbwModulePackage()) {
             Log.e(LOG_TAG, "Ignoring unexpected package $callingPackageName calling with intent $intent.")

@@ -31,6 +31,7 @@ import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
 import android.util.Log
 import android.view.View
+import com.google.common.base.Strings
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.view.HeaderPreference
 import java.text.DecimalFormat
@@ -134,7 +135,10 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
 
     override fun onPreferenceChange(preference: Preference?, newValue: Any?): Boolean {
         // delay action because preference isn't persisted until after this method returns
-        val oldValue = (preference as ListPreference).value
+        var oldValue = ""
+        if (preference == nodeOptionPref) {
+            oldValue = (preference as ListPreference).value
+        }
         handler.post {
             if (newValue == "custom" || newValue == "random") {
                 AlertDialog.Builder(context)
@@ -164,7 +168,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     private fun updateTrustedPeer() {
         val trustedPeer = config!!.trustedPeerHost
         trustedPeerPreference!!.isVisible = nodeOptionPref!!.value == "custom"
-        trustedPeerPreference!!.setSummary(trustedPeer ?: getString(R.string.preferences_trusted_peer_summary))
+        trustedPeerPreference!!.setSummary(Strings.emptyToNull(trustedPeer) ?: getString(R.string.preferences_trusted_peer_summary))
     }
 
     companion object {
