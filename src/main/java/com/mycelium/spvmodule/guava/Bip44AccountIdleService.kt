@@ -365,14 +365,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         // currently downloading the blockchain.
         peerGroup?.apply {
             if (isRunning == true && downloadProgressTracker?.future?.isDone != false) {
-                // if we still hold a wakelock, we don't leave it dangling to block until later.
                 val powerManager = spvModuleApplication.getSystemService(Context.POWER_SERVICE) as PowerManager
                 val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
                         "${spvModuleApplication.packageName} blockchain sync")
-                if (!wakeLock.isHeld) {
-                    // TODO: implement logic to both shut down the service every x seconds and acquire the wakeLock for only x + 5 seconds
-                    wakeLock.acquire()
-                }
+                // TODO: implement logic to both shut down the service every x seconds and acquire the wakeLock for only x + 5 seconds
+                wakeLock.acquire()
                 for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
                     try {
                         addWallet(walletAccount)
@@ -396,7 +393,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                     }
                 }
                 //Release wakelock
-                if (wakeLock.isHeld == true) {
+                if (wakeLock.isHeld) {
                     wakeLock.release()
                 }
                 broadcastBlockchainState()
