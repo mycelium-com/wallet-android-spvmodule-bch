@@ -1365,7 +1365,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             val downloadedHeight = blockchainState.bestChainHeight
             val mostCommonChainHeight = peerGroup?.mostCommonChainHeight
             if (mostCommonChainHeight != null) {
-                return Math.floor(100 * (downloadedHeight * 1.0 / mostCommonChainHeight)).toFloat()
+                return 100f * downloadedHeight / mostCommonChainHeight
             }
             return 0f
         }
