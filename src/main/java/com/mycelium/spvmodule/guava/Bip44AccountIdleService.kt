@@ -70,6 +70,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private val configuration = spvModuleApplication.configuration!!
     private val peerConnectivityListener: PeerConnectivityListener = PeerConnectivityListener()
     private val notificationManager = spvModuleApplication.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    val powerManager = spvModuleApplication.getSystemService(Context.POWER_SERVICE) as PowerManager
     private lateinit var blockStore: BlockStore
     // TODO: document or rename to be intuitive
     private var counterCheckImpediments: Int = 0
@@ -365,9 +366,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         // currently downloading the blockchain.
         peerGroup?.apply {
             if (isRunning == true && downloadProgressTracker?.future?.isDone != false) {
-                val powerManager = spvModuleApplication.getSystemService(Context.POWER_SERVICE) as PowerManager
                 val wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                        "${spvModuleApplication.packageName} blockchain sync")
+                        "${spvModuleApplication.packageName} blockchain sync init")
                 // TODO: implement logic to both shut down the service every x seconds and acquire the wakeLock for only x + 5 seconds
                 wakeLock.acquire()
                 for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
@@ -1253,6 +1253,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     inner class DownloadProgressTrackerExt : DownloadProgressTracker() {
+        var wakeLock : PowerManager.WakeLock? = null
         override fun onChainDownloadStarted(peer: Peer?, blocksLeft: Int) {
             Log.d(LOG_TAG, "onChainDownloadStarted(), Blockchain's download is starting. " +
                     "Blocks left to download is $blocksLeft, peer = $peer")
@@ -1293,6 +1294,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         override fun startDownload(blocks: Int) {
             Log.d(LOG_TAG, "Downloading block chain of size " + blocks + ". " +
                     if (blocks > 1000) "This may take a while." else "")
+            if (blocks > 1000) {
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                        "${spvModuleApplication.packageName} blockchain sync")
+                wakeLock!!.acquire()
+            }
             setSyncProgress(getDownloadPercentDone())
         }
 
@@ -1313,6 +1319,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         override fun doneDownload() {
             setSyncProgress(100f)
+            if (wakeLock?.isHeld == true) {
+                wakeLock?.release()
+            }
             Log.d(LOG_TAG, "doneDownload(), Blockchain is fully downloaded.")
             super.doneDownload()
             /*
