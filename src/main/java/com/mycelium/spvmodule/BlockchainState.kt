@@ -36,6 +36,12 @@ class BlockchainState(
         val chainDownloadPercentDone: Float,
         impediments: Set<Impediment>) {
 
+    constructor(intent: Intent) : this(Date(intent.getLongExtra(EXTRA_BEST_CHAIN_DATE, 0)),
+            intent.getIntExtra(EXTRA_BEST_CHAIN_HEIGHT, 0),
+            intent.getBooleanExtra(EXTRA_REPLAYING, false),
+            intent.getFloatExtra(EXTRA_CHAIN_DOWNLOAD_PERCENT_DONE, 0F),
+            intent.getStringArrayExtra(EXTRA_IMPEDIMENTS).map { Impediment.valueOf(it.toString()) }.toCollection(EnumSet.noneOf(BlockchainState.Impediment::class.java)))
+
     enum class Impediment {
         STORAGE, NETWORK
     }
@@ -47,11 +53,11 @@ class BlockchainState(
         intent.putExtra(EXTRA_BEST_CHAIN_HEIGHT, bestChainHeight)
         intent.putExtra(EXTRA_REPLAYING, replaying)
         intent.putExtra(EXTRA_CHAIN_DOWNLOAD_PERCENT_DONE, chainDownloadPercentDone)
-        intent.putExtra(EXTRA_IMPEDIMENTS, impediments.map {it.toString()}.toTypedArray())
+        intent.putExtra(EXTRA_IMPEDIMENTS, impediments.map { it.toString() }.toTypedArray())
     }
 
     companion object {
-        private val EXTRA_BEST_CHAIN_DATE = "best_chain_date"
+        const val EXTRA_BEST_CHAIN_DATE = "best_chain_date"
         private val EXTRA_BEST_CHAIN_HEIGHT = "best_chain_height"
         private val EXTRA_REPLAYING = "replaying"
         private val EXTRA_IMPEDIMENTS = "impediment"
