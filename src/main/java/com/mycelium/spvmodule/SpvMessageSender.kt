@@ -23,7 +23,7 @@ class SpvMessageSender {
         }
 
         fun requestPublicKeySingleaddress(guid: String) {
-            Log.d(LOG_TAG, "requestPrivateKey")
+            Log.d(LOG_TAG, "requestPrivateKeySingleAddress for " + guid)
             Intent("com.mycelium.wallet.requestSingleAddressPublicKeyToMBW").apply {
                 putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
                 send(this)

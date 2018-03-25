@@ -4,7 +4,6 @@ apply plugin: 'kotlin-android'
 repositories {
     google()
     jcenter()
-    mavenLocal()
 }
 
 android {
@@ -114,17 +113,19 @@ dependencies {
     implementation "com.android.support:appcompat-v7:$androidSupportVersion"
     implementation "com.android.support:support-v4:$androidSupportVersion"
     implementation "com.android.support:preference-v7:$androidSupportVersion"
-    implementation 'com.android.support:multidex:1.0.2'
-    implementation 'org.bitcoincashj:bitcoincashj-core:0.14.5'
+    implementation 'com.android.support:multidex:1.0.3'
 
     implementation project(includePrefix +':modulespvcontract')
     implementation project(includePrefix +':myceliummodularizationtools')
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
     implementation 'com.squareup.retrofit2:retrofit:2.3.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
+    implementation 'com.madgag.spongycastle:core:1.58.0.0'
+    implementation 'com.google.protobuf:protobuf-java:3.1.0'
     implementation(guavaArtifact) {
         force = true
     }
-    implementation project(':view')
-    compile project(path: ':bitlib')
+    implementation project(includePrefix +':view')
+    implementation project(includePrefix +':bitlib')
+    implementation project(includePrefix +':bitcoincashj:core')
 }
