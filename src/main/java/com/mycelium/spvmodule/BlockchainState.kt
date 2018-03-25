@@ -57,10 +57,10 @@ class BlockchainState(
     }
 
     companion object {
-        const val EXTRA_BEST_CHAIN_DATE = "best_chain_date"
-        private val EXTRA_BEST_CHAIN_HEIGHT = "best_chain_height"
-        private val EXTRA_REPLAYING = "replaying"
-        private val EXTRA_IMPEDIMENTS = "impediment"
-        private val EXTRA_CHAIN_DOWNLOAD_PERCENT_DONE = "chain_download_percent_done"
+        private const val EXTRA_BEST_CHAIN_DATE = "best_chain_date"
+        private const val EXTRA_BEST_CHAIN_HEIGHT = "best_chain_height"
+        private const val EXTRA_REPLAYING = "replaying"
+        private const val EXTRA_IMPEDIMENTS = "impediment"
+        private const val EXTRA_CHAIN_DOWNLOAD_PERCENT_DONE = "chain_download_percent_done"
     }
 }

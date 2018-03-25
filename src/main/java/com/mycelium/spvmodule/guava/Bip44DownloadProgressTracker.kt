@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.os.AsyncTask
+import android.os.PowerManager
 import android.support.v4.content.LocalBroadcastManager
 import android.text.format.DateUtils
 import android.util.Log
@@ -21,6 +22,7 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     private val lastMessageTime = AtomicLong(0)
     private var lastChainHeight = 0
     private var maxChainHeight = 0L
+    var wakeLock : PowerManager.WakeLock? = null
 
     private val blockchainState: BlockchainState
         get() {
@@ -73,6 +75,15 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     override fun startDownload(blocks: Int) {
         Log.d(LOG_TAG, "Downloading block chain of size " + blocks + ". " +
                 if (blocks > 1000) "This may take a while." else "")
+        if (blocks > 1000) {
+            if (wakeLock == null) {
+                val powerManager = spvModuleApplication.getSystemService(Context.POWER_SERVICE) as PowerManager
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "${spvModuleApplication.packageName} blockchain sync")
+            }
+            if (!wakeLock!!.isHeld) {
+                wakeLock!!.acquire()
+            }
+        }
         setSyncProgress(getDownloadPercentDone())
     }
 
@@ -92,6 +103,9 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
 
     override fun doneDownload() {
         setSyncProgress(100f)
+        if (wakeLock?.isHeld == true) {
+            wakeLock?.release()
+        }
         Log.d(LOG_TAG, "doneDownload(), Blockchain is fully downloaded.")
         super.doneDownload()
     }
