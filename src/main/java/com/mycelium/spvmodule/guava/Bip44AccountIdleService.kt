@@ -808,7 +808,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             }
         }
 
-        override fun onChanged(walletAccount: Wallet) {}
     }
 
     private val singleAddressWalletEventListener = object : ThrottlingWalletChangeListener(APPWIDGET_THROTTLE_MS) {
@@ -823,8 +822,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         override fun onCoinsSent(walletAccount: Wallet?, transaction: Transaction?,
                                  prevBalance: Coin?, newBalance: Coin?) {}
-
-        override fun onChanged(walletAccount: Wallet) {}
     }
 
     private fun notifySatoshisReceived(satoshisReceived: Long, satoshisSent: Long, accountIndex: Int) {
