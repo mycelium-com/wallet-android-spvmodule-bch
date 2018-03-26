@@ -47,7 +47,8 @@ class Configuration(private val prefs: SharedPreferences) {
                     override fun onResponse(call: Call<MyceliumNodesResponse>, response: Response<MyceliumNodesResponse>) {
                         if(response.isSuccessful) {
                             val myceliumNodesResponse = response.body()
-                            // TODO As TLS is not supported by bitcoincashj now, use tcp nodes without TLS, they can be retrieved from 'backup' instead of 'primary'
+                            // TODO Get back to TLS when ready
+                            // As TLS is not supported by bitcoincashj now, use tcp nodes without TLS, they can be retrieved from 'backup' instead of 'primary'
                             val newPeers = mutableSetOf(*if (IS_TESTNET) {
                                 myceliumNodesResponse?.bchTestnet?.bitcoind?.backup ?: return
                             } else {

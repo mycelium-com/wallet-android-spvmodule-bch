@@ -262,7 +262,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 }
 
                 private fun peersFromUrls(urls: Collection<String>) = urls.map {
-                    val serverWithPort = it.replace("tcp://", "")
+                    val serverWithPort = it.replace("tcp://", "").replace("tcp-tls://", "")
                     val parts = serverWithPort.split(":")
                     val server = parts[0]
                     val port = if (parts.size == 2) {
