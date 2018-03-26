@@ -17,35 +17,16 @@
 
 package com.mycelium.spvmodule
 
-import android.os.Handler
-import android.os.Looper
-
-import org.bitcoinj.core.listeners.TransactionConfidenceEventListener
 import org.bitcoinj.wallet.Wallet
 import org.bitcoinj.wallet.listeners.WalletChangeEventListener
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener
 import org.bitcoinj.wallet.listeners.WalletCoinsSentEventListener
-import org.bitcoinj.wallet.listeners.WalletReorganizeEventListener
-
-import java.util.concurrent.atomic.AtomicLong
 
 abstract class ThrottlingWalletChangeListener(private val throttleMs: Long = DEFAULT_THROTTLE_MS)
     : WalletChangeEventListener, WalletCoinsReceivedEventListener, WalletCoinsSentEventListener {
-    private val lastMessageTime = AtomicLong(0)
-    private val handler = Handler(Looper.getMainLooper())
 
     override fun onWalletChanged(walletAccount: Wallet) {
-        handler.removeCallbacksAndMessages(null)
-        val runnable = Runnable {
-            lastMessageTime.set(System.currentTimeMillis())
-            onChanged(walletAccount)
-        }
-
-        val delay = lastMessageTime.get() - System.currentTimeMillis() + throttleMs
-        handler.postDelayed(runnable, delay)
     }
-
-    abstract fun onChanged(walletAccount: Wallet)
 
     companion object {
         private val DEFAULT_THROTTLE_MS: Long = 500
