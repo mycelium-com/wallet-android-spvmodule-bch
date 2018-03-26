@@ -24,7 +24,7 @@ class MyceliumNodesResponse(@SerializedName("BCH-testnet") val bchTestnet: BCHNe
 
 class BCHNetResponse(val bitcoind: BitcoinDResponse)
 
-class BitcoinDResponse(val primary: Array<String>)
+class BitcoinDResponse(val primary: Array<String>, val backup: Array<String>)
 
 class Configuration(private val prefs: SharedPreferences) {
     init {
@@ -47,10 +47,11 @@ class Configuration(private val prefs: SharedPreferences) {
                     override fun onResponse(call: Call<MyceliumNodesResponse>, response: Response<MyceliumNodesResponse>) {
                         if(response.isSuccessful) {
                             val myceliumNodesResponse = response.body()
+                            // TODO As TLS is not supported by bitcoincashj now, use tcp nodes without TLS, they can be retrieved from 'backup' instead of 'primary'
                             val newPeers = mutableSetOf(*if (IS_TESTNET) {
-                                myceliumNodesResponse?.bchTestnet?.bitcoind?.primary ?: return
+                                myceliumNodesResponse?.bchTestnet?.bitcoind?.backup ?: return
                             } else {
-                                myceliumNodesResponse?.bchMainnet?.bitcoind?.primary ?: return
+                                myceliumNodesResponse?.bchMainnet?.bitcoind?.backup ?: return
                             })
 
                             if (newPeers.containsAll(oldPeers) && oldPeers.containsAll(newPeers)) {
