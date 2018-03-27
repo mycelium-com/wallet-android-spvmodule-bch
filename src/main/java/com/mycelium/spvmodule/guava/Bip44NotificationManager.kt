@@ -41,7 +41,8 @@ class Bip44NotificationManager {
     private fun changed() {
         val connectivityNotificationEnabled = configuration.connectivityNotificationEnabled
 
-        if (Bip44AccountIdleService.getSyncProgress() > 99.9) {
+        //We need to check fo 100 to prevent not partial sync on first run.
+        if (Bip44AccountIdleService.getSyncProgress() == 100F) {
             Bip44AccountIdleService.getInstance()!!.stopForeground(false)
             if (!connectivityNotificationEnabled) {
                 notificationManager.cancel(Constants.NOTIFICATION_ID_CONNECTED)
