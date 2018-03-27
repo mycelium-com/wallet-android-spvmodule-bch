@@ -28,7 +28,7 @@ class Bip44NotificationManager {
         localBroadcastManager.registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
         localBroadcastManager.registerReceiver(peerCountBroadcastReceiver, IntentFilter(SpvService.ACTION_PEER_STATE))
         changed()
-        if (notification != null) {
+        if (notification != null && Bip44AccountIdleService.getSyncProgress() < 99.9F) {
             Bip44AccountIdleService.getInstance()!!.startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
         }
     }
