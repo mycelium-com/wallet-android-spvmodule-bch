@@ -1,17 +1,18 @@
 package com.mycelium.spvmodule.guava
 
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
+import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.text.format.DateUtils
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
-import com.google.common.util.concurrent.AbstractScheduledService
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.model.TransactionDetails
@@ -34,12 +35,13 @@ import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.*
 
-class Bip44AccountIdleService : AbstractScheduledService() {
+class Bip44AccountIdleService : Service() {
     private val singleAddressAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
     private val walletsAccountsMap: ConcurrentHashMap<Int, Wallet> = ConcurrentHashMap()
     private var downloadProgressTracker: Bip44DownloadProgressTracker? = null
     private val impediments = EnumSet.noneOf(BlockchainState.Impediment::class.java)
     private val connectivityReceiver = Bip44ConnectivityReceiver(impediments)
+    private val idlingCheckerExecutor = Executors.newSingleThreadScheduledExecutor()
 
     private val initializingMonitor = Object()
     @Volatile
@@ -76,29 +78,22 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    fun getSyncProgress(): Float {
-        return Bip44DownloadProgressTracker.getSyncProgress()
+    fun runOneIteration() {
+        idlingCheckerExecutor.scheduleAtFixedRate({
+            Log.d(LOG_TAG, "runOneIteration")
+            if (walletsAccountsMap.isNotEmpty() || singleAddressAccountsMap.isNotEmpty()) {
+                propagate(Constants.CONTEXT)
+                checkImpediments()
+                downloadProgressTracker!!.checkIfDownloadIsIdling()
+            }
+        }, 2, 2, TimeUnit.MINUTES)
     }
 
-    override fun shutDown() {
-        Log.d(LOG_TAG, "shutDown")
-        stopPeergroup()
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
     }
 
-    override fun scheduler(): Scheduler =
-            AbstractScheduledService.Scheduler.newFixedRateSchedule(2, 2, TimeUnit.MINUTES)
-
-    override fun runOneIteration() {
-        //We do that every two minutes
-        Log.d(LOG_TAG, "runOneIteration")
-        if (walletsAccountsMap.isNotEmpty() || singleAddressAccountsMap.isNotEmpty()) {
-            propagate(Constants.CONTEXT)
-            checkImpediments()
-            downloadProgressTracker!!.checkIfDownloadIsIdling()
-        }
-    }
-
-    override fun startUp() {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
@@ -114,13 +109,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
         initializePeergroup()
+        checkImpediments()
+        Bip44NotificationManager()
+        runOneIteration()
 
         synchronized (initializingMonitor) {
             ready = true
             initializingMonitor.notifyAll()
         }
-        Bip44NotificationManager()
-        checkImpediments()
+        return START_REDELIVER_INTENT
+    }
+
+    override fun onDestroy() {
+        Log.d(LOG_TAG, "shutDown")
+        stopPeergroup()
+        idlingCheckerExecutor.shutdownNow()
     }
 
     private fun getBlockchainFile() : File {
@@ -1116,6 +1119,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private const val WRITE_THREADS_LIMIT = 100
 
         const val SYNC_PROGRESS_PREF = "syncprogress"
+
+        fun getSyncProgress(): Float {
+            return Bip44DownloadProgressTracker.getSyncProgress()
+        }
     }
 
     fun doesWalletAccountExist(accountIndex: Int): Boolean =

@@ -28,6 +28,8 @@
         <service
             android:name=".SpvService"
             android:exported="false" />
+        <service android:name=".guava.Bip44AccountIdleService" />
+
         <provider
             android:name=".providers.TransactionContentProvider"
             android:exported="true"

@@ -64,7 +64,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
-        Bip44AccountIdleService().startAsync()
+        val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
+        startService(serviceIntent)
         CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())
     }
 
@@ -111,17 +112,16 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
     internal fun restartBip44AccountIdleService(rescan: Boolean = false) {
         Log.d(LOG_TAG, "restartBip44AccountIdleService, stopAsync")
+        val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
         try {
-            val service = Bip44AccountIdleService.getInstance()!!.stopAsync()
-            Log.d(LOG_TAG, "restartBip44AccountIdleService, awaitTerminated")
-            service.awaitTerminated()
+            stopService(serviceIntent)
         } catch (e : Throwable) {
             Log.e(LOG_TAG, e.localizedMessage, e)
         } finally {
             if (rescan)
                 Bip44AccountIdleService().resetBlockchainState()
             Log.d(LOG_TAG, "restartBip44AccountIdleService, startAsync")
-            Bip44AccountIdleService().startAsync()
+            startService(serviceIntent)
             Log.d(LOG_TAG, "restartBip44AccountIdleService, DONE")
         }
     }

@@ -64,12 +64,13 @@
     <string name="remote_service_stopped">SPV service stopped</string>
     <string name="local_service_label">SPV Service</string>
     <string name="notification_peers_connected_msg">%d peers connected.</string>
+    <string name="notification_no_peers_connected_msg">Starting sync. No peers connected.</string>
     <string name="notification_chain_status_behind">Chain is %d days behind.</string>
     <string name="notification_chain_status_impediment">Chain syncing problem: %s</string>
 
     <string name="preferences_activity_title">Settings</string>
     <string name="preferences_connectivity_notification_title">Connectivity indicator</string>
-    <string name="preferences_connectivity_notification_summary">Show current number of connected peers in the notification area.</string>
+    <string name="preferences_connectivity_notification_summary">Always show current number of connected peers in the notification area.</string>
     <string name="preferences_trusted_peer_title">Trusted peer</string>
     <string name="preferences_trusted_peer_summary">IP or hostname of single peer to connect to.</string>
     <string name="preferences_trusted_peer_only_title">Skip regular peer discovery</string>
