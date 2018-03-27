@@ -71,7 +71,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             while (!ready) {
                 try {
                     initializingMonitor.wait()
-                } catch (e: InterruptedException) {
+                } catch (ignore: InterruptedException) {
                 }
             }
         }
