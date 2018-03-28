@@ -46,7 +46,6 @@ class Bip44NotificationManager {
                 val daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
                 if (daysBehind > 1) {
                     contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_behind, daysBehind)
-                    setProgress(1000, (1000 * Math.pow(1.002, (-1 * daysBehind).toDouble())).toInt(), false)
                 }
                 if (blockchainState!!.impediments.size > 0) {
                     // TODO: this is potentially unreachable as the service stops when offline.
@@ -60,7 +59,6 @@ class Bip44NotificationManager {
                 setContentIntent(PendingIntent.getActivity(spvModuleApplication, 0,
                         Intent(spvModuleApplication, PreferenceActivity::class.java), 0))
                 setWhen(System.currentTimeMillis())
-                setNumber(peerCount)
                 setOngoing(true)
             }
             notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification.build())
