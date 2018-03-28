@@ -43,10 +43,6 @@ class Bip44AccountIdleService : Service() {
     private val connectivityReceiver = Bip44ConnectivityReceiver(impediments)
     private val idlingCheckerExecutor = Executors.newSingleThreadScheduledExecutor()
 
-    private val initializingMonitor = Object()
-    @Volatile
-    private var ready = false
-
     private var peerGroup: PeerGroup? = null
 
     private val spvModuleApplication = SpvModuleApplication.getApplication()
@@ -65,17 +61,6 @@ class Bip44AccountIdleService : Service() {
     private val peerConnectivityListener: Bip44PeerConnectivityListener = Bip44PeerConnectivityListener()
     private lateinit var blockStore: BlockStore
 
-    fun waitUntilInitialized() {
-        synchronized(initializingMonitor){
-            while (!ready) {
-                try {
-                    initializingMonitor.wait()
-                } catch (e: InterruptedException) {
-                }
-            }
-        }
-    }
-
     private fun runOneIteration() {
         idlingCheckerExecutor.scheduleAtFixedRate({
             Log.d(LOG_TAG, "runOneIteration")
@@ -92,9 +77,6 @@ class Bip44AccountIdleService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (INSTANCE != null) {
-            throw Error("Service started more than once.")
-        }
         ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
@@ -123,7 +105,7 @@ class Bip44AccountIdleService : Service() {
 
     override fun onDestroy() {
         Log.d(LOG_TAG, "shutDown")
-        INSTANCE = null
+        ready = false
         stopPeergroup()
         idlingCheckerExecutor.shutdownNow()
     }
@@ -1116,6 +1098,10 @@ class Bip44AccountIdleService : Service() {
         private const val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
         private const val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
         private const val ACCOUNT_LOOKAHEAD = 3
+        private val initializingMonitor = Object()
+        @Volatile
+        private var ready = false
+
         // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
         // but we should prevent competing with reading and files cleaning ourselves.
         private const val WRITE_THREADS_LIMIT = 100
@@ -1125,6 +1111,17 @@ class Bip44AccountIdleService : Service() {
 
         fun getSyncProgress(): Float {
             return Bip44DownloadProgressTracker.getSyncProgress()
+        }
+
+        fun waitUntilInitialized() {
+            synchronized(initializingMonitor){
+                while (!ready) {
+                    try {
+                        initializingMonitor.wait()
+                    } catch (e: InterruptedException) {
+                    }
+                }
+            }
         }
     }
 
