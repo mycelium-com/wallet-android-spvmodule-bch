@@ -65,8 +65,6 @@ class Bip44AccountIdleService : Service() {
     private val peerConnectivityListener: Bip44PeerConnectivityListener = Bip44PeerConnectivityListener()
     private lateinit var blockStore: BlockStore
 
-    private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
-
     fun waitUntilInitialized() {
         synchronized(initializingMonitor){
             while (!ready) {
@@ -78,7 +76,7 @@ class Bip44AccountIdleService : Service() {
         }
     }
 
-    fun runOneIteration() {
+    private fun runOneIteration() {
         idlingCheckerExecutor.scheduleAtFixedRate({
             Log.d(LOG_TAG, "runOneIteration")
             if (walletsAccountsMap.isNotEmpty() || singleAddressAccountsMap.isNotEmpty()) {
@@ -94,6 +92,9 @@ class Bip44AccountIdleService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (INSTANCE != null) {
+            throw Error("Service started more than once.")
+        }
         ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
@@ -122,6 +123,7 @@ class Bip44AccountIdleService : Service() {
 
     override fun onDestroy() {
         Log.d(LOG_TAG, "shutDown")
+        INSTANCE = null
         stopPeergroup()
         idlingCheckerExecutor.shutdownNow()
     }
@@ -1117,6 +1119,7 @@ class Bip44AccountIdleService : Service() {
         // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
         // but we should prevent competing with reading and files cleaning ourselves.
         private const val WRITE_THREADS_LIMIT = 100
+        private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
         const val SYNC_PROGRESS_PREF = "syncprogress"
 

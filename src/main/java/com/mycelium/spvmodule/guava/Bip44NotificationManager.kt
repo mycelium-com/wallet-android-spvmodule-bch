@@ -46,15 +46,16 @@ class Bip44NotificationManager {
             Bip44AccountIdleService.getInstance()!!.stopForeground(false)
             if (!connectivityNotificationEnabled) {
                 notificationManager.cancel(Constants.NOTIFICATION_ID_CONNECTED)
+                return
             }
-        } else {
-            notification = if (peerCount == 0 || blockchainState == null) {
-                buildNoPeerNotification()
-            } else {
-                buildSuccessfulConnectionNotification()
-            }
-            notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification)
         }
+
+        notification = if (peerCount == 0 || blockchainState == null) {
+            buildNoPeerNotification()
+        } else {
+            buildSuccessfulConnectionNotification()
+        }
+        notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification)
     }
 
     private fun buildNoPeerNotification(): Notification? {
