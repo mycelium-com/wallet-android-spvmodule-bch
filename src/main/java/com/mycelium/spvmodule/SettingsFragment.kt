@@ -111,7 +111,7 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     }
 
     private fun updateSyncProgress() {
-        val syncProgress = Bip44AccountIdleService.getInstance()!!.getSyncProgress()
+        val syncProgress = Bip44AccountIdleService.getSyncProgress()
         val format = DecimalFormat(if (syncProgress < 0.1f) "#.###" else "#")
         syncProgressPreference?.title = getString(R.string.pref_title_sync_progress
                 , format.format(syncProgress))

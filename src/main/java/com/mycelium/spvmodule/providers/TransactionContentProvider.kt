@@ -202,7 +202,7 @@ class TransactionContentProvider : ContentProvider() {
             }
             GET_SYNC_PROGRESS_ID -> {
                 return SyncProgressCursor().apply {
-                    addRow(listOf(Bip44AccountIdleService.getInstance()!!.getSyncProgress()))
+                    addRow(listOf(Bip44AccountIdleService.getSyncProgress()))
                 }
             }
             GET_PRIVATE_KEYS_COUNT_ID -> {
