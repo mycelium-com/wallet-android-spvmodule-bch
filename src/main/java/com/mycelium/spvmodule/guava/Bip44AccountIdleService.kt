@@ -312,7 +312,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
         for (saWallet in singleAddressAccountsMap) {
             saWallet.value.run {
-                saveWalletAccountToFile(this, singleAddressWalletFile(saWallet.key))
+                saveWalletAccountToFile(this, walletFile(saWallet.key))
                 removeCoinsReceivedEventListener(singleAddressWalletEventListener)
             }
         }
@@ -363,30 +363,30 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    private fun getAccountWallet(accountIndex: String): Wallet? {
-        var wallet: Wallet? = walletsAccountsMap[accountIndex]
+    private fun getAccountWallet(compositeId: String): Wallet? {
+        var wallet: Wallet? = walletsAccountsMap[compositeId]
         if (wallet != null) {
             return wallet
         }
-        val walletFile = walletFile(accountIndex)
+        val walletFile = walletFile(compositeId)
         if (walletFile.exists()) {
-            wallet = loadWalletFromProtobuf(accountIndex, walletFile)
-            afterLoadWallet(wallet, accountIndex)
-            cleanupFiles(accountIndex)
+            wallet = loadWalletFromProtobuf(compositeId, walletFile)
+            afterLoadWallet(wallet, compositeId)
+            cleanupFiles(compositeId)
         }
         return wallet
     }
 
-    internal fun getWalletAccount(accountIndex: String): Wallet {
-        var wallet: Wallet? = walletsAccountsMap[accountIndex]
+    internal fun getWalletAccount(compositeId: String): Wallet {
+        var wallet: Wallet? = walletsAccountsMap[compositeId]
         if (wallet != null) {
             return wallet
         }
-        val walletFile = walletFile(accountIndex)
+        val walletFile = walletFile(compositeId)
         if (walletFile.exists()) {
-            wallet = loadWalletFromProtobuf(accountIndex, walletFile)
-            afterLoadWallet(wallet, accountIndex)
-            cleanupFiles(accountIndex)
+            wallet = loadWalletFromProtobuf(compositeId, walletFile)
+            afterLoadWallet(wallet, compositeId)
+            cleanupFiles(compositeId)
         }
         return wallet!!
     }
@@ -396,11 +396,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         if (wallet != null) {
             return wallet
         }
-        val walletFile = singleAddressWalletFile(guid)
+        val walletFile = walletFile(guid)
         if (walletFile.exists()) {
-            wallet = loadSingleAddressWalletFromProtobuf(guid, walletFile)
+            wallet = loadWalletFromProtobuf(guid, walletFile)
             afterLoadSingleAddressWallet(wallet, guid)
-            cleanupSingleAddressFiles(guid)
+            cleanupFiles(guid)
         }
         return wallet
     }
@@ -435,39 +435,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return wallet
     }
 
-    private fun loadSingleAddressWalletFromProtobuf(guid: String, walletAccountFile: File): Wallet {
-        semaphore.acquire(WRITE_THREADS_LIMIT)
-        var wallet = FileInputStream(walletAccountFile).use { walletStream ->
-            try {
-                Wallet.loadFromFileStream(walletStream)
-            } catch (x: FileNotFoundException) {
-                Log.e(LOG_TAG, "problem loading wallet", x)
-                Toast.makeText(spvModuleApplication, x.javaClass.name, Toast.LENGTH_LONG).show()
-                restoreSingleAddressWalletFromBackup(guid)
-            } catch (x: UnreadableWalletException) {
-                Log.e(LOG_TAG, "problem loading wallet", x)
-                Toast.makeText(spvModuleApplication, x.javaClass.name, Toast.LENGTH_LONG).show()
-                restoreSingleAddressWalletFromBackup(guid)
-            }
-        }
-        semaphore.release(WRITE_THREADS_LIMIT)
-
-        if (!wallet!!.isConsistent) {
-            Toast.makeText(spvModuleApplication, "inconsistent wallet: $walletAccountFile", Toast.LENGTH_LONG).show()
-            wallet = restoreSingleAddressWalletFromBackup(guid)
-        }
-
-        if (wallet.params != Constants.NETWORK_PARAMETERS) {
-            throw Error("bad wallet network parameters: ${wallet.params.id}")
-        }
-        return wallet
-    }
-
     private fun restoreWalletFromBackup(accountIndex: String): Wallet =
             restoreWalletFromStream(backupFileInputStream(accountIndex))
-
-    private fun restoreSingleAddressWalletFromBackup(guid: String): Wallet =
-            restoreWalletFromStream(backupSingleAddressFileInputStream(guid))
 
     private fun restoreWalletFromStream(stream: FileInputStream): Wallet {
         stream.use {
@@ -492,10 +461,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     private fun afterLoadSingleAddressWallet(walletAccount: Wallet, guid: String) {
         Log.d(LOG_TAG, "afterLoadSingleAddressWallet, accountIndex = $guid, walletAccount.lastBlockSeenTimeSecs = ${walletAccount.lastBlockSeenTimeSecs}")
-        walletAccount.autosaveToFile(singleAddressWalletFile(guid), 10, TimeUnit.SECONDS, WalletAutosaveEventListener())
+        walletAccount.autosaveToFile(walletFile(guid), 10, TimeUnit.SECONDS, WalletAutosaveEventListener())
         // clean up spam
         walletAccount.cleanup()
-        migrateSingleAddressBackup(walletAccount, guid)
+        migrateBackup(walletAccount, guid)
     }
 
     private fun migrateBackup(walletAccount: Wallet, accountIndex: String) {
@@ -503,14 +472,6 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             Log.i(LOG_TAG, "migrating automatic backup to protobuf")
             // make sure there is at least one recent backup
             backupWallet(walletAccount, accountIndex)
-        }
-    }
-
-    private fun migrateSingleAddressBackup(walletAccount: Wallet, guid: String) {
-        if (!backupSingleAddressFile(guid).exists()) {
-            Log.i(LOG_TAG, "migrating automatic backup to protobuf")
-            // make sure there is at least one recent backup
-            backupSingleAddressWallet(walletAccount, guid)
         }
     }
 
@@ -535,46 +496,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         semaphore.release()
     }
 
-    private fun backupSingleAddressWallet(walletAccount: Wallet, guid: String) {
-        val builder = WalletProtobufSerializer().walletToProto(walletAccount).toBuilder()
-
-        // strip redundant
-        builder.clearTransaction()
-        builder.clearLastSeenBlockHash()
-        builder.lastSeenBlockHeight = -1
-        builder.clearLastSeenBlockTimeSecs()
-        val walletProto = builder.build()
-
-        semaphore.acquire()
-        backupSingleAddressFileOutputStream(guid).use {
-            try {
-                walletProto.writeTo(it)
-            } catch (x: IOException) {
-                Log.e(LOG_TAG, "problem writing key backup", x)
-            }
-        }
-        semaphore.release()
-    }
-
     private fun cleanupFiles(accountIndex: String) {
         semaphore.acquire(WRITE_THREADS_LIMIT)
         for (filename in spvModuleApplication.fileList()) {
             if (filename.startsWith(Constants.Files.WALLET_KEY_BACKUP_BASE58)
                     || filename.startsWith(backupFileName(accountIndex) + '.')
-                    || filename.endsWith(".tmp")) {
-                val file = File(spvModuleApplication.filesDir, filename)
-                Log.i(LOG_TAG, "removing obsolete file: '$file'")
-                file.delete()
-            }
-        }
-        semaphore.release(WRITE_THREADS_LIMIT)
-    }
-
-    private fun cleanupSingleAddressFiles(guid: String) {
-        semaphore.acquire(WRITE_THREADS_LIMIT)
-        for (filename in spvModuleApplication.fileList()) {
-            if (filename.startsWith(Constants.Files.WALLET_KEY_BACKUP_BASE58)
-                    || filename.startsWith(backupSingleAddressFileName(guid) + '.')
                     || filename.endsWith(".tmp")) {
                 val file = File(spvModuleApplication.filesDir, filename)
                 Log.i(LOG_TAG, "removing obsolete file: '$file'")
@@ -600,7 +526,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun addSingleAddressAccount(guid: String, publicKey: ByteArray) {
         val ecKey = ECKey.fromPublicOnly(publicKey)
         val walletAccount = Wallet.fromKeys(Constants.NETWORK_PARAMETERS, arrayListOf(ecKey))
-        saveWalletAccountToFile(walletAccount, singleAddressWalletFile(guid))
+        saveWalletAccountToFile(walletAccount, walletFile(guid))
 
         singleAddressAccountGuidStrings.add(guid)
         sharedPreferences.edit()
@@ -667,13 +593,14 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 accountLevelKey.serializePubB58(Constants.NETWORK_PARAMETERS),
                 creationTimeSeconds, accountLevelKey.path)
         walletAccount.keyChainGroupLookaheadSize = 20
-        accountIndexStrings.add(accountIndex.toString())
+        val compositeId = makeHdAccountCompositeId(guid, accountIndex)
+        accountIndexStrings.add(compositeId)
         sharedPreferences.edit()
                 .putStringSet(ACCOUNT_INDEX_STRING_SET_PREF, accountIndexStrings)
                 .apply()
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
-        saveWalletAccountToFile(walletAccount, walletFile(makeHdAccountCompositeId(guid,accountIndex)))
+        saveWalletAccountToFile(walletAccount, walletFile(compositeId))
     }
 
     fun getPrivateKeysCount(guid: String, accountIndex : Int) : Int {
@@ -699,7 +626,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         propagate(Constants.CONTEXT)
         val wallet = singleAddressAccountsMap[guid]!!
         wallet.commitTx(transaction)
-        saveWalletAccountToFile(wallet, singleAddressWalletFile(guid))
+        saveWalletAccountToFile(wallet, walletFile(guid))
         peerGroup!!.broadcastTransaction(transaction)
     }
 
@@ -1073,38 +1000,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private fun backupFileOutputStream(accountIndex: String): FileOutputStream =
             spvModuleApplication.openFileOutput(backupFileName(accountIndex), Context.MODE_PRIVATE)
 
-    private fun backupSingleAddressFileOutputStream(guid: String): FileOutputStream =
-            spvModuleApplication.openFileOutput(backupSingleAddressFileName(guid), Context.MODE_PRIVATE)
-
     private fun backupFileInputStream(accountIndex: String): FileInputStream =
             spvModuleApplication.openFileInput(backupFileName(accountIndex))
 
-    private fun backupSingleAddressFileInputStream(guid: String): FileInputStream =
-            spvModuleApplication.openFileInput(backupSingleAddressFileName(guid))
 
     private fun backupFile(accountIndex: String): File =
             spvModuleApplication.getFileStreamPath(backupFileName(accountIndex))
 
-    private fun backupSingleAddressFile(guid: String): File =
-            spvModuleApplication.getFileStreamPath(backupSingleAddressFileName(guid))
-
     private fun backupFileName(accountIndex: String): String =
             Constants.Files.WALLET_KEY_BACKUP_PROTOBUF + "_$accountIndex"
-
-    private fun backupSingleAddressFileName(guid: String): String =
-            Constants.Files.WALLET_KEY_BACKUP_PROTOBUF + "_$guid"
 
     private fun walletFile(accountIndex: String): File =
             spvModuleApplication.getFileStreamPath(walletFileName(accountIndex))
 
     private fun walletFileName(accountIndex: String): String =
             Constants.Files.WALLET_FILENAME_PROTOBUF + "_$accountIndex"
-
-    private fun singleAddressWalletFile(guid: String): File =
-            spvModuleApplication.getFileStreamPath(singleAddressWalletFileName(guid))
-
-    private fun singleAddressWalletFileName(guid: String): String =
-            Constants.Files.WALLET_FILENAME_PROTOBUF + "_$guid"
 
     companion object {
         private var INSTANCE: Bip44AccountIdleService? = null
