@@ -37,7 +37,7 @@ import java.util.concurrent.*
 
 class Bip44AccountIdleService : AbstractScheduledService() {
     private val singleAddressAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
-    private val walletsAccountsMap: ConcurrentHashMap<Int, Wallet> = ConcurrentHashMap()
+    private val walletsAccountsMap: ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
     private var downloadProgressTracker: Bip44DownloadProgressTracker? = null
     private val impediments = EnumSet.noneOf(BlockchainState.Impediment::class.java)
     private val connectivityReceiver = Bip44ConnectivityReceiver(impediments)
@@ -152,10 +152,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         Log.d(LOG_TAG, "initializeWalletsAccounts, number of accounts = ${accountIndexStrings.size}")
         var shouldInitializeCheckpoint = true
         for (accountIndexString in accountIndexStrings) {
-            val accountIndex: Int = accountIndexString.toInt()
-            val walletAccount = getAccountWallet(accountIndex)
+            val walletAccount = getAccountWallet(accountIndexString)
             if (walletAccount != null) {
-                walletsAccountsMap[accountIndex] = walletAccount
+                walletsAccountsMap[accountIndexString] = walletAccount
                 if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint) {
                     shouldInitializeCheckpoint = false
                 }
@@ -364,7 +363,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    private fun getAccountWallet(accountIndex: Int): Wallet? {
+    private fun getAccountWallet(accountIndex: String): Wallet? {
         var wallet: Wallet? = walletsAccountsMap[accountIndex]
         if (wallet != null) {
             return wallet
@@ -378,7 +377,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return wallet
     }
 
-    internal fun getWalletAccount(accountIndex: Int): Wallet {
+    internal fun getWalletAccount(accountIndex: String): Wallet {
         var wallet: Wallet? = walletsAccountsMap[accountIndex]
         if (wallet != null) {
             return wallet
@@ -406,7 +405,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return wallet
     }
 
-    private fun loadWalletFromProtobuf(accountIndex: Int, walletAccountFile: File): Wallet {
+    private fun loadWalletFromProtobuf(accountIndex: String, walletAccountFile: File): Wallet {
         semaphore.acquire(WRITE_THREADS_LIMIT)
         var wallet = FileInputStream(walletAccountFile).use { walletStream ->
             try {
@@ -464,7 +463,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return wallet
     }
 
-    private fun restoreWalletFromBackup(accountIndex: Int): Wallet =
+    private fun restoreWalletFromBackup(accountIndex: String): Wallet =
             restoreWalletFromStream(backupFileInputStream(accountIndex))
 
     private fun restoreSingleAddressWalletFromBackup(guid: String): Wallet =
@@ -481,7 +480,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    private fun afterLoadWallet(walletAccount: Wallet, accountIndex: Int) {
+    private fun afterLoadWallet(walletAccount: Wallet, accountIndex: String) {
         Log.d(LOG_TAG, "afterLoadWallet, accountIndex = $accountIndex, walletAccount.lastBlockSeenTimeSecs ="
                 + " ${walletAccount.lastBlockSeenTimeSecs}, "
                 + "walletAccount.earliestKeyCreationTime = ${walletAccount.earliestKeyCreationTime}")
@@ -499,7 +498,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         migrateSingleAddressBackup(walletAccount, guid)
     }
 
-    private fun migrateBackup(walletAccount: Wallet, accountIndex: Int) {
+    private fun migrateBackup(walletAccount: Wallet, accountIndex: String) {
         if (!backupFile(accountIndex).exists()) {
             Log.i(LOG_TAG, "migrating automatic backup to protobuf")
             // make sure there is at least one recent backup
@@ -515,7 +514,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    private fun backupWallet(walletAccount: Wallet, accountIndex: Int) {
+    private fun backupWallet(walletAccount: Wallet, accountIndex: String) {
         val builder = WalletProtobufSerializer().walletToProto(walletAccount).toBuilder()
 
         // strip redundant
@@ -557,7 +556,7 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         semaphore.release()
     }
 
-    private fun cleanupFiles(accountIndex: Int) {
+    private fun cleanupFiles(accountIndex: String) {
         semaphore.acquire(WRITE_THREADS_LIMIT)
         for (filename in spvModuleApplication.fileList()) {
             if (filename.startsWith(Constants.Files.WALLET_KEY_BACKUP_BASE58)
@@ -589,11 +588,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     @Synchronized
     fun addWalletAccount(creationTimeSeconds: Long,
+                         guid: String,
                          accountIndex: Int) {
         Log.d(LOG_TAG, "addWalletAccount, accountIndex = $accountIndex," +
                 " creationTimeSeconds = $creationTimeSeconds")
         propagate(Constants.CONTEXT)
-        createMissingAccounts(creationTimeSeconds)
+        createMissingAccounts(guid, creationTimeSeconds)
     }
 
     @Synchronized
@@ -610,8 +610,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         singleAddressAccountsMap[guid] = walletAccount
     }
 
-    fun removeHdAccount(accountIndex: Int) {
-        walletsAccountsMap.remove(accountIndex)
+    fun removeHdAccount(guid: String, accountIndex: Int) {
+        walletsAccountsMap.remove(makeHdAccountCompositeId(guid, accountIndex))
     }
 
     fun removeSingleAddressAccount(guid: String) {
@@ -627,38 +627,40 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 .apply()
     }
 
-    private fun createMissingAccounts(creationTimeSeconds: Long) {
+    private fun createMissingAccounts(guid: String, creationTimeSeconds: Long) {
         var maxIndexWithActivity = -1
         for (accountIndexString in accountIndexStrings) {
-            val accountIndex = accountIndexString.toInt()
-            val walletAccount = walletsAccountsMap[accountIndex]
+            val accountIndexInfo = parseHdAccountCompositeId(accountIndexString)
+            if (accountIndexInfo.first != guid)
+                continue
+            val walletAccount = walletsAccountsMap[accountIndexString]
             if (walletAccount?.getTransactions(false)?.isEmpty() == false) {
-                maxIndexWithActivity = Math.max(accountIndex, maxIndexWithActivity)
+                maxIndexWithActivity = Math.max(accountIndexInfo.second, maxIndexWithActivity)
             }
         }
         val listAccountsToCreate : MutableList<Int> = mutableListOf()
         for (i in maxIndexWithActivity + 1..maxIndexWithActivity + ACCOUNT_LOOKAHEAD) {
-            if (walletsAccountsMap[i] == null) {
+            if (walletsAccountsMap[makeHdAccountCompositeId(guid, i)] == null) {
                 listAccountsToCreate.add(i)
-                SpvMessageSender.requestAccountLevelKeys(listAccountsToCreate, creationTimeSeconds)
+                SpvMessageSender.requestAccountLevelKeys(guid, listAccountsToCreate, creationTimeSeconds)
             }
         }
     }
 
-    fun createAccounts(accountIndexes: ArrayList<Int>, accountKeyStrings: ArrayList<String>, creationTimeSeconds: Long) {
+    fun createAccounts(guid: String, accountIndexes: ArrayList<Int>, accountKeyStrings: ArrayList<String>, creationTimeSeconds: Long) {
         val accountIndexesIterator = accountIndexes.iterator()
         val accountKeyStringsIterator = accountKeyStrings.iterator()
         check(accountIndexes.size == accountKeyStrings.size)
         while (accountIndexesIterator.hasNext()) {
             val accountIndex = accountIndexesIterator.next()
             val accountKeyString = accountKeyStringsIterator.next()
-            createOneAccount(accountIndex, DeterministicKey.deserializeB58(accountKeyString,
+            createOneAccount(guid, accountIndex, DeterministicKey.deserializeB58(accountKeyString,
                     Constants.NETWORK_PARAMETERS), creationTimeSeconds)
         }
         SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
     }
 
-    private fun createOneAccount(accountIndex: Int, accountLevelKey: DeterministicKey, creationTimeSeconds: Long) {
+    private fun createOneAccount(guid: String, accountIndex: Int, accountLevelKey: DeterministicKey, creationTimeSeconds: Long) {
         Log.d(LOG_TAG, "createOneAccount, accountLevelKey = $accountLevelKey")
         propagate(Constants.CONTEXT)
         val walletAccount = Wallet.fromWatchingKeyB58(Constants.NETWORK_PARAMETERS,
@@ -671,11 +673,11 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 .apply()
         configuration.maybeIncrementBestChainHeightEver(walletAccount.lastBlockSeenHeight)
 
-        saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
+        saveWalletAccountToFile(walletAccount, walletFile(makeHdAccountCompositeId(guid,accountIndex)))
     }
 
-    fun getPrivateKeysCount(accountIndex : Int) : Int {
-        return walletsAccountsMap[accountIndex]?.activeKeyChain?.issuedExternalKeys
+    fun getPrivateKeysCount(guid: String, accountIndex : Int) : Int {
+        return walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)]?.activeKeyChain?.issuedExternalKeys
                 //If we don't have an account with corresponding index
                 ?: return 0
     }
@@ -683,11 +685,12 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     fun getSingleAddressWalletAccount(guid: String) : Wallet = singleAddressAccountsMap[guid]!!
 
     @Synchronized
-    fun broadcastTransaction(transaction: Transaction, accountIndex: Int) {
+    fun broadcastTransaction(transaction: Transaction, guid: String, accountIndex: Int) {
         propagate(Constants.CONTEXT)
-        val wallet = walletsAccountsMap[accountIndex]!!
+        val compositeIndex = makeHdAccountCompositeId(guid, accountIndex)
+        val wallet = walletsAccountsMap[compositeIndex]!!
         wallet.commitTx(transaction)
-        saveWalletAccountToFile(wallet, walletFile(accountIndex))
+        saveWalletAccountToFile(wallet, walletFile(compositeIndex))
         peerGroup!!.broadcastTransaction(transaction)
     }
 
@@ -700,12 +703,13 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         peerGroup!!.broadcastTransaction(transaction)
     }
 
-    fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
+    fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, guid: String, accountIndex: Int) {
         sendRequest.useForkId = true
         sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
         sendRequest.signInputs = false
-        walletsAccountsMap[accountIndex]?.completeTx(sendRequest)
-        val networkParameters = walletsAccountsMap[accountIndex]?.networkParameters
+        val compositeIndex= makeHdAccountCompositeId(guid, accountIndex)
+        walletsAccountsMap[compositeIndex]?.completeTx(sendRequest)
+        val networkParameters = walletsAccountsMap[compositeIndex]?.networkParameters
         val utxosHex = getUtxosHex(sendRequest.tx.inputs, networkParameters)
         sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex,
                 utxosHex)
@@ -756,7 +760,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
             addMoreAccountsToLookAhead(walletAccount)
             for (key in walletsAccountsMap.keys()) {
                 if(walletsAccountsMap[key] == walletAccount) {
-                    notifySatoshisReceived(transaction!!.getValue(walletAccount).value, 0L, key)
+                    val compositeId = parseHdAccountCompositeId(key)
+                    notifySatoshisReceived(transaction!!.getValue(walletAccount).value, 0L, compositeId.first, compositeId.second)
                 }
             }
         }
@@ -771,21 +776,32 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         // So we should take the next account into work
         private fun addMoreAccountsToLookAhead(walletAccount: Wallet?) {
             if (walletAccount!!.getRecentTransactions(1, true).size == 1) {
-                var accountIndex = 0
+                var accountCompositeIdStr = ""
 
                 // Find an HD account index in the accounts' map
                 walletsAccountsMap.entries.filter {
                     walletAccount == it.value
                 }.forEach {
-                    accountIndex = it.key
+                    accountCompositeIdStr = it.key
                 }
 
-                if (accountIndex == walletsAccountsMap.size - 1) {
+                val accountCompositeId = parseHdAccountCompositeId(accountCompositeIdStr)
+
+                //Find number of accounts with the same guid
+                var accountsNumber = 0
+                walletsAccountsMap.entries.filter {
+                    it.key.contains(accountCompositeId.first)
+                }.forEach {
+                    accountsNumber++
+                }
+
+                if (accountCompositeId.second == accountsNumber) {
                     val listenableFuture = peerGroup!!.stopAsync()
                     listenableFuture.addListener(
                             Runnable {
-                                spvModuleApplication.addWalletAccountWithExtendedKey(walletAccount.lastBlockSeenTimeSecs + 1,
-                                        accountIndex + 1)
+                                spvModuleApplication.addWalletAccountWithExtendedKey(accountCompositeId.first,
+                                        walletAccount.lastBlockSeenTimeSecs + 1,
+                                        accountCompositeId.second + 1)
                             },
                             Executors.newSingleThreadExecutor())
                 }
@@ -801,8 +817,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    private fun notifySatoshisReceived(satoshisReceived: Long, satoshisSent: Long, accountIndex: Int) {
-        SpvMessageSender.notifySatoshisReceived(satoshisReceived, satoshisSent, accountIndex)
+    private fun notifySatoshisReceived(satoshisReceived: Long, satoshisSent: Long, guid: String, accountIndex: Int) {
+        SpvMessageSender.notifySatoshisReceived(satoshisReceived, satoshisSent, guid, accountIndex)
         notifyCurrentReceiveAddress()
     }
 
@@ -863,11 +879,21 @@ class Bip44AccountIdleService : AbstractScheduledService() {
 
     }
 
-    fun getTransactionsSummary(accountIndex: Int): List<TransactionSummary> {
-        propagate(Constants.CONTEXT)
-        Log.d(LOG_TAG, "getTransactionsSummary, accountIndex = $accountIndex")
+    fun makeHdAccountCompositeId(guid: String, accountIndex: Int): String {
+        return guid + "_" + accountIndex
+    }
 
-        val walletAccount = walletsAccountsMap[accountIndex] ?: return mutableListOf()
+    fun parseHdAccountCompositeId(strIndex : String) : Pair<String, Int> {
+        val delimiterIndex = strIndex.indexOf('_')
+        return Pair(strIndex.substring(0, delimiterIndex), strIndex.substring(delimiterIndex + 1).toInt())
+    }
+
+    fun getTransactionsSummary(guid: String, accountIndex: Int): List<TransactionSummary> {
+        propagate(Constants.CONTEXT)
+        val ix = makeHdAccountCompositeId(guid, accountIndex)
+        Log.d(LOG_TAG, "getTransactionsSummary, accountIndex = $ix")
+
+        val walletAccount = walletsAccountsMap[ix] ?: return mutableListOf()
         return getTransactionsSummary(walletAccount)
     }
 
@@ -880,10 +906,10 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return getTransactionsSummary(walletAccount)
     }
 
-    fun getTransactionDetails(accountIndex: Int, hash: String): TransactionDetails? {
+    fun getTransactionDetails(guid: String, accountIndex: Int, hash: String): TransactionDetails? {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "getTransactionDetails, accountIndex = $accountIndex, hash = $hash")
-        val walletAccount = walletsAccountsMap[accountIndex] ?: return null
+        val walletAccount = walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)] ?: return null
         val transactionBitcoinJ = walletAccount.getTransaction(Sha256Hash.wrap(hash))!!
         val inputs: MutableList<TransactionDetails.Item> = mutableListOf()
 
@@ -917,17 +943,19 @@ class Bip44AccountIdleService : AbstractScheduledService() {
                 outputs.toTypedArray(), transactionBitcoinJ.optimalEncodingMessageSize)
     }
 
-    fun getAccountIndices(): List<Int> = walletsAccountsMap.keys.toList()
+    fun getAccountIndices(guid: String): List<Int> {
+        return walletsAccountsMap.filter { it.key.contains(guid) }.map { parseHdAccountCompositeId(it.key).second }
+    }
 
-    fun getAccountBalance(accountIndex: Int): Long {
+    fun getAccountBalance(guid: String, accountIndex: Int): Long {
         propagate(Constants.CONTEXT)
-        val walletAccount = walletsAccountsMap[accountIndex]
+        val walletAccount = walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)]
         return walletAccount?.getBalance(Wallet.BalanceType.ESTIMATED)?.getValue()?: 0
     }
 
-    fun getAccountReceiving(accountIndex: Int): Long {
+    fun getAccountReceiving(guid: String, accountIndex: Int): Long {
         propagate(Constants.CONTEXT)
-        val walletAccount = walletsAccountsMap[accountIndex] ?: return 0
+        val walletAccount = walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)] ?: return 0
         return walletAccount.pendingTransactions.sumByLong {
             val sent = it.getValueSentFromMe(walletAccount)
             val netReceived = it.getValueSentToMe(walletAccount).minus(sent)
@@ -935,9 +963,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    fun getAccountSending(accountIndex: Int): Long {
+    fun getAccountSending(guid: String, accountIndex: Int): Long {
         propagate(Constants.CONTEXT)
-        val walletAccount = walletsAccountsMap[accountIndex] ?: return 0
+        val walletAccount = walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)] ?: return 0
         return walletAccount.pendingTransactions.sumByLong {
             val received = it.getValueSentToMe(walletAccount)
             val netSent = it.getValueSentFromMe(walletAccount).minus(received)
@@ -971,9 +999,9 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    fun getAccountCurrentReceiveAddress(accountIndex: Int): org.bitcoinj.core.Address? {
+    fun getAccountCurrentReceiveAddress(guid: String, accountIndex: Int): org.bitcoinj.core.Address? {
         propagate(Constants.CONTEXT)
-        val walletAccount = walletsAccountsMap[accountIndex] ?: return null
+        val walletAccount = walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)] ?: return null
         return walletAccount.currentReceiveAddress() ?: walletAccount.freshReceiveAddress()
     }
 
@@ -993,18 +1021,18 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         return false
     }
 
-    fun calculateMaxSpendableAmount(accountIndex: Int, txFee: TransactionFee, txFeeFactor: Float): Coin? {
+    fun calculateMaxSpendableAmount(guid: String, accountIndex: Int, txFee: TransactionFee, txFeeFactor: Float): Coin? {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "calculateMaxSpendableAmount, accountIndex = $accountIndex, txFee = $txFee, txFeeFactor = $txFeeFactor")
-        val walletAccount = walletsAccountsMap[accountIndex] ?: return null
+        val walletAccount = walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)] ?: return null
         val balance = walletAccount.balance
         return balance.subtract(Constants.minerFeeValue(txFee, txFeeFactor))
     }
 
-    fun checkSendAmount(accountIndex: Int, txFee: TransactionFee, txFeeFactor: Float, amountToSend: Long): TransactionContract.CheckSendAmount.Result? {
+    fun checkSendAmount(guid: String, accountIndex: Int, txFee: TransactionFee, txFeeFactor: Float, amountToSend: Long): TransactionContract.CheckSendAmount.Result? {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "checkSendAmount, accountIndex = $accountIndex, minerFee = $txFee, txFeeFactor = $txFeeFactor, amountToSend = $amountToSend")
-        val walletAccount = walletsAccountsMap[accountIndex] ?: return null
+        val walletAccount = walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)] ?: return null
         val address = getNullAddress(Constants.NETWORK_PARAMETERS)
         val amount = Coin.valueOf(amountToSend)
         val sendRequest = SendRequest.to(address, amount)
@@ -1042,34 +1070,34 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         }
     }
 
-    private fun backupFileOutputStream(accountIndex: Int): FileOutputStream =
+    private fun backupFileOutputStream(accountIndex: String): FileOutputStream =
             spvModuleApplication.openFileOutput(backupFileName(accountIndex), Context.MODE_PRIVATE)
 
     private fun backupSingleAddressFileOutputStream(guid: String): FileOutputStream =
             spvModuleApplication.openFileOutput(backupSingleAddressFileName(guid), Context.MODE_PRIVATE)
 
-    private fun backupFileInputStream(accountIndex: Int): FileInputStream =
+    private fun backupFileInputStream(accountIndex: String): FileInputStream =
             spvModuleApplication.openFileInput(backupFileName(accountIndex))
 
     private fun backupSingleAddressFileInputStream(guid: String): FileInputStream =
             spvModuleApplication.openFileInput(backupSingleAddressFileName(guid))
 
-    private fun backupFile(accountIndex: Int): File =
+    private fun backupFile(accountIndex: String): File =
             spvModuleApplication.getFileStreamPath(backupFileName(accountIndex))
 
     private fun backupSingleAddressFile(guid: String): File =
             spvModuleApplication.getFileStreamPath(backupSingleAddressFileName(guid))
 
-    private fun backupFileName(accountIndex: Int): String =
+    private fun backupFileName(accountIndex: String): String =
             Constants.Files.WALLET_KEY_BACKUP_PROTOBUF + "_$accountIndex"
 
     private fun backupSingleAddressFileName(guid: String): String =
             Constants.Files.WALLET_KEY_BACKUP_PROTOBUF + "_$guid"
 
-    private fun walletFile(accountIndex: Int): File =
+    private fun walletFile(accountIndex: String): File =
             spvModuleApplication.getFileStreamPath(walletFileName(accountIndex))
 
-    private fun walletFileName(accountIndex: Int): String =
+    private fun walletFileName(accountIndex: String): String =
             Constants.Files.WALLET_FILENAME_PROTOBUF + "_$accountIndex"
 
     private fun singleAddressWalletFile(guid: String): File =
@@ -1093,8 +1121,8 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         const val SYNC_PROGRESS_PREF = "syncprogress"
     }
 
-    fun doesWalletAccountExist(accountIndex: Int): Boolean =
-            null != walletsAccountsMap[accountIndex]
+    fun doesWalletAccountExist(guid: String, accountIndex: Int): Boolean =
+            null != walletsAccountsMap[makeHdAccountCompositeId(guid, accountIndex)]
 
     fun doesSingleAddressWalletAccountExist(guid: String) : Boolean =
             null != singleAddressAccountsMap[guid]
