@@ -24,7 +24,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
         org.bitcoinj.core.Context.propagate(Constants.CONTEXT)
         val clone = intent.clone() as Intent
         clone.setClass(context, SpvService::class.java)
-        when (intent.action) {
+        clone.action = when (intent.action) {
             IntentContract.WaitingIntents.ACTION -> {
                 val accountId = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
                 val waitingActions = arrayListOf<String>()
@@ -39,57 +39,23 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 return
             }
 
-            IntentContract.SendFunds.ACTION -> {
-                clone.action = SpvService.ACTION_SEND_FUNDS
-            }
-
-            IntentContract.SendFundsSingleAddress.ACTION -> {
-                clone.action = SpvService.ACTION_SEND_FUNDS_SINGLE_ADDRESS
-            }
-
-            IntentContract.CreateUnsignedTransaction.ACTION -> {
-                clone.action = SpvService.ACTION_CREATE_UNSIGNED_TRANSACTION
-            }
-
-            IntentContract.BroadcastTransaction.ACTION -> {
-                //TODO Investigate if this should still be called. I think IntentContract.SendSignedTransactionToSPV.ACTION should be called in all cases related to broadcasting transactions.
-                clone.action = SpvService.ACTION_BROADCAST_TRANSACTION
-            }
-
-            IntentContract.SendSignedTransactionToSPV.ACTION -> {
-                clone.action = SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION
-            }
-
-            IntentContract.SendSignedTransactionSingleAddressToSPV.ACTION -> {
-                clone.action = SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION_SINGLE_ADDRESS
-            }
-
-            IntentContract.ReceiveTransactions.ACTION -> {
-                clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS
-            }
-
-            IntentContract.ReceiveTransactionsSingleAddress.ACTION -> {
-                clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS
-            }
-
-            IntentContract.RequestAccountLevelKeysToSPV.ACTION -> {
-                clone.action = SpvService.ACTION_REQUEST_ACCOUNT_LEVEL_KEYS
-            }
-
-            IntentContract.RequestSingleAddressPublicKeyToSPV.ACTION -> {
-                clone.action = SpvService.ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY
-            }
-
-            IntentContract.RemoveHdWalletAccount.ACTION -> {
-                clone.action = SpvService.ACTION_REMOVE_HD_ACCOUNT
-            }
-
-            IntentContract.RemoveSingleAddressWalletAccount.ACTION -> {
-                clone.action = SpvService.ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT
-            }
-
-            IntentContract.ForceCacheClean.ACTION -> {
-                clone.action = SpvService.ACTION_FORCE_CACHE_CLEAN
+            IntentContract.SendFunds.ACTION -> SpvService.ACTION_SEND_FUNDS
+            IntentContract.SendFundsSingleAddress.ACTION -> SpvService.ACTION_SEND_FUNDS_SINGLE_ADDRESS
+            IntentContract.CreateUnsignedTransaction.ACTION -> SpvService.ACTION_CREATE_UNSIGNED_TRANSACTION
+            //TODO Investigate if this should still be called. Maybe IntentContract.SendSignedTransactionToSPV.ACTION should be called in all cases related to broadcasting transactions.
+            IntentContract.BroadcastTransaction.ACTION -> SpvService.ACTION_BROADCAST_TRANSACTION
+            IntentContract.SendSignedTransactionToSPV.ACTION -> SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION
+            IntentContract.SendSignedTransactionSingleAddressToSPV.ACTION -> SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION_SINGLE_ADDRESS
+            IntentContract.ReceiveTransactions.ACTION -> SpvService.ACTION_RECEIVE_TRANSACTIONS
+            IntentContract.ReceiveTransactionsSingleAddress.ACTION -> SpvService.ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS
+            IntentContract.RequestAccountLevelKeysToSPV.ACTION -> SpvService.ACTION_REQUEST_ACCOUNT_LEVEL_KEYS
+            IntentContract.RequestSingleAddressPublicKeyToSPV.ACTION -> SpvService.ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY
+            IntentContract.RemoveHdWalletAccount.ACTION -> SpvService.ACTION_REMOVE_HD_ACCOUNT
+            IntentContract.RemoveSingleAddressWalletAccount.ACTION -> SpvService.ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT
+            IntentContract.ForceCacheClean.ACTION -> SpvService.ACTION_FORCE_CACHE_CLEAN
+            else -> {
+                Log.e(LOG_TAG, "Unhandled intent action ${intent.action}")
+                return
             }
         }
         Log.d(LOG_TAG, "Will start Service $clone with action ${clone.action}")
