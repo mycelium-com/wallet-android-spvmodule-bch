@@ -52,29 +52,17 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             }
 
             IntentContract.BroadcastTransaction.ACTION -> {
+                //TODO Investigate if this should still be called. I think IntentContract.SendSignedTransactionToSPV.ACTION should be called in all cases related to broadcasting transactions.
                 clone.action = SpvService.ACTION_BROADCAST_TRANSACTION
             }
 
             IntentContract.SendSignedTransactionToSPV.ACTION -> {
-                val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
-                val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionToSPV.TX_EXTRA)
-                val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
-                val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
-                SpvModuleApplication.getApplication()
-                        .broadcastTransaction(tx, accountIndex)
-                SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, tx.hashAsString, true, "")
+                clone.action = SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION
             }
 
             IntentContract.SendSignedTransactionSingleAddressToSPV.ACTION -> {
-                val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
-                val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.TX_EXTRA)
-                val accountGuid = intent.getStringExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.SINGLE_ADDRESS_GUID)
-                val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
-                SpvModuleApplication.getApplication()
-                        .broadcastTransactionSingleAddress(tx, accountGuid)
-                SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, tx.hashAsString, true, "")
+                clone.action = SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION_SINGLE_ADDRESS
             }
-
 
             IntentContract.ReceiveTransactions.ACTION -> {
                 clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS
@@ -83,51 +71,33 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.ReceiveTransactionsSingleAddress.ACTION -> {
                 clone.action = SpvService.ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS
             }
+
             IntentContract.RequestAccountLevelKeysToSPV.ACTION -> {
-                val accountIndexes = intent.getIntegerArrayListExtra(IntentContract.ACCOUNT_INDEXES_EXTRA)
-                val accountKeys = intent.getStringArrayListExtra(IntentContract.RequestAccountLevelKeysToSPV.ACCOUNT_KEYS)
-                if (accountIndexes.isEmpty() || accountKeys.isEmpty()) {
-                    Log.e(LOG_TAG, "no account specified. Skipping ${intent.action}.")
-                    return
-                } /* else if (SpvModuleApplication.getApplication().doesWalletAccountExist(accountIndex)) {
-                    Log.i(LOG_TAG, "Trying to create an account / wallet with accountIndex " +
-                            "$accountIndex that already exists.")
-                    return
-                } */
-                val creationTimeSeconds = intent.getLongExtra(
-                        IntentContract.RequestAccountLevelKeysToSPV
-                                .CREATION_TIME_SECONDS_EXTRA, 0)
-                SpvModuleApplication.getApplication()
-                        .createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
-                return
+                clone.action = SpvService.ACTION_REQUEST_ACCOUNT_LEVEL_KEYS
             }
 
             IntentContract.RequestSingleAddressPublicKeyToSPV.ACTION -> {
-                val guid = intent.getStringExtra(IntentContract.RequestSingleAddressPublicKeyToSPV.SINGLE_ADDRESS_GUID)
-                val publicKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPublicKeyToSPV.PUBLIC_KEY)
-                SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, publicKey)
+                clone.action = SpvService.ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY
             }
 
             IntentContract.RemoveHdWalletAccount.ACTION -> {
-                val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
-                SpvModuleApplication.getApplication().removeHdAccount(accountIndex)
+                clone.action = SpvService.ACTION_REMOVE_HD_ACCOUNT
             }
 
             IntentContract.RemoveSingleAddressWalletAccount.ACTION -> {
-                val guid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
-                SpvModuleApplication.getApplication().removeSingleAddressAccount(guid)
+                clone.action = SpvService.ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT
             }
 
             IntentContract.ForceCacheClean.ACTION -> {
-                SpvModuleApplication.getApplication().clearAllAccounts()
+                clone.action = SpvService.ACTION_FORCE_CACHE_CLEAN
             }
         }
-        Log.d(LOG_TAG, "Will start Service $clone")
+        Log.d(LOG_TAG, "Will start Service $clone with action ${clone.action}")
         // start service to check for new transactions and maybe to broadcast a transaction
         val executorService = Executors.newSingleThreadExecutor(
                 ContextPropagatingThreadFactory("SpvMessageReceiverThreadFactory"))
         executorService.execute {
-            Log.d(LOG_TAG, "Starting Service $clone")
+            Log.d(LOG_TAG, "Starting Service $clone with action ${clone.action}")
             context.startService(clone)
         }
     }
