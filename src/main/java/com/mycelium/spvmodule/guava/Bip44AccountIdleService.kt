@@ -627,7 +627,7 @@ class Bip44AccountIdleService : Service() {
         walletsAccountsMap[compositeIndex]?.completeTx(sendRequest)
         val networkParameters = walletsAccountsMap[compositeIndex]?.networkParameters
         val utxosHex = getUtxosHex(sendRequest.tx.inputs, networkParameters)
-        sendUnsignedTransactionToMbw(operationId, sendRequest.tx, guid, accountIndex,
+        sendUnsignedTransactionToMbw(operationId, sendRequest.tx, accountIndex,
                 utxosHex)
     }
 
@@ -661,9 +661,8 @@ class Bip44AccountIdleService : Service() {
     }
 
     private fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction,
-                                             guid: String,
                                              accountIndex: Int, utxosHex: List<String>) {
-        SpvMessageSender.sendUnsignedTransactionToMbw(operationId, transaction, guid, accountIndex,
+        SpvMessageSender.sendUnsignedTransactionToMbw(operationId, transaction, accountIndex,
                 utxosHex)
     }
 

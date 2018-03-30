@@ -60,11 +60,9 @@ class SpvMessageSender {
         }
 
         fun sendUnsignedTransactionToMbw(operationId: String, transaction: Transaction,
-                                         guid: String,
                                          accountIndex: Int, utxosHex : List<String>) {
             Intent("com.mycelium.wallet.sendUnsignedTransactionToMbw").apply {
                 putExtra(IntentContract.ACCOUNT_INDEX_EXTRA, accountIndex)
-                putExtra(IntentContract.ACCOUNT_GUID, guid)
                 putExtra(IntentContract.OPERATION_ID, operationId)
                 putExtra(IntentContract.TRANSACTION_BYTES, transaction.bitcoinSerialize())
                 putExtra(IntentContract.CONNECTED_OUTPUTS, utxosHex.toTypedArray())
