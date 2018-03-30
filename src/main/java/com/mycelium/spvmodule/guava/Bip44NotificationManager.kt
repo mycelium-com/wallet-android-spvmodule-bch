@@ -50,44 +50,26 @@ class Bip44NotificationManager {
             }
         }
 
-        notification = if (peerCount == 0 || blockchainState == null) {
-            buildNoPeerNotification()
-        } else {
-            buildSuccessfulConnectionNotification()
-        }
+        notification = buildSuccessfulConnectionNotification()
         notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification)
-    }
-
-    private fun buildNoPeerNotification(): Notification? {
-        return Notification.Builder(spvModuleApplication).apply {
-            setSmallIcon(R.drawable.stat_sys_peers, if (peerCount > 4) 4 else peerCount)
-            setContentTitle(spvModuleApplication.getString(R.string.app_name))
-            val contentText = spvModuleApplication.getString(R.string.notification_no_peers_connected_msg)
-            setStyle(Notification.BigTextStyle().bigText(contentText))
-            setContentText(contentText)
-
-            setContentIntent(PendingIntent.getActivity(spvModuleApplication, 0,
-                    Intent(spvModuleApplication, PreferenceActivity::class.java), 0))
-            setWhen(System.currentTimeMillis())
-            setNumber(peerCount)
-            setOngoing(true)
-        }.build()
     }
 
     private fun buildSuccessfulConnectionNotification(): Notification? {
         return Notification.Builder(spvModuleApplication).apply {
             setSmallIcon(R.drawable.stat_sys_peers, if (peerCount > 4) 4 else peerCount)
             setContentTitle(spvModuleApplication.getString(R.string.app_name))
-            var contentText = spvModuleApplication.getString(R.string.notification_peers_connected_msg, peerCount)
-            val daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
-            if (daysBehind > 1) {
-                contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_behind, daysBehind)
-            }
-            if (blockchainState!!.impediments.size > 0) {
-                // TODO: this is potentially unreachable as the service stops when offline.
-                // Not sure if impediment STORAGE ever shows. Probably both should show.
-                val impedimentsString = blockchainState!!.impediments.joinToString { it.toString() }
-                contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_impediment, impedimentsString)
+            var contentText = spvModuleApplication.resources.getQuantityString(R.plurals.notification_peers_connected_msg, peerCount, peerCount)
+            if (blockchainState != null) {
+                val daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
+                if (daysBehind > 1) {
+                    contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_behind, daysBehind)
+                }
+                if (blockchainState!!.impediments.size > 0) {
+                    // TODO: this is potentially unreachable as the service stops when offline.
+                    // Not sure if impediment STORAGE ever shows. Probably both should show.
+                    val impedimentsString = blockchainState!!.impediments.joinToString { it.toString() }
+                    contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_impediment, impedimentsString)
+                }
             }
             setStyle(Notification.BigTextStyle().bigText(contentText))
             setContentText(contentText)
