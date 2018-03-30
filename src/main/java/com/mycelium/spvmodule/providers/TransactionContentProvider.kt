@@ -98,10 +98,11 @@ class TransactionContentProvider : ContentProvider() {
                     // this is the ACCOUNT_BALANCE_ID case but we don't read the selection from the url (yet?)
                     listOf(selectionArgs!!.get(0).toInt()).forEach { accountIndex ->
                         val columnValues = listOf(
-                                accountIndex,                             //TransactionContract.AccountBalance._ID
-                                service.getAccountBalance(accountIndex),  //TransactionContract.AccountBalance.CONFIRMED
-                                service.getAccountSending(accountIndex),  //TransactionContract.AccountBalance.SENDING
-                                service.getAccountReceiving(accountIndex) //TransactionContract.AccountBalance.RECEIVING
+                                accountIndex,                               //TransactionContract.AccountBalance._ID
+                                service.getAccountBalance(accountIndex),    //TransactionContract.AccountBalance.CONFIRMED
+                                service.getAccountSending(accountIndex),    //TransactionContract.AccountBalance.SENDING
+                                service.getAccountReceiving(accountIndex),  //TransactionContract.AccountBalance.RECEIVING
+                                Constants.COIN_SYMBOL                       //TransactionContract.AccountBalance.SYMBOL
                         )
                         cursor.addRow(columnValues)
                     }
@@ -175,7 +176,8 @@ class TransactionContentProvider : ContentProvider() {
                     val columnValues = listOf(
                             txFee,                  //CalculateMaxSpendable.TX_FEE
                             txFeeFactor,            //CalculateMaxSpendable.TX_FEE_FACTOR
-                            maxSpendableAmount      //CalculateMaxSpendable.MAX_SPENDABLE
+                            maxSpendableAmount,     //CalculateMaxSpendable.MAX_SPENDABLE
+                            Constants.COIN_SYMBOL   //CalculateMaxSpendable.SYMBOL
                     )
                     cursor.addRow(columnValues)
                 }
