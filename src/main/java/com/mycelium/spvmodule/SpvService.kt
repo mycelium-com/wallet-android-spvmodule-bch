@@ -31,6 +31,7 @@ class SpvService : IntentService("SpvService") {
     private val application = SpvModuleApplication.getApplication()
     private var notificationManager: NotificationManager? = null
     private var serviceCreatedAtMillis = System.currentTimeMillis()
+    private var accountIndex: Int = -1
     private var singleAddressAccountGuid: String = ""
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -45,26 +46,25 @@ class SpvService : IntentService("SpvService") {
         if (intent != null) {
             when (intent.action) {
                 ACTION_CANCEL_COINS_RECEIVED -> {
+                    accountIndex = getAccountIndex(intent) ?: return
                     notificationManager!!.cancel(Constants.NOTIFICATION_ID_COINS_RECEIVED)
                 }
                 ACTION_BROADCAST_TRANSACTION -> {
-                    val guid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
-                    val index = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
+                    accountIndex = getAccountIndex(intent) ?: return
                     val transactionByteArray = intent.getByteArrayExtra("TX")
                     val transaction = Transaction(Constants.NETWORK_PARAMETERS, transactionByteArray)
                     Log.i(LOG_TAG, "onHandleIntent: ACTION_BROADCAST_TRANSACTION,  TX = " + transaction)
                     transaction.confidence.source = TransactionConfidence.Source.SELF
                     transaction.purpose = Transaction.Purpose.USER_PAYMENT
-                    application.broadcastTransaction(transaction, guid, index)
+                    application.broadcastTransaction(transaction, accountIndex)
                 }
                 ACTION_BROADCAST_SIGNEDTRANSACTION -> {
-                    val guid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
-                    val index = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
+                    accountIndex = getAccountIndex(intent) ?: return
                     val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
                     val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionToSPV.TX_EXTRA)
                     val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
                     Log.i(LOG_TAG, "onHandleIntent: ACTION_BROADCAST_TRANSACTION,  TX = " + tx)
-                    application.broadcastTransaction(tx, guid, index)
+                    application.broadcastTransaction(tx, accountIndex)
                     SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId,
                             tx.hashAsString, true, "")
                 }
@@ -80,8 +80,7 @@ class SpvService : IntentService("SpvService") {
                             tx.hashAsString, true, "")
                 }
                 ACTION_SEND_FUNDS -> {
-                    val guid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
-                    val index = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
+                    accountIndex = getAccountIndex(intent) ?: return
                     val operationId = intent.getStringExtra(IntentContract.SendFunds.OPERATION_ID)
                     val rawAddress = intent.getStringExtra(IntentContract.SendFunds.ADDRESS_EXTRA)
                     val rawAmount = intent.getLongExtra(IntentContract.SendFunds.AMOUNT_EXTRA, -1)
@@ -99,7 +98,7 @@ class SpvService : IntentService("SpvService") {
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
                     sendRequest.signInputs = false
                     try {
-                        application.createUnsignedTransaction(operationId, sendRequest, guid, index)
+                        application.createUnsignedTransaction(operationId, sendRequest, accountIndex)
                     } catch (ex : Exception) {
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
@@ -132,11 +131,10 @@ class SpvService : IntentService("SpvService") {
                     }
                 }
                 ACTION_RECEIVE_TRANSACTIONS -> {
-                    val accountGuid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
-                    val accountIndex = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
-                    if (!SpvModuleApplication.doesWalletAccountExist(accountGuid, accountIndex)) {
+                    accountIndex = getAccountIndex(intent) ?: return
+                    if (!SpvModuleApplication.doesWalletAccountExist(accountIndex)) {
                         // Ask for private Key
-                        SpvMessageSender.requestAccountLevelKeys(accountGuid, mutableListOf(accountIndex),
+                        SpvMessageSender.requestAccountLevelKeys(mutableListOf(accountIndex),
                                 Date().time / 1000)
                         return
                     } else {
@@ -155,7 +153,6 @@ class SpvService : IntentService("SpvService") {
                     }
                 }
                 ACTION_REQUEST_ACCOUNT_LEVEL_KEYS -> {
-                    val accountGuid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
                     val accountIndexes = intent.getIntegerArrayListExtra(IntentContract.ACCOUNT_INDEXES_EXTRA)
                     val accountKeys = intent.getStringArrayListExtra(IntentContract.RequestAccountLevelKeysToSPV.ACCOUNT_KEYS)
                     if (accountIndexes.isEmpty() || accountKeys.isEmpty()) {
@@ -166,7 +163,7 @@ class SpvService : IntentService("SpvService") {
                             IntentContract.RequestAccountLevelKeysToSPV
                                     .CREATION_TIME_SECONDS_EXTRA, 0)
                     SpvModuleApplication.getApplication()
-                            .createAccounts(accountGuid, accountIndexes, accountKeys, creationTimeSeconds)
+                            .createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
                 }
                 ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY -> {
                     val guid = intent.getStringExtra(IntentContract.SendSingleAddressPublicKeyToSPV.SINGLE_ADDRESS_GUID)
@@ -179,9 +176,8 @@ class SpvService : IntentService("SpvService") {
                     SpvModuleApplication.getApplication().addSingleAddressAccount(guid, address)
                 }
                 ACTION_REMOVE_HD_ACCOUNT -> {
-                    val guid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
-                    val index = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
-                    SpvModuleApplication.getApplication().removeHdAccount(guid, index)
+                    accountIndex = getAccountIndex(intent) ?: return
+                    SpvModuleApplication.getApplication().removeHdAccount(accountIndex)
                 }
                 ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT -> {
                     val guid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
@@ -192,12 +188,22 @@ class SpvService : IntentService("SpvService") {
                 }
                 else -> {
                     Log.e(LOG_TAG,
-                            "Unhandled action was ${intent.action}")
+                            "Unhandled action was ${intent.action}. Initializing blockchain " +
+                                    "for account $accountIndex.")
                 }
             }
         } else {
             Log.w(LOG_TAG, "onHandleIntent: service restart, although it was started as non-sticky")
         }
+    }
+
+    fun getAccountIndex(intent: Intent): Int? {
+        val index = intent.getIntExtra(IntentContract.ACCOUNT_INDEX_EXTRA, -1)
+        if (index == -1) {
+            Log.e(LOG_TAG, "no account specified. Skipping ${intent.action}.")
+            return null
+        }
+        return index
     }
 
     override fun onDestroy() {

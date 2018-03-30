@@ -36,19 +36,17 @@ class TransactionContentProvider : ContentProvider() {
             TRANSACTION_SUMMARY_ID -> {
                 Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST $selection")
                 when (selection) {
-                    TransactionSummary.SELECTION_HD_ACCOUNT -> {
-                        val guid = selectionArgs!!.get(0)
-                        val accountIndex = selectionArgs!!.get(1)
-                        val transactionsSummary = service.getTransactionsSummary(guid, accountIndex.toInt())
+                    TransactionSummary.SELECTION_ACCOUNT_INDEX -> {
+                        val accountIndex = selectionArgs!!.get(0)
+                        val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
                         return TransactionsSummaryCursor(transactionsSummary.size).apply {
                             addTransactionsToCursorSince(transactionsSummary, this, 0)
                         }
                     }
-                    TransactionSummary.SELECTION_HD_ACCOUNT -> {
-                        val guid = selectionArgs!!.get(0)
-                        val accountIndex = selectionArgs!!.get(1)
-                        val since = selectionArgs.get(2)
-                        val transactionsSummary = service.getTransactionsSummary(guid, accountIndex.toInt())
+                    TransactionSummary.SELECTION_ACCOUNT_INDEX_SINCE -> {
+                        val accountIndex = selectionArgs!!.get(0)
+                        val since = selectionArgs.get(1)
+                        val transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
                         return TransactionsSummaryCursor(transactionsSummary.size).apply {
                             addTransactionsToCursorSince(transactionsSummary, this, since.toLong())
                         }
@@ -76,12 +74,11 @@ class TransactionContentProvider : ContentProvider() {
             }
 
             TRANSACTION_DETAILS_ID ->
-                if (selection == TransactionDetails.SELECTION_HD_ACCOUNT) {
+                if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX) {
                     val cursor = TransactionDetailsCursor()
-                    val guid = selectionArgs!!.get(0)
-                    val accountIndex = selectionArgs!!.get(1).toInt()
+                    val accountIndex = selectionArgs!!.get(0)
                     val hash = uri!!.lastPathSegment
-                    val transactionDetails = service.getTransactionDetails(guid, accountIndex, hash) ?: return cursor
+                    val transactionDetails = service.getTransactionDetails(accountIndex.toInt(), hash) ?: return cursor
 
                     val inputs = transactionDetails.inputs.map { "${it.value} BTC${it.address}" }.joinToString(",")
                     val outputs = transactionDetails.outputs.map { "${it.value} BTC${it.address}" }.joinToString(",")
@@ -97,16 +94,14 @@ class TransactionContentProvider : ContentProvider() {
                 }
             ACCOUNT_BALANCE_ID, ACCOUNT_BALANCE_LIST -> {
                 val cursor = AccountBalanceCursor()
-                if (selection == AccountBalance.SELECTION_HD_ACCOUNT) {
-                    val guid = selectionArgs!!.get(0)
-
+                if (selection == AccountBalance.SELECTION_ACCOUNT_INDEX) {
                     // this is the ACCOUNT_BALANCE_ID case but we don't read the selection from the url (yet?)
-                    listOf(selectionArgs!!.get(1).toInt()).forEach { accountIndex ->
+                    listOf(selectionArgs!!.get(0).toInt()).forEach { accountIndex ->
                         val columnValues = listOf(
                                 accountIndex,                             //TransactionContract.AccountBalance._ID
-                                service.getAccountBalance(guid, accountIndex),  //TransactionContract.AccountBalance.CONFIRMED
-                                service.getAccountSending(guid, accountIndex),  //TransactionContract.AccountBalance.SENDING
-                                service.getAccountReceiving(guid, accountIndex) //TransactionContract.AccountBalance.RECEIVING
+                                service.getAccountBalance(accountIndex),  //TransactionContract.AccountBalance.CONFIRMED
+                                service.getAccountSending(accountIndex),  //TransactionContract.AccountBalance.SENDING
+                                service.getAccountReceiving(accountIndex) //TransactionContract.AccountBalance.RECEIVING
                         )
                         cursor.addRow(columnValues)
                     }
@@ -121,14 +116,13 @@ class TransactionContentProvider : ContentProvider() {
                     )
                     cursor.addRow(columnValues)
                 } else {
-                    val guid = selectionArgs!!.get(0)
                     // we assume no selection for now and return all accounts
-                    service.getAccountIndices(guid).forEach { accountIndex ->
+                    service.getAccountIndices().forEach { accountIndex ->
                         val columnValues = listOf(
                                 accountIndex,                             //TransactionContract.AccountBalance._ID
-                                service.getAccountBalance(guid, accountIndex),  //TransactionContract.AccountBalance.CONFIRMED
-                                service.getAccountSending(guid, accountIndex),  //TransactionContract.AccountBalance.SENDING
-                                service.getAccountReceiving(guid, accountIndex) //TransactionContract.AccountBalance.RECEIVING
+                                service.getAccountBalance(accountIndex),  //TransactionContract.AccountBalance.CONFIRMED
+                                service.getAccountSending(accountIndex),  //TransactionContract.AccountBalance.SENDING
+                                service.getAccountReceiving(accountIndex) //TransactionContract.AccountBalance.RECEIVING
                         )
                         cursor.addRow(columnValues)
                     }
@@ -137,18 +131,23 @@ class TransactionContentProvider : ContentProvider() {
             }
             CURRENT_RECEIVE_ADDRESS_LIST, CURRENT_RECEIVE_ADDRESS_ID -> {
                 val cursor = CurrentReceiveAddressCursor()
-
-                val guid = selectionArgs!![0]
-                val accountIndex = selectionArgs!![1].toInt()
-                val currentReceiveAddress = service.getAccountCurrentReceiveAddress(guid, accountIndex)
-                val qrAddressString = Constants.QR_ADDRESS_PREFIX + currentReceiveAddress
-                val columnValues = listOf(
-                        accountIndex,                           //TransactionContract.CurrentReceiveAddress._ID
-                        currentReceiveAddress?.toString(),      //TransactionContract.CurrentReceiveAddress.ADDRESS
-                        qrAddressString                         //TransactionContract.CurrentReceiveAddress.ADDRESS_QR
-                )
-                cursor.addRow(columnValues)
-
+                if (selection == CurrentReceiveAddress.SELECTION_ACCOUNT_INDEX) {
+                    // this is the CURRENT_RECEIVE_ADDRESS_ID case but we don't read the selection from the url (yet?)
+                    val accountIndex = selectionArgs!![0].toInt()
+                    listOf(accountIndex)
+                } else {
+                    // we assume no selection for now and return all accounts
+                    service.getAccountIndices()
+                }.forEach { accountIndex ->
+                    val currentReceiveAddress = service.getAccountCurrentReceiveAddress(accountIndex)
+                    val qrAddressString = Constants.QR_ADDRESS_PREFIX + currentReceiveAddress
+                    val columnValues = listOf(
+                            accountIndex,                           //TransactionContract.CurrentReceiveAddress._ID
+                            currentReceiveAddress?.toString(),      //TransactionContract.CurrentReceiveAddress.ADDRESS
+                            qrAddressString                         //TransactionContract.CurrentReceiveAddress.ADDRESS_QR
+                    )
+                    cursor.addRow(columnValues)
+                }
                 return cursor
             }
             VALIDATE_QR_CODE_ID -> {
@@ -168,12 +167,11 @@ class TransactionContentProvider : ContentProvider() {
             CALCULATE_MAX_SPENDABLE_ID -> {
                 val cursor = CalculateMaxSpendableCursor()
                 if (selection == CalculateMaxSpendable.SELECTION_COMPLETE) {
-                    val accountGuid = selectionArgs!![0]
                     val accountIndex = selectionArgs!![0].toInt()
                     val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     val txFeeFactor = selectionArgs[2].toFloat()
-                    val maxSpendableAmount = service.calculateMaxSpendableAmount(accountGuid, accountIndex, txFee, txFeeFactor)
+                    val maxSpendableAmount = service.calculateMaxSpendableAmount(accountIndex, txFee, txFeeFactor)
                     val columnValues = listOf(
                             txFee,                  //CalculateMaxSpendable.TX_FEE
                             txFeeFactor,            //CalculateMaxSpendable.TX_FEE_FACTOR
@@ -186,13 +184,12 @@ class TransactionContentProvider : ContentProvider() {
             CHECK_SEND_AMOUNT_ID -> {
                 val cursor = CheckSendAmountCursor()
                 if (selection == CheckSendAmount.SELECTION_COMPLETE) {
-                    val accountGuid = selectionArgs!![0]
-                    val accountIndex = selectionArgs!![1].toInt()
-                    val txFeeStr = selectionArgs[2]
+                    val accountIndex = selectionArgs!![0].toInt()
+                    val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
-                    val txFeeFactor = selectionArgs[3].toFloat()
-                    val amountToSend = selectionArgs[4].toLong()
-                    val checkSendAmount = service.checkSendAmount(accountGuid, accountIndex, txFee, txFeeFactor, amountToSend)
+                    val txFeeFactor = selectionArgs[2].toFloat()
+                    val amountToSend = selectionArgs[3].toLong()
+                    val checkSendAmount = service.checkSendAmount(accountIndex, txFee, txFeeFactor, amountToSend)
                     val columnValues = listOf(
                             txFee,                  //CheckSendAmount.TX_FEE
                             txFeeFactor,            //CheckSendAmount.TX_FEE_FACTOR
@@ -209,10 +206,9 @@ class TransactionContentProvider : ContentProvider() {
                 }
             }
             GET_PRIVATE_KEYS_COUNT_ID -> {
-                val accountGuid = selectionArgs!![0]
-                val accountIndex = selectionArgs!![1].toInt()
+                val accountIndex = selectionArgs!![0].toInt()
                 return GetPrivateKeysCountCursor().apply {
-                    addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountGuid, accountIndex)))
+                    addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)))
                 }
             }
             UriMatcher.NO_MATCH -> {
