@@ -12,11 +12,10 @@ class SpvMessageSender {
             SpvModuleApplication.sendMbw(intent)
         }
 
-        fun requestAccountLevelKeys(guid: String, accountIndexList: List<Int>, creationTimeSeconds : Long) {
+        fun requestAccountLevelKeys(accountIndexList: List<Int>, creationTimeSeconds : Long) {
             Log.d(LOG_TAG, "requestAccountLevelKeys, accountIndexList = $accountIndexList, " +
                     "creationTimeSeconds = $creationTimeSeconds")
             Intent("com.mycelium.wallet.requestAccountLevelKeysToMBW").apply {
-                putExtra(IntentContract.ACCOUNT_GUID, guid)
                 putExtra(IntentContract.ACCOUNT_INDEXES_EXTRA, accountIndexList.toIntArray())
                 putExtra(IntentContract.CREATIONTIMESECONDS, creationTimeSeconds)
                 send(this)
@@ -31,11 +30,10 @@ class SpvMessageSender {
             }
         }
 
-        fun notifySatoshisReceived(satoshisReceived: Long, satoshisSent: Long, guid: String, accountIndex: Int) {
+        fun notifySatoshisReceived(satoshisReceived: Long, satoshisSent: Long, accountIndex: Int) {
             Intent("com.mycelium.wallet.notifySatoshisReceived").apply {
                 putExtra(IntentContract.SATOSHIS_RECEIVED, satoshisReceived)
                 putExtra(IntentContract.SATOSHIS_SENT, satoshisSent)
-                putExtra(IntentContract.ACCOUNT_GUID, guid)
                 putExtra(IntentContract.ACCOUNTS_INDEX, intArrayOf(accountIndex))
                 send(this)
             }
