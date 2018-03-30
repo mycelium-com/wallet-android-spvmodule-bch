@@ -512,9 +512,20 @@ class Bip44AccountIdleService : Service() {
     }
 
     @Synchronized
-    fun addSingleAddressAccount(guid: String, publicKey: ByteArray) {
+    fun addSingleAddressAccountWithPublicKey(guid: String, publicKey: ByteArray) {
         val ecKey = ECKey.fromPublicOnly(publicKey)
         val walletAccount = Wallet.fromKeys(Constants.NETWORK_PARAMETERS, arrayListOf(ecKey))
+        addSingleAddressAccount(walletAccount, guid)
+    }
+
+    @Synchronized
+    fun addSingleAddressAccountWithAddress(guid: String, address: ByteArray) {
+        val walletAccount = Wallet(Constants.NETWORK_PARAMETERS)
+        walletAccount.addWatchedAddress(Address(Constants.NETWORK_PARAMETERS, address))
+        addSingleAddressAccount(walletAccount, guid)
+    }
+
+    private fun addSingleAddressAccount(walletAccount: Wallet, guid: String) {
         saveWalletAccountToFile(walletAccount, walletFile(guid))
 
         singleAddressAccountGuidStrings.add(guid)

@@ -169,9 +169,14 @@ class SpvService : IntentService("SpvService") {
                             .createAccounts(accountGuid, accountIndexes, accountKeys, creationTimeSeconds)
                 }
                 ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY -> {
-                    val guid = intent.getStringExtra(IntentContract.RequestSingleAddressPublicKeyToSPV.SINGLE_ADDRESS_GUID)
-                    val publicKey = intent.getByteArrayExtra(IntentContract.RequestSingleAddressPublicKeyToSPV.PUBLIC_KEY)
-                    SpvModuleApplication.getApplication().addSingleAddressAccountWithPrivateKey(guid, publicKey)
+                    val guid = intent.getStringExtra(IntentContract.SendSingleAddressPublicKeyToSPV.SINGLE_ADDRESS_GUID)
+                    val publicKey = intent.getByteArrayExtra(IntentContract.SendSingleAddressPublicKeyToSPV.PUBLIC_KEY)
+                    SpvModuleApplication.getApplication().addSingleAddressAccountWithPublicKey(guid, publicKey)
+                }
+                ACTION_REQUEST_SINGLE_ADDRESS -> {
+                    val guid = intent.getStringExtra(IntentContract.SendSingleAddressToSPV.SINGLE_ADDRESS_GUID)
+                    val address = intent.getByteArrayExtra(IntentContract.SendSingleAddressToSPV.ADDRESS_BYTES)
+                    SpvModuleApplication.getApplication().addSingleAddressAccount(guid, address)
                 }
                 ACTION_REMOVE_HD_ACCOUNT -> {
                     val guid = intent.getStringExtra(IntentContract.ACCOUNT_GUID)
@@ -229,6 +234,7 @@ class SpvService : IntentService("SpvService") {
         val ACTION_CREATE_UNSIGNED_TRANSACTION = PACKAGE_NAME + ".create_unsigned_transaction"
         val ACTION_REQUEST_ACCOUNT_LEVEL_KEYS = PACKAGE_NAME + ".request_account_level_keys"
         val ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY = PACKAGE_NAME + ".request_single_address_public_key"
+        val ACTION_REQUEST_SINGLE_ADDRESS = PACKAGE_NAME + ".request_single_address"
         val ACTION_REMOVE_HD_ACCOUNT = PACKAGE_NAME + ".remove_hd_account"
         val ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT = PACKAGE_NAME + ".remove_single_address_account"
         val ACTION_FORCE_CACHE_CLEAN = PACKAGE_NAME + ".force_cache_clean"
