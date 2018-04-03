@@ -50,11 +50,11 @@ class Bip44NotificationManager {
             }
         }
 
-        notification = buildSuccessfulConnectionNotification()
+        notification = buildNotification()
         notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification)
     }
 
-    private fun buildSuccessfulConnectionNotification(): Notification? {
+    private fun buildNotification(): Notification? {
         return Notification.Builder(spvModuleApplication).apply {
             setSmallIcon(R.drawable.stat_sys_peers, if (peerCount > 4) 4 else peerCount)
             setContentTitle(spvModuleApplication.getString(R.string.app_name))
