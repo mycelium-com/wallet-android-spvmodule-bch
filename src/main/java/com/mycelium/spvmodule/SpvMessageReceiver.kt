@@ -5,7 +5,6 @@ import android.content.Intent
 import android.util.Log
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModulePackage
-import org.bitcoinj.core.Transaction
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
 import java.util.concurrent.Executors
 
@@ -50,6 +49,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.ReceiveTransactionsSingleAddress.ACTION -> SpvService.ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS
             IntentContract.RequestAccountLevelKeysToSPV.ACTION -> SpvService.ACTION_REQUEST_ACCOUNT_LEVEL_KEYS
             IntentContract.RequestSingleAddressPublicKeyToSPV.ACTION -> SpvService.ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY
+            IntentContract.SendSingleAddressToSPV.ACTION -> SpvService.ACTION_REQUEST_SINGLE_ADDRESS
             IntentContract.RemoveHdWalletAccount.ACTION -> SpvService.ACTION_REMOVE_HD_ACCOUNT
             IntentContract.RemoveSingleAddressWalletAccount.ACTION -> SpvService.ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT
             IntentContract.ForceCacheClean.ACTION -> SpvService.ACTION_FORCE_CACHE_CLEAN

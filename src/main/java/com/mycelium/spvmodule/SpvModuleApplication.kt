@@ -64,7 +64,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
-        Bip44AccountIdleService().startAsync()
+        val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
+        startService(serviceIntent)
         CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())
     }
 
@@ -72,7 +73,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         restartBip44AccountIdleService()
     }
 
-    fun waitUntilInitialized() = Bip44AccountIdleService.getInstance()!!.waitUntilInitialized()
+    fun waitUntilInitialized() = Bip44AccountIdleService.waitUntilInitialized()
 
     @Synchronized
     fun addWalletAccountWithExtendedKey(creationTimeSeconds: Long,
@@ -88,8 +89,14 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPrivateKey(guid: String, publicKey: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccount(guid, publicKey)
+    fun addSingleAddressAccountWithPublicKey(guid: String, publicKey: ByteArray) {
+        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithPublicKey(guid, publicKey)
+        restartBip44AccountIdleService(true)
+    }
+
+    @Synchronized
+    fun addSingleAddressAccount(guid: String, address: ByteArray) {
+        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithAddress(guid, address)
         restartBip44AccountIdleService(true)
     }
 
@@ -111,17 +118,16 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
     internal fun restartBip44AccountIdleService(rescan: Boolean = false) {
         Log.d(LOG_TAG, "restartBip44AccountIdleService, stopAsync")
+        val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
         try {
-            val service = Bip44AccountIdleService.getInstance()!!.stopAsync()
-            Log.d(LOG_TAG, "restartBip44AccountIdleService, awaitTerminated")
-            service.awaitTerminated()
+            stopService(serviceIntent)
         } catch (e : Throwable) {
             Log.e(LOG_TAG, e.localizedMessage, e)
         } finally {
             if (rescan)
                 Bip44AccountIdleService().resetBlockchainState()
             Log.d(LOG_TAG, "restartBip44AccountIdleService, startAsync")
-            Bip44AccountIdleService().startAsync()
+            startService(serviceIntent)
             Log.d(LOG_TAG, "restartBip44AccountIdleService, DONE")
         }
     }

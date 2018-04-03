@@ -1,16 +1,17 @@
 package com.mycelium.spvmodule.guava
 
+import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
+import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
-import com.google.common.util.concurrent.AbstractScheduledService
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.model.TransactionDetails
@@ -35,16 +36,13 @@ import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.*
 
-class Bip44AccountIdleService : AbstractScheduledService() {
+class Bip44AccountIdleService : Service() {
     private val singleAddressAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
     private val walletsAccountsMap: ConcurrentHashMap<Int, Wallet> = ConcurrentHashMap()
     private var downloadProgressTracker: Bip44DownloadProgressTracker? = null
     private val impediments = EnumSet.noneOf(BlockchainState.Impediment::class.java)
     private val connectivityReceiver = Bip44ConnectivityReceiver(impediments)
-
-    private val initializingMonitor = Object()
-    @Volatile
-    private var ready = false
+    private val idlingCheckerExecutor = Executors.newSingleThreadScheduledExecutor()
 
     private var peerGroup: PeerGroup? = null
 
@@ -64,40 +62,22 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     private val peerConnectivityListener: Bip44PeerConnectivityListener = Bip44PeerConnectivityListener()
     private lateinit var blockStore: BlockStore
 
-    private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
-
-    fun waitUntilInitialized() {
-        synchronized(initializingMonitor){
-            while (!ready) {
-                try {
-                    initializingMonitor.wait()
-                } catch (ignore: InterruptedException) {
-                }
+    private fun runOneIteration() {
+        idlingCheckerExecutor.scheduleAtFixedRate({
+            Log.d(LOG_TAG, "runOneIteration")
+            if (walletsAccountsMap.isNotEmpty() || singleAddressAccountsMap.isNotEmpty()) {
+                propagate(Constants.CONTEXT)
+                checkImpediments()
+                downloadProgressTracker!!.checkIfDownloadIsIdling()
             }
-        }
+        }, 2, 2, TimeUnit.MINUTES)
     }
 
-    fun getSyncProgress(): Float = Bip44DownloadProgressTracker.getSyncProgress()
-
-    override fun shutDown() {
-        Log.d(LOG_TAG, "shutDown")
-        stopPeergroup()
+    override fun onBind(intent: Intent?): IBinder? {
+        return null
     }
 
-    override fun scheduler(): Scheduler =
-            AbstractScheduledService.Scheduler.newFixedRateSchedule(2, 2, TimeUnit.MINUTES)
-
-    override fun runOneIteration() {
-        //We do that every two minutes
-        Log.d(LOG_TAG, "runOneIteration")
-        if (walletsAccountsMap.isNotEmpty() || singleAddressAccountsMap.isNotEmpty()) {
-            propagate(Constants.CONTEXT)
-            checkImpediments()
-            downloadProgressTracker!!.checkIfDownloadIsIdling()
-        }
-    }
-
-    override fun startUp() {
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
@@ -113,13 +93,22 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
         initializePeergroup()
+        checkImpediments()
+        Bip44NotificationManager()
+        runOneIteration()
 
         synchronized (initializingMonitor) {
             ready = true
             initializingMonitor.notifyAll()
         }
-        Bip44NotificationManager()
-        checkImpediments()
+        return START_REDELIVER_INTENT
+    }
+
+    override fun onDestroy() {
+        Log.d(LOG_TAG, "shutDown")
+        ready = false
+        stopPeergroup()
+        idlingCheckerExecutor.shutdownNow()
     }
 
     private fun getBlockchainFile() : File {
@@ -597,9 +586,20 @@ class Bip44AccountIdleService : AbstractScheduledService() {
     }
 
     @Synchronized
-    fun addSingleAddressAccount(guid: String, publicKey: ByteArray) {
+    fun addSingleAddressAccountWithPublicKey(guid: String, publicKey: ByteArray) {
         val ecKey = ECKey.fromPublicOnly(publicKey)
         val walletAccount = Wallet.fromKeys(Constants.NETWORK_PARAMETERS, arrayListOf(ecKey))
+        addSingleAddressAccount(walletAccount, guid)
+    }
+
+    @Synchronized
+    fun addSingleAddressAccountWithAddress(guid: String, address: ByteArray) {
+        val walletAccount = Wallet(Constants.NETWORK_PARAMETERS)
+        walletAccount.addWatchedAddress(Address(Constants.NETWORK_PARAMETERS, address))
+        addSingleAddressAccount(walletAccount, guid)
+    }
+
+    private fun addSingleAddressAccount(walletAccount: Wallet, guid: String) {
         saveWalletAccountToFile(walletAccount, singleAddressWalletFile(guid))
 
         singleAddressAccountGuidStrings.add(guid)
@@ -1086,11 +1086,31 @@ class Bip44AccountIdleService : AbstractScheduledService() {
         private const val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
         private const val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
         private const val ACCOUNT_LOOKAHEAD = 3
+        private val initializingMonitor = Object()
+        @Volatile
+        private var ready = false
+
         // Wallet class is synchronised inside, so we should not care about writing wallet files to storage ourselves,
         // but we should prevent competing with reading and files cleaning ourselves.
         private const val WRITE_THREADS_LIMIT = 100
+        private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
         const val SYNC_PROGRESS_PREF = "syncprogress"
+
+        fun getSyncProgress(): Float {
+            return Bip44DownloadProgressTracker.getSyncProgress()
+        }
+
+        fun waitUntilInitialized() {
+            synchronized(initializingMonitor){
+                while (!ready) {
+                    try {
+                        initializingMonitor.wait()
+                    } catch (ignore : InterruptedException) {
+                    }
+                }
+            }
+        }
     }
 
     fun doesWalletAccountExist(accountIndex: Int): Boolean =
