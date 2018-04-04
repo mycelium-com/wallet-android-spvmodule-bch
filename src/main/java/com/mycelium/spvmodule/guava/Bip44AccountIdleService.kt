@@ -1005,6 +1005,18 @@ class Bip44AccountIdleService : Service() {
         return balance.subtract(Coin.valueOf(feeToUse))
     }
 
+    fun calculateMaxSpendableAmountSingleAddress(guid: String, txFee: TransactionFee, txFeeFactor: Float): Coin? {
+        propagate(Constants.CONTEXT)
+        Log.d(LOG_TAG, "calculateMaxSpendableAmount, guid = $guid, txFee = $txFee, txFeeFactor = $txFeeFactor")
+        val walletAccount = singleAddressAccountsMap[guid] ?: return null
+        val balance = walletAccount.balance
+        val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
+        val feeToUse = StandardTransactionBuilder.estimateFee(walletAccount.unspents.size, 1, feePerKb.value)
+
+        return balance.subtract(Coin.valueOf(feeToUse))
+    }
+
+
     fun checkSendAmount(accountIndex: Int, txFee: TransactionFee, txFeeFactor: Float, amountToSend: Long): TransactionContract.CheckSendAmount.Result? {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "checkSendAmount, accountIndex = $accountIndex, minerFee = $txFee, txFeeFactor = $txFeeFactor, amountToSend = $amountToSend")
