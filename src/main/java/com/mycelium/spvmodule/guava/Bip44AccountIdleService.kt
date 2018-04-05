@@ -49,6 +49,9 @@ class Bip44AccountIdleService : Service() {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
     private val sharedPreferences: SharedPreferences = spvModuleApplication.getSharedPreferences(
             SHARED_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE)
+
+    private var highestChainHeight: Int = sharedPreferences.getInt(HIGHEST_CHAIN_HEIGHT_PREF, 0)
+
     //Read list of accounts indexes
     private val accountIndexStrings: ConcurrentSkipListSet<String> = ConcurrentSkipListSet<String>().apply {
         addAll(sharedPreferences.getStringSet(ACCOUNT_INDEX_STRING_SET_PREF, emptySet()))
@@ -756,7 +759,10 @@ class Bip44AccountIdleService : Service() {
             addMoreAccountsToLookAhead(walletAccount)
             for (key in walletsAccountsMap.keys()) {
                 if(walletsAccountsMap[key] == walletAccount) {
-                    notifySatoshisReceived(transaction!!.getValue(walletAccount).value, 0L, key)
+                    if(transaction!!.confidence.appearedAtChainHeight >= highestChainHeight) {
+                        notifySatoshisReceived(transaction.getValue(walletAccount).value,
+                                0L, key)
+                    }
                 }
             }
         }
@@ -796,7 +802,10 @@ class Bip44AccountIdleService : Service() {
     private val singleAddressWalletEventListener = WalletCoinsReceivedEventListener { walletAccount, transaction, _, _ ->
         for (key in singleAddressAccountsMap.keys()) {
             if(singleAddressAccountsMap[key] == walletAccount) {
-                notifySingleAddressSatoshisReceived(transaction!!.getValue(walletAccount).value, 0L, key)
+                if(transaction!!.confidence.appearedAtChainHeight >= highestChainHeight) {
+                    notifySingleAddressSatoshisReceived(transaction.getValue(walletAccount).value,
+                            0L, key)
+                }
             }
         }
     }
@@ -1039,6 +1048,16 @@ class Bip44AccountIdleService : Service() {
 
         override fun onAfterAutoSave(file: File) {
             semaphore.release()
+            saveChainHeight()
+        }
+
+        private fun saveChainHeight() {
+            if(highestChainHeight < peerGroup!!.mostCommonChainHeight) {
+                highestChainHeight = peerGroup!!.mostCommonChainHeight
+                sharedPreferences.edit()
+                        .putInt(HIGHEST_CHAIN_HEIGHT_PREF, highestChainHeight)
+                        .apply()
+            }
         }
     }
 
@@ -1084,6 +1103,7 @@ class Bip44AccountIdleService : Service() {
         private val LOG_TAG = Bip44AccountIdleService::class.java.simpleName
         private const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private const val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
+        private const val HIGHEST_CHAIN_HEIGHT_PREF = "highest_chain_height"
         private const val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
         private const val ACCOUNT_LOOKAHEAD = 3
         private val initializingMonitor = Object()
