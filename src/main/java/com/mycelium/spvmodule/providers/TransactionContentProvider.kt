@@ -166,12 +166,24 @@ class TransactionContentProvider : ContentProvider() {
             }
             CALCULATE_MAX_SPENDABLE_ID -> {
                 val cursor = CalculateMaxSpendableCursor()
-                if (selection == CalculateMaxSpendable.SELECTION_COMPLETE) {
+                if (selection == CalculateMaxSpendable.SELECTION_HD) {
                     val accountIndex = selectionArgs!![0].toInt()
                     val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     val txFeeFactor = selectionArgs[2].toFloat()
                     val maxSpendableAmount = service.calculateMaxSpendableAmount(accountIndex, txFee, txFeeFactor)
+                    val columnValues = listOf(
+                            txFee,                  //CalculateMaxSpendable.TX_FEE
+                            txFeeFactor,            //CalculateMaxSpendable.TX_FEE_FACTOR
+                            maxSpendableAmount      //CalculateMaxSpendable.MAX_SPENDABLE
+                    )
+                    cursor.addRow(columnValues)
+                } else if (selection == CalculateMaxSpendable.SELECTION_SA) {
+                    val accountGuid = selectionArgs!!.get(0)
+                    val txFeeStr = selectionArgs[1]
+                    val txFee = TransactionFee.valueOf(txFeeStr)
+                    val txFeeFactor = selectionArgs[2].toFloat()
+                    val maxSpendableAmount = service.calculateMaxSpendableAmountSingleAddress(accountGuid, txFee, txFeeFactor)
                     val columnValues = listOf(
                             txFee,                  //CalculateMaxSpendable.TX_FEE
                             txFeeFactor,            //CalculateMaxSpendable.TX_FEE_FACTOR
