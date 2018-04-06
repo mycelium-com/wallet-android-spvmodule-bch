@@ -827,13 +827,17 @@ class Bip44AccountIdleService : Service() {
             var destAddress: Address? = null
 
             for (transactionOutput in transactionBitcoinJ.outputs) {
-                val toAddress = transactionOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
+                try {
+                    val toAddress = transactionOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
 
-                if (!transactionOutput.isMine(walletAccount)) {
-                    destAddress = toAddress
+                    if (!transactionOutput.isMine(walletAccount)) {
+                        destAddress = toAddress
+                    }
+
+                    toAddresses.add(toAddress)
+                } catch (e : ScriptException) {
+                    Log.d(LOG_TAG, e.message)
                 }
-
-                toAddresses.add(toAddress)
             }
 
             val confirmations: Int = transactionBitcoinJ.confidence.depthInBlocks
