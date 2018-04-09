@@ -1071,19 +1071,39 @@ class Bip44AccountIdleService : Service() {
         return calculateFeeToTransferAmount(singleAddressAccountsMap[guid]!!, amountToSend, txFee, txFeeFactor)
     }
 
-    fun calculateFeeToTransferAmount(walletAccount: Wallet, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
+    fun calculateFeeToTransferAmount(walletAccount: Wallet, amountToTransfer: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
         propagate(Constants.CONTEXT)
-        val balance = walletAccount.balance
-        val amount = Coin.valueOf(amountToSend)
-        val sendRequest = SendRequest.to(getNullAddress(Constants.NETWORK_PARAMETERS), amount)
-        sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
-        sendRequest.useForkId = true
-        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
-        sendRequest.signInputs = false
-        sendRequest.changeAddress = getNullAddress(Constants.NETWORK_PARAMETERS)
-        walletAccount.completeTx(sendRequest)
-        return sendRequest.tx.fee
 
+        val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
+        val coinSelection = walletAccount!!.coinSelector.select(Coin.valueOf(amountToTransfer), walletAccount.unspents)
+
+        val outputsNumber = if (amountToTransfer < walletAccount.balance.value) 2 else 1
+        val feeEstimated = StandardTransactionBuilder.estimateFee(coinSelection.gathered.size, outputsNumber, feePerKb.value)
+
+        if (amountToTransfer <= 0) {
+            return Coin.valueOf(0)
+        }
+        if (amountToTransfer > walletAccount.balance.value) {
+            return Coin.valueOf(feeEstimated)
+        }
+
+        var amountToSend = amountToTransfer - feeEstimated
+
+        while(true) {
+            val sendRequest = SendRequest.to(getNullAddress(Constants.NETWORK_PARAMETERS), Coin.valueOf(amountToSend))
+            sendRequest.feePerKb = feePerKb
+            sendRequest.useForkId = true
+            sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
+            sendRequest.signInputs = false
+            sendRequest.changeAddress = getNullAddress(Constants.NETWORK_PARAMETERS)
+
+            try {
+                walletAccount.completeTx(sendRequest)
+                return sendRequest.tx.fee
+            } catch (e : InsufficientMoneyException) {
+                amountToSend -= e.missing!!.value
+            }
+        }
     }
 
 
