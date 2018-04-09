@@ -1073,14 +1073,17 @@ class Bip44AccountIdleService : Service() {
 
     fun calculateFeeToTransferAmount(walletAccount: Wallet, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
         propagate(Constants.CONTEXT)
-        val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
+        val balance = walletAccount.balance
         val amount = Coin.valueOf(amountToSend)
-        val coinSelection = walletAccount!!.coinSelector.select(amount, walletAccount.unspents)
+        val sendRequest = SendRequest.to(getNullAddress(Constants.NETWORK_PARAMETERS), amount)
+        sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
+        sendRequest.useForkId = true
+        sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
+        sendRequest.signInputs = false
+        sendRequest.changeAddress = getNullAddress(Constants.NETWORK_PARAMETERS)
+        walletAccount.completeTx(sendRequest)
+        return sendRequest.tx.fee
 
-        val outputsNumber = if (amount < walletAccount.balance) 2 else 1
-
-        val feeToUse = StandardTransactionBuilder.estimateFee(coinSelection.gathered.size, outputsNumber, feePerKb.value)
-        return Coin.valueOf(feeToUse)
     }
 
 
