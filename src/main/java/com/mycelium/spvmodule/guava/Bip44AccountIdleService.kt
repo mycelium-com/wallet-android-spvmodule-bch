@@ -730,7 +730,7 @@ class Bip44AccountIdleService : Service() {
                 val utxo = UTXO(parentTransactionHash,
                         index.toLong(),
                         value,
-                        parentTransaction!!.confidence.appearedAtChainHeight,
+                        if (parentTransaction!!.confidence == TransactionConfidence.ConfidenceType.BUILDING) parentTransaction!!.confidence.appearedAtChainHeight else -1,
                         parentTransaction!!.isCoinBase,
                         Script(scriptBytes),
                         getAddressFromP2PKHScript(networkParameters)!!.toBase58())
