@@ -36,6 +36,7 @@ import java.io.*
 import java.net.InetSocketAddress
 import java.util.*
 import java.util.concurrent.*
+import kotlin.collections.ArrayList
 
 class Bip44AccountIdleService : Service() {
     private val singleAddressAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
@@ -729,7 +730,7 @@ class Bip44AccountIdleService : Service() {
                 val utxo = UTXO(parentTransactionHash,
                         index.toLong(),
                         value,
-                        parentTransaction!!.confidence.appearedAtChainHeight,
+                        if (parentTransaction!!.confidence == TransactionConfidence.ConfidenceType.BUILDING) parentTransaction!!.confidence.appearedAtChainHeight else -1,
                         parentTransaction!!.isCoinBase,
                         Script(scriptBytes),
                         getAddressFromP2PKHScript(networkParameters)!!.toBase58())
@@ -1035,6 +1036,76 @@ class Bip44AccountIdleService : Service() {
             TransactionContract.CheckSendAmount.Result.RESULT_INVALID
         }
     }
+
+    private val MAX_TOTAL_TX_INPUTS_SIZE_BYTES = 49000
+    val SINGLE_SIGNED_TX_INPUT_SIZE = 148
+    val MAX_UNSPENTS = MAX_TOTAL_TX_INPUTS_SIZE_BYTES / SINGLE_SIGNED_TX_INPUT_SIZE
+
+
+    fun getMaxFundsTranferableBySingleTransaction(walletAccount: Wallet): Coin {
+        propagate(Constants.CONTEXT)
+        if (walletAccount!!.unspents.size > MAX_UNSPENTS) {
+            val sortedUnspents = ArrayList(walletAccount.unspents)
+            sortedUnspents.sortByDescending { it.value }
+            val unspentsSubList = sortedUnspents.subList(0, MAX_UNSPENTS)
+            val satoshis = unspentsSubList.sumByLong{  it.value.value }
+            return Coin.valueOf(satoshis)
+
+        }
+        return walletAccount.balance
+    }
+
+    fun getMaxFundsTranferableBySingleTransactionHD(accountIndex: Int) : Coin {
+        return getMaxFundsTranferableBySingleTransaction(walletsAccountsMap[accountIndex]!!)
+    }
+
+    fun getMaxFundsTranferableBySingleTransactionSA(guid: String): Coin {
+        return getMaxFundsTranferableBySingleTransaction(singleAddressAccountsMap[guid]!!)
+    }
+
+    fun calculateFeeToTransferAmountHD(accountIndex: Int, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
+        return calculateFeeToTransferAmount(walletsAccountsMap[accountIndex]!!, amountToSend, txFee, txFeeFactor)
+    }
+
+    fun calculateFeeToTransferAmountSA(guid: String, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
+        return calculateFeeToTransferAmount(singleAddressAccountsMap[guid]!!, amountToSend, txFee, txFeeFactor)
+    }
+
+    fun calculateFeeToTransferAmount(walletAccount: Wallet, amountToTransfer: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
+        propagate(Constants.CONTEXT)
+
+        val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
+        val coinSelection = walletAccount!!.coinSelector.select(Coin.valueOf(amountToTransfer), walletAccount.unspents)
+
+        val outputsNumber = if (amountToTransfer < walletAccount.balance.value) 2 else 1
+        val feeEstimated = StandardTransactionBuilder.estimateFee(coinSelection.gathered.size, outputsNumber, feePerKb.value)
+
+        if (amountToTransfer <= 0) {
+            return Coin.valueOf(0)
+        }
+        if (amountToTransfer > walletAccount.balance.value) {
+            return Coin.valueOf(feeEstimated)
+        }
+
+        var amountToSend = amountToTransfer - feeEstimated
+
+        while(true) {
+            val sendRequest = SendRequest.to(getNullAddress(Constants.NETWORK_PARAMETERS), Coin.valueOf(amountToSend))
+            sendRequest.feePerKb = feePerKb
+            sendRequest.useForkId = true
+            sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
+            sendRequest.signInputs = false
+            sendRequest.changeAddress = getNullAddress(Constants.NETWORK_PARAMETERS)
+
+            try {
+                walletAccount.completeTx(sendRequest)
+                return sendRequest.tx.fee
+            } catch (e : InsufficientMoneyException) {
+                amountToSend -= e.missing!!.value
+            }
+        }
+    }
+
 
     private fun getNullAddress(network: org.bitcoinj.core.NetworkParameters): org.bitcoinj.core.Address {
         val numAddressBytes = 20

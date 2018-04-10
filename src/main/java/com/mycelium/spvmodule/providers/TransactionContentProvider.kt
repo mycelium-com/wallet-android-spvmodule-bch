@@ -193,6 +193,47 @@ class TransactionContentProvider : ContentProvider() {
                 }
                 return cursor
             }
+
+            GET_MAX_FUNDS_TRANSFERRABLE_ID -> {
+                var cursor = GetMaxFundsTransferrableCursor()
+                if (selection == GetMaxFundsTransferrable.SELECTION_HD) {
+                    val accountIndex = selectionArgs!![0].toInt()
+                    val maxAmount = service.getMaxFundsTranferableBySingleTransactionHD(accountIndex)
+                    cursor.addRow(listOf(maxAmount))
+
+                } else if (selection == GetMaxFundsTransferrable.SELECTION_SA) {
+                    val accountGuid = selectionArgs!!.get(0)
+                    val maxAmount = service.getMaxFundsTranferableBySingleTransactionSA(accountGuid)
+                    cursor.addRow(listOf(maxAmount))
+                }
+                return cursor
+            }
+
+            ESTIMATE_FEES_FROM_TRANSFERRABLE_AMOUNT_ID -> {
+                var cursor = EstimateFeeFromTransferrableAmountCursor()
+
+                if (selection == EstimateFeeFromTransferrableAmount.SELECTION_HD) {
+                    val accountIndex = selectionArgs!![0].toInt()
+                    val txFeeStr = selectionArgs[1]
+                    val txFee = TransactionFee.valueOf(txFeeStr)
+                    val txFeeFactor = selectionArgs[2].toFloat()
+                    val amount = selectionArgs[3].toLong()
+                    val estimatedFee = service.calculateFeeToTransferAmountHD(accountIndex, amount, txFee, txFeeFactor)
+                    cursor.addRow(listOf(estimatedFee))
+                } else if (selection == EstimateFeeFromTransferrableAmount.SELECTION_SA) {
+                    val accountGuid = selectionArgs!!.get(0)
+                    val txFeeStr = selectionArgs[1]
+                    val txFee = TransactionFee.valueOf(txFeeStr)
+                    val txFeeFactor = selectionArgs[2].toFloat()
+                    val amount = selectionArgs[3].toLong()
+                    val estimatedFee = service.calculateFeeToTransferAmountSA(accountGuid, amount, txFee, txFeeFactor)
+                    cursor.addRow(listOf(estimatedFee))
+                }
+
+                return cursor
+            }
+
+
             CHECK_SEND_AMOUNT_ID -> {
                 val cursor = CheckSendAmountCursor()
                 if (selection == CheckSendAmount.SELECTION_COMPLETE) {
@@ -307,6 +348,8 @@ class TransactionContentProvider : ContentProvider() {
         private val CHECK_SEND_AMOUNT_ID = 11
         private val GET_SYNC_PROGRESS_ID = 12
         private val GET_PRIVATE_KEYS_COUNT_ID = 13
+        private val ESTIMATE_FEES_FROM_TRANSFERRABLE_AMOUNT_ID = 14
+        private val GET_MAX_FUNDS_TRANSFERRABLE_ID = 15
 
         private val URI_MATCHER: UriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             val auth = TransactionContract.AUTHORITY(BuildConfig.APPLICATION_ID)
@@ -323,6 +366,8 @@ class TransactionContentProvider : ContentProvider() {
             addURI(auth, CheckSendAmount.TABLE_NAME, CHECK_SEND_AMOUNT_ID)
             addURI(auth, GetSyncProgress.TABLE_NAME, GET_SYNC_PROGRESS_ID)
             addURI(auth, GetPrivateKeysCount.TABLE_NAME, GET_PRIVATE_KEYS_COUNT_ID)
+            addURI(auth, EstimateFeeFromTransferrableAmount.TABLE_NAME, ESTIMATE_FEES_FROM_TRANSFERRABLE_AMOUNT_ID)
+            addURI(auth, GetMaxFundsTransferrable.TABLE_NAME, GET_MAX_FUNDS_TRANSFERRABLE_ID)
         }
 
         private fun getTableFromMatch(match: Int): String = when (match) {
