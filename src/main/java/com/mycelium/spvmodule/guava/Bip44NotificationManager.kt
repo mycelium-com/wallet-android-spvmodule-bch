@@ -38,6 +38,9 @@ class Bip44NotificationManager {
         localBroadcastManager.unregisterReceiver(peerCountBroadcastReceiver)
     }
 
+    private var oldDaysBehind: Long = Long.MAX_VALUE
+    private var daysBehind: Long = Long.MAX_VALUE
+    var oldNotificationBasics = ""
     private fun changed() {
         val connectivityNotificationEnabled = configuration.connectivityNotificationEnabled
 
@@ -50,6 +53,14 @@ class Bip44NotificationManager {
             }
         }
 
+        if(blockchainState != null) {
+            daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
+        }
+        val notificationBasics = "$peerCount,$daysBehind,${blockchainState?.impediments?.size ?:"nope"}"
+        if(notificationBasics == oldNotificationBasics) {
+            return
+        }
+        oldNotificationBasics = notificationBasics
         notification = buildNotification()
         notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification)
     }

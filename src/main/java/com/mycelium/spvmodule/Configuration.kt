@@ -2,7 +2,6 @@ package com.mycelium.spvmodule
 
 import android.content.SharedPreferences
 import android.util.Log
-import com.google.common.base.Strings
 import com.google.gson.annotations.SerializedName
 import com.mycelium.spvmodule.BuildConfig.IS_TESTNET
 

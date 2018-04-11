@@ -78,9 +78,7 @@ class Bip44AccountIdleService : Service() {
         }, 2, 2, TimeUnit.MINUTES)
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ready = false
@@ -344,7 +342,7 @@ class Bip44AccountIdleService : Service() {
                         SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
                     }
                 } else {
-                    Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $peerGroup")
+                    Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $this")
                     for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
                         removeWallet(walletAccount)
                     }
@@ -1204,9 +1202,7 @@ class Bip44AccountIdleService : Service() {
 
         const val SYNC_PROGRESS_PREF = "syncprogress"
 
-        fun getSyncProgress(): Float {
-            return Bip44DownloadProgressTracker.getSyncProgress()
-        }
+        fun getSyncProgress(): Float = Bip44DownloadProgressTracker.getSyncProgress()
 
         fun waitUntilInitialized() {
             synchronized(initializingMonitor){
