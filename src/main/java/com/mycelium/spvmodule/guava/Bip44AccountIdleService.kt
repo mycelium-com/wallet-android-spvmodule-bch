@@ -761,7 +761,9 @@ class Bip44AccountIdleService : Service() {
             addMoreAccountsToLookAhead(walletAccount)
             for (key in walletsAccountsMap.keys()) {
                 if(walletsAccountsMap[key] == walletAccount) {
-                    if(transaction!!.confidence.appearedAtChainHeight >= highestChainHeight) {
+                    val confidence = transaction!!.confidence
+                    if(confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING &&
+                            confidence.appearedAtChainHeight >= highestChainHeight) {
                         notifySatoshisReceived(transaction.getValue(walletAccount).value,
                                 0L, key)
                     }
