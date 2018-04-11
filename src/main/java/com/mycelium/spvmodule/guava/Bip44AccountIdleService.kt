@@ -752,7 +752,7 @@ class Bip44AccountIdleService : Service() {
     }
 
     private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, txOutputHex: List<String>, guid: String) {
-        SpvMessageSender.sendUnsignedTransactionToMbwSingleAddress(operationId, unsignedTransaction, txOutputHex, guid)
+        SpvMessageSender.sendUnsignedTransactionToMbwUnrelated(operationId, unsignedTransaction, txOutputHex, guid)
     }
 
     private val walletEventListener = object : WalletCoinsReceivedEventListener, WalletCoinsSentEventListener {
@@ -820,7 +820,7 @@ class Bip44AccountIdleService : Service() {
     }
 
     private fun notifySingleAddressSatoshisReceived(satoshisReceived: Long, satoshisSent: Long, guid: String) {
-        SpvMessageSender.notifySingleAddressSatoshisReceived(satoshisReceived, satoshisSent, guid)
+        SpvMessageSender.notifySatoshisReceivedUnrelated(satoshisReceived, satoshisSent, guid)
         notifyCurrentReceiveAddress()
     }
 
