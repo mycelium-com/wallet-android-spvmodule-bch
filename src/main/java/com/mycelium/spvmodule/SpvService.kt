@@ -68,11 +68,10 @@ class SpvService : IntentService("SpvService") {
                     SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId,
                             tx.hashAsString, true, "")
                 }
-                ACTION_BROADCAST_SIGNEDTRANSACTION_SINGLE_ADDRESS -> {
+                ACTION_BROADCAST_SIGNEDTRANSACTION_UNRELATED -> {
                     val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
-                    val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.TX_EXTRA)
-                    val accountGuid = intent.getStringExtra(IntentContract
-                            .SendSignedTransactionSingleAddressToSPV.SINGLE_ADDRESS_GUID)
+                    val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionUnrelatedToSPV.TX_EXTRA)
+                    val accountGuid = intent.getStringExtra(IntentContract.SendSignedTransactionUnrelatedToSPV.SINGLE_ADDRESS_GUID)
                     val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
                     SpvModuleApplication.getApplication()
                             .broadcastTransactionSingleAddress(tx, accountGuid)
@@ -103,13 +102,13 @@ class SpvService : IntentService("SpvService") {
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
                 }
-                ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
-                    val operationId = intent.getStringExtra(IntentContract.SendFundsSingleAddress.OPERATION_ID)
+                ACTION_SEND_FUNDS_UNRELATED -> {
+                    val operationId = intent.getStringExtra(IntentContract.SendFundsUnrelated.OPERATION_ID)
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
-                    val rawAddress = intent.getStringExtra(IntentContract.SendFundsSingleAddress.ADDRESS_EXTRA)
-                    val rawAmount = intent.getLongExtra(IntentContract.SendFundsSingleAddress.AMOUNT_EXTRA, -1)
-                    val txFeeStr = intent.getStringExtra(IntentContract.SendFundsSingleAddress.FEE_EXTRA)
-                    val txFeeFactor = intent.getFloatExtra(IntentContract.SendFundsSingleAddress.FEE_FACTOR_EXTRA, 0.0f)
+                    val rawAddress = intent.getStringExtra(IntentContract.SendFundsUnrelated.ADDRESS_EXTRA)
+                    val rawAmount = intent.getLongExtra(IntentContract.SendFundsUnrelated.AMOUNT_EXTRA, -1)
+                    val txFeeStr = intent.getStringExtra(IntentContract.SendFundsUnrelated.FEE_EXTRA)
+                    val txFeeFactor = intent.getFloatExtra(IntentContract.SendFundsUnrelated.FEE_FACTOR_EXTRA, 0.0f)
                     if (rawAddress.isEmpty() || rawAmount < 0 || txFeeStr == null || txFeeFactor == 0.0f) {
                         Log.e(LOG_TAG, "Could not send funds with parameters rawAddress $rawAddress, "
                                 + "rawAmount $rawAmount, feePerKb $txFeeStr and feePerFactor $txFeeFactor.")
@@ -141,7 +140,7 @@ class SpvService : IntentService("SpvService") {
                         application.launchBlockchainScanIfNecessary()
                     }
                 }
-                ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS -> {
+                ACTION_RECEIVE_TRANSACTIONS_UNRELATED -> {
                     singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
 
                     if (!SpvModuleApplication.doesSingleAddressWalletAccountExist(singleAddressAccountGuid)) {
@@ -166,13 +165,13 @@ class SpvService : IntentService("SpvService") {
                             .createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
                 }
                 ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY -> {
-                    val guid = intent.getStringExtra(IntentContract.SendSingleAddressPublicKeyToSPV.SINGLE_ADDRESS_GUID)
-                    val publicKey = intent.getByteArrayExtra(IntentContract.SendSingleAddressPublicKeyToSPV.PUBLIC_KEY)
+                    val guid = intent.getStringExtra(IntentContract.SendUnrelatedPublicKeyToSPV.SINGLE_ADDRESS_GUID)
+                    val publicKey = intent.getByteArrayExtra(IntentContract.SendUnrelatedPublicKeyToSPV.PUBLIC_KEY)
                     SpvModuleApplication.getApplication().addSingleAddressAccountWithPublicKey(guid, publicKey)
                 }
                 ACTION_REQUEST_SINGLE_ADDRESS -> {
-                    val guid = intent.getStringExtra(IntentContract.SendSingleAddressToSPV.SINGLE_ADDRESS_GUID)
-                    val address = intent.getByteArrayExtra(IntentContract.SendSingleAddressToSPV.ADDRESS_BYTES)
+                    val guid = intent.getStringExtra(IntentContract.SendUnrelatedAddressToSPV.SINGLE_ADDRESS_GUID)
+                    val address = intent.getByteArrayExtra(IntentContract.SendUnrelatedAddressToSPV.ADDRESS_BYTES)
                     SpvModuleApplication.getApplication().addSingleAddressAccount(guid, address)
                 }
                 ACTION_REMOVE_HD_ACCOUNT -> {
@@ -232,11 +231,11 @@ class SpvService : IntentService("SpvService") {
         val ACTION_CANCEL_COINS_RECEIVED = PACKAGE_NAME + ".cancel_coins_received"
         val ACTION_BROADCAST_TRANSACTION = PACKAGE_NAME + ".broadcast_transaction"
         val ACTION_BROADCAST_SIGNEDTRANSACTION = PACKAGE_NAME + ".broadcast_signedtransaction"
-        val ACTION_BROADCAST_SIGNEDTRANSACTION_SINGLE_ADDRESS = PACKAGE_NAME + ".broadcast_signedtransaction_single_address"
+        val ACTION_BROADCAST_SIGNEDTRANSACTION_UNRELATED = PACKAGE_NAME + ".broadcast_signedtransaction_single_address"
         val ACTION_RECEIVE_TRANSACTIONS = PACKAGE_NAME + ".receive_transactions"
-        val ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS = PACKAGE_NAME + ".receive_transactions_single_address"
+        val ACTION_RECEIVE_TRANSACTIONS_UNRELATED = PACKAGE_NAME + ".receive_transactions_single_address"
         val ACTION_SEND_FUNDS = PACKAGE_NAME + ".send_funds"
-        val ACTION_SEND_FUNDS_SINGLE_ADDRESS = PACKAGE_NAME + ".send_funds_single_address"
+        val ACTION_SEND_FUNDS_UNRELATED = PACKAGE_NAME + ".send_funds_single_address"
         val ACTION_CREATE_UNSIGNED_TRANSACTION = PACKAGE_NAME + ".create_unsigned_transaction"
         val ACTION_REQUEST_ACCOUNT_LEVEL_KEYS = PACKAGE_NAME + ".request_account_level_keys"
         val ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY = PACKAGE_NAME + ".request_single_address_public_key"
