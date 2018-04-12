@@ -164,16 +164,13 @@ class SpvService : IntentService("SpvService") {
                     SpvModuleApplication.getApplication()
                             .createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
                 }
-                ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY -> {
+                ACTION_REQUEST_UNRELATED_PUBLIC_KEY -> {
                     val guid = intent.getStringExtra(IntentContract.SendUnrelatedPublicKeyToSPV.UNRELATED_ACCOUNT_GUID)
                     val publicKey = intent.getStringExtra(IntentContract.SendUnrelatedPublicKeyToSPV.PUBLIC_KEY_B58)
-                    SpvModuleApplication.getApplication().addSingleAddressAccountWithPublicKey(guid, publicKey)
+                    val accountType = intent.getIntExtra(IntentContract.UNRELATED_ACCOUNT_TYPE, -1)
+                    SpvModuleApplication.getApplication().addUnrelatedAccountWithPublicKey(guid, publicKey, accountType)
                 }
-                ACTION_REQUEST_SINGLE_ADDRESS -> {
-                    val guid = intent.getStringExtra(IntentContract.SendUnrelatedAddressToSPV.UNRELATED_ACCOUNT_GUID)
-                    val address = intent.getByteArrayExtra(IntentContract.SendUnrelatedAddressToSPV.ADDRESS_BYTES)
-                    SpvModuleApplication.getApplication().addSingleAddressAccount(guid, address)
-                }
+
                 ACTION_REMOVE_HD_ACCOUNT -> {
                     accountIndex = getAccountIndex(intent) ?: return
                     SpvModuleApplication.getApplication().removeHdAccount(accountIndex)
@@ -238,8 +235,7 @@ class SpvService : IntentService("SpvService") {
         val ACTION_SEND_FUNDS_UNRELATED = PACKAGE_NAME + ".send_funds_single_address"
         val ACTION_CREATE_UNSIGNED_TRANSACTION = PACKAGE_NAME + ".create_unsigned_transaction"
         val ACTION_REQUEST_ACCOUNT_LEVEL_KEYS = PACKAGE_NAME + ".request_account_level_keys"
-        val ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY = PACKAGE_NAME + ".request_single_address_public_key"
-        val ACTION_REQUEST_SINGLE_ADDRESS = PACKAGE_NAME + ".request_single_address"
+        val ACTION_REQUEST_UNRELATED_PUBLIC_KEY = PACKAGE_NAME + ".request_single_address_public_key"
         val ACTION_REMOVE_HD_ACCOUNT = PACKAGE_NAME + ".remove_hd_account"
         val ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT = PACKAGE_NAME + ".remove_single_address_account"
         val ACTION_FORCE_CACHE_CLEAN = PACKAGE_NAME + ".force_cache_clean"

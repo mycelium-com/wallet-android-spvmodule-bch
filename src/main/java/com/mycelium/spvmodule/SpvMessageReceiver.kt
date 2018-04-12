@@ -48,8 +48,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.ReceiveTransactions.ACTION -> SpvService.ACTION_RECEIVE_TRANSACTIONS
             IntentContract.ReceiveTransactionsUnrelated.ACTION -> SpvService.ACTION_RECEIVE_TRANSACTIONS_UNRELATED
             IntentContract.RequestAccountLevelKeysToSPV.ACTION -> SpvService.ACTION_REQUEST_ACCOUNT_LEVEL_KEYS
-            IntentContract.SendUnrelatedPublicKeyToSPV.ACTION -> SpvService.ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY
-            IntentContract.SendUnrelatedAddressToSPV.ACTION -> SpvService.ACTION_REQUEST_SINGLE_ADDRESS
+            IntentContract.SendUnrelatedPublicKeyToSPV.ACTION -> SpvService.ACTION_REQUEST_UNRELATED_PUBLIC_KEY
             IntentContract.RemoveHdWalletAccount.ACTION -> SpvService.ACTION_REMOVE_HD_ACCOUNT
             IntentContract.RemoveUnrelatedAccount.ACTION -> SpvService.ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT
             IntentContract.ForceCacheClean.ACTION -> SpvService.ACTION_FORCE_CACHE_CLEAN

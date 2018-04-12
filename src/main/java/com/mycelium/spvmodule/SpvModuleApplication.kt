@@ -89,14 +89,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPublicKey(guid: String, publicKeyB58: String) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithPublicKey(guid, publicKeyB58)
-        restartBip44AccountIdleService(true)
-    }
-
-    @Synchronized
-    fun addSingleAddressAccount(guid: String, address: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithAddress(guid, address)
+    fun addUnrelatedAccountWithPublicKey(guid: String, publicKeyB58: String, accountType : Int) {
+        when(accountType) {
+            IntentContract.UNRELATED_ACCOUNT_TYPE_HD -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountHD(guid, publicKeyB58)
+            IntentContract.UNRELATED_ACCOUNT_TYPE_SA -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountSA(guid, publicKeyB58)
+        }
         restartBip44AccountIdleService(true)
     }
 
