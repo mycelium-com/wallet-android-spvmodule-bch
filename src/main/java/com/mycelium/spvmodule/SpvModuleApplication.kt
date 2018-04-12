@@ -89,8 +89,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPublicKey(guid: String, publicKey: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithPublicKey(guid, publicKey)
+    fun addSingleAddressAccountWithPublicKey(guid: String, publicKeyB58: String) {
+        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithPublicKey(guid, publicKeyB58)
         restartBip44AccountIdleService(true)
     }
 

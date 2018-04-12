@@ -591,9 +591,9 @@ class Bip44AccountIdleService : Service() {
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPublicKey(guid: String, publicKey: ByteArray) {
-        val ecKey = ECKey.fromPublicOnly(publicKey)
-        val walletAccount = Wallet.fromKeys(Constants.NETWORK_PARAMETERS, arrayListOf(ecKey))
+    fun addSingleAddressAccountWithPublicKey(guid: String, publicKeyB58: String) {
+        val key = DumpedPrivateKey.fromBase58(Constants.NETWORK_PARAMETERS, publicKeyB58).key
+        val walletAccount = Wallet.fromKeys(Constants.NETWORK_PARAMETERS, arrayListOf(key))
         addSingleAddressAccount(walletAccount, guid)
     }
 

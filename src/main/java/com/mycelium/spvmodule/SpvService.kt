@@ -166,7 +166,7 @@ class SpvService : IntentService("SpvService") {
                 }
                 ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY -> {
                     val guid = intent.getStringExtra(IntentContract.SendUnrelatedPublicKeyToSPV.UNRELATED_ACCOUNT_GUID)
-                    val publicKey = intent.getByteArrayExtra(IntentContract.SendUnrelatedPublicKeyToSPV.PUBLIC_KEY)
+                    val publicKey = intent.getStringExtra(IntentContract.SendUnrelatedPublicKeyToSPV.PUBLIC_KEY_B58)
                     SpvModuleApplication.getApplication().addSingleAddressAccountWithPublicKey(guid, publicKey)
                 }
                 ACTION_REQUEST_SINGLE_ADDRESS -> {
