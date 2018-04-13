@@ -138,7 +138,7 @@ class Bip44AccountIdleService : Service() {
         }
         Log.d(LOG_TAG, "initializeWalletAccountsListeners, number of SA accounts = ${unrelatedAccountsMap.values.size}")
         unrelatedAccountsMap.values.forEach {
-            it.addCoinsReceivedEventListener(Threading.SAME_THREAD, singleAddressWalletEventListener)
+            it.addCoinsReceivedEventListener(Threading.SAME_THREAD, unrelatedAccountWalletEventListener)
         }
     }
 
@@ -308,7 +308,7 @@ class Bip44AccountIdleService : Service() {
         for (saWallet in unrelatedAccountsMap) {
             saWallet.value.run {
                 saveWalletAccountToFile(this, singleAddressWalletFile(saWallet.key))
-                removeCoinsReceivedEventListener(singleAddressWalletEventListener)
+                removeCoinsReceivedEventListener(unrelatedAccountWalletEventListener)
             }
         }
 
@@ -808,11 +808,13 @@ class Bip44AccountIdleService : Service() {
         }
     }
 
-    private val singleAddressWalletEventListener = WalletCoinsReceivedEventListener { walletAccount, transaction, _, _ ->
+    private val unrelatedAccountWalletEventListener = WalletCoinsReceivedEventListener { walletAccount, transaction, _, _ ->
         for (key in unrelatedAccountsMap.keys()) {
             if(unrelatedAccountsMap[key] == walletAccount) {
-                if(transaction!!.confidence.appearedAtChainHeight >= highestChainHeight) {
-                    notifySingleAddressSatoshisReceived(transaction.getValue(walletAccount).value,
+                val confidence = transaction!!.confidence
+                if(confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING &&
+                    confidence.appearedAtChainHeight >= highestChainHeight) {
+                    notifySatoshisReceivedUnrelated(transaction.getValue(walletAccount).value,
                             0L, key)
                 }
             }
@@ -824,7 +826,7 @@ class Bip44AccountIdleService : Service() {
         notifyCurrentReceiveAddress()
     }
 
-    private fun notifySingleAddressSatoshisReceived(satoshisReceived: Long, satoshisSent: Long, guid: String) {
+    private fun notifySatoshisReceivedUnrelated(satoshisReceived: Long, satoshisSent: Long, guid: String) {
         SpvMessageSender.notifySatoshisReceivedUnrelated(satoshisReceived, satoshisSent, guid)
         notifyCurrentReceiveAddress()
     }
