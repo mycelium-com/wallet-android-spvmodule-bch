@@ -208,7 +208,7 @@ class TransactionContentProvider : ContentProvider() {
                     val maxAmount = service.getMaxFundsTranferableBySingleTransactionHD(accountIndex)
                     cursor.addRow(listOf(maxAmount))
 
-                } else if (selection == GetMaxFundsTransferrable.SELECTION_SA) {
+                } else if (selection == GetMaxFundsTransferrable.SELECTION_UNRELATED) {
                     val accountGuid = selectionArgs!!.get(0)
                     val maxAmount = service.getMaxFundsTranferableBySingleTransactionSA(accountGuid)
                     cursor.addRow(listOf(maxAmount))
