@@ -109,6 +109,7 @@ class SpvService : IntentService("SpvService") {
                     val rawAmount = intent.getLongExtra(IntentContract.SendFundsUnrelated.AMOUNT_EXTRA, -1)
                     val txFeeStr = intent.getStringExtra(IntentContract.SendFundsUnrelated.FEE_EXTRA)
                     val txFeeFactor = intent.getFloatExtra(IntentContract.SendFundsUnrelated.FEE_FACTOR_EXTRA, 0.0f)
+                    val unrelatedAccountType = intent.getIntExtra(IntentContract.SendFundsUnrelated.ACCOUNT_TYPE, -1)
                     if (rawAddress.isEmpty() || rawAmount < 0 || txFeeStr == null || txFeeFactor == 0.0f) {
                         Log.e(LOG_TAG, "Could not send funds with parameters rawAddress $rawAddress, "
                                 + "rawAmount $rawAmount, feePerKb $txFeeStr and feePerFactor $txFeeFactor.")
@@ -119,7 +120,12 @@ class SpvService : IntentService("SpvService") {
                     val address = Address.fromBase58(Constants.NETWORK_PARAMETERS, rawAddress)
                     val amount = Coin.valueOf(rawAmount)
                     val sendRequest = SendRequest.to(address, amount)
-                    sendRequest.changeAddress = wallet.importedKeys.get(0).toAddress(Constants.NETWORK_PARAMETERS)
+
+                    //We need to specify the change address manually only in the case of Single Address unrelated account
+                    if (unrelatedAccountType == IntentContract.UNRELATED_ACCOUNT_TYPE_SA) {
+                        sendRequest.changeAddress = wallet.watchedAddresses.get(0)
+                    }
+
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
