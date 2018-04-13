@@ -1237,7 +1237,7 @@ class Bip44AccountIdleService : Service() {
     fun doesWalletAccountExist(accountIndex: Int): Boolean =
             null != walletsAccountsMap[accountIndex]
 
-    fun doesSingleAddressWalletAccountExist(guid: String) : Boolean =
+    fun doesUnrelatedAccountExist(guid: String) : Boolean =
             null != unrelatedAccountsMap[guid]
 }
 

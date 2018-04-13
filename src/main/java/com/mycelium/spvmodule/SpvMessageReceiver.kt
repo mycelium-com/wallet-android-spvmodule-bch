@@ -50,7 +50,7 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             IntentContract.RequestAccountLevelKeysToSPV.ACTION -> SpvService.ACTION_REQUEST_ACCOUNT_LEVEL_KEYS
             IntentContract.SendUnrelatedPublicKeyToSPV.ACTION -> SpvService.ACTION_REQUEST_UNRELATED_PUBLIC_KEY
             IntentContract.RemoveHdWalletAccount.ACTION -> SpvService.ACTION_REMOVE_HD_ACCOUNT
-            IntentContract.RemoveUnrelatedAccount.ACTION -> SpvService.ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT
+            IntentContract.RemoveUnrelatedAccount.ACTION -> SpvService.ACTION_REMOVE_UNRELATED_ACCOUNT
             IntentContract.ForceCacheClean.ACTION -> SpvService.ACTION_FORCE_CACHE_CLEAN
             else -> {
                 Log.e(LOG_TAG, "Unhandled intent action ${intent.action}")

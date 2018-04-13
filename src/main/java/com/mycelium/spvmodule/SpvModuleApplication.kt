@@ -171,8 +171,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     internal fun doesWalletAccountExist(accountIndex: Int): Boolean =
             Bip44AccountIdleService.getInstance()!!.doesWalletAccountExist(accountIndex)
 
-    internal fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
-            Bip44AccountIdleService.getInstance()!!.doesSingleAddressWalletAccountExist(guid)
+    internal fun doesUnrelatedAccountExist(guid: String): Boolean =
+            Bip44AccountIdleService.getInstance()!!.doesUnrelatedAccountExist(guid)
 
     companion object {
         private var INSTANCE: SpvModuleApplication? = null
@@ -213,8 +213,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         fun doesWalletAccountExist(accountIndex: Int): Boolean =
                 INSTANCE!!.doesWalletAccountExist(accountIndex)
 
-        fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
-                INSTANCE!!.doesSingleAddressWalletAccountExist(guid)
+        fun doesUnrelatedAccountExist(guid: String): Boolean =
+                INSTANCE!!.doesUnrelatedAccountExist(guid)
     }
 
     fun createAccounts(accountIndexes: ArrayList<Int>, accountKeys: ArrayList<String>,

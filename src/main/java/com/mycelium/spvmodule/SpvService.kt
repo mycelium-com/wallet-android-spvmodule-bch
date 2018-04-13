@@ -143,7 +143,7 @@ class SpvService : IntentService("SpvService") {
                 ACTION_RECEIVE_TRANSACTIONS_UNRELATED -> {
                     unrelatedAccountGuid = intent.getStringExtra(IntentContract.UNRELATED_ACCOUNT_GUID)
                     val unrelatedAccountType = intent.getIntExtra(IntentContract.UNRELATED_ACCOUNT_TYPE, -1)
-                    if (!SpvModuleApplication.doesSingleAddressWalletAccountExist(unrelatedAccountGuid)) {
+                    if (!SpvModuleApplication.doesUnrelatedAccountExist(unrelatedAccountGuid)) {
                         // Ask for private Key
                         SpvMessageSender.requestPublicKeyUnrelated(unrelatedAccountGuid, unrelatedAccountType)
                         return
@@ -175,7 +175,7 @@ class SpvService : IntentService("SpvService") {
                     accountIndex = getAccountIndex(intent) ?: return
                     SpvModuleApplication.getApplication().removeHdAccount(accountIndex)
                 }
-                ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT -> {
+                ACTION_REMOVE_UNRELATED_ACCOUNT -> {
                     val guid = intent.getStringExtra(IntentContract.UNRELATED_ACCOUNT_GUID)
                     SpvModuleApplication.getApplication().removeSingleAddressAccount(guid)
                 }
@@ -230,14 +230,14 @@ class SpvService : IntentService("SpvService") {
         val ACTION_BROADCAST_SIGNEDTRANSACTION = PACKAGE_NAME + ".broadcast_signedtransaction"
         val ACTION_BROADCAST_SIGNEDTRANSACTION_UNRELATED = PACKAGE_NAME + ".broadcast_signedtransaction_single_address"
         val ACTION_RECEIVE_TRANSACTIONS = PACKAGE_NAME + ".receive_transactions"
-        val ACTION_RECEIVE_TRANSACTIONS_UNRELATED = PACKAGE_NAME + ".receive_transactions_single_address"
+        val ACTION_RECEIVE_TRANSACTIONS_UNRELATED = PACKAGE_NAME + ".receive_transactions_unrelated"
         val ACTION_SEND_FUNDS = PACKAGE_NAME + ".send_funds"
-        val ACTION_SEND_FUNDS_UNRELATED = PACKAGE_NAME + ".send_funds_single_address"
+        val ACTION_SEND_FUNDS_UNRELATED = PACKAGE_NAME + ".send_funds_unrelated"
         val ACTION_CREATE_UNSIGNED_TRANSACTION = PACKAGE_NAME + ".create_unsigned_transaction"
         val ACTION_REQUEST_ACCOUNT_LEVEL_KEYS = PACKAGE_NAME + ".request_account_level_keys"
-        val ACTION_REQUEST_UNRELATED_PUBLIC_KEY = PACKAGE_NAME + ".request_single_address_public_key"
+        val ACTION_REQUEST_UNRELATED_PUBLIC_KEY = PACKAGE_NAME + ".request_unrelated_public_key"
         val ACTION_REMOVE_HD_ACCOUNT = PACKAGE_NAME + ".remove_hd_account"
-        val ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT = PACKAGE_NAME + ".remove_single_address_account"
+        val ACTION_REMOVE_UNRELATED_ACCOUNT = PACKAGE_NAME + ".remove_unrelated_account"
         val ACTION_FORCE_CACHE_CLEAN = PACKAGE_NAME + ".force_cache_clean"
 
         val intentsQueue: Queue<Intent> = ConcurrentLinkedQueue<Intent>()
