@@ -210,7 +210,7 @@ class TransactionContentProvider : ContentProvider() {
 
                 } else if (selection == GetMaxFundsTransferrable.SELECTION_UNRELATED) {
                     val accountGuid = selectionArgs!!.get(0)
-                    val maxAmount = service.getMaxFundsTranferableBySingleTransactionSA(accountGuid)
+                    val maxAmount = service.getMaxFundsTranferableBySingleTransactionUnrelated(accountGuid)
                     cursor.addRow(listOf(maxAmount))
                 }
                 return cursor
@@ -233,7 +233,7 @@ class TransactionContentProvider : ContentProvider() {
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     val txFeeFactor = selectionArgs[2].toFloat()
                     val amount = selectionArgs[3].toLong()
-                    val estimatedFee = service.calculateFeeToTransferAmountSA(accountGuid, amount, txFee, txFeeFactor)
+                    val estimatedFee = service.calculateFeeToTransferAmountUnrelated(accountGuid, amount, txFee, txFeeFactor)
                     cursor.addRow(listOf(estimatedFee))
                 }
 

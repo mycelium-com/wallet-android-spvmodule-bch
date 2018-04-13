@@ -1082,7 +1082,7 @@ class Bip44AccountIdleService : Service() {
         return getMaxFundsTranferableBySingleTransaction(walletsAccountsMap[accountIndex]!!)
     }
 
-    fun getMaxFundsTranferableBySingleTransactionSA(guid: String): Coin {
+    fun getMaxFundsTranferableBySingleTransactionUnrelated(guid: String): Coin {
         return getMaxFundsTranferableBySingleTransaction(unrelatedAccountsMap[guid]!!)
     }
 
@@ -1090,7 +1090,7 @@ class Bip44AccountIdleService : Service() {
         return calculateFeeToTransferAmount(walletsAccountsMap[accountIndex]!!, amountToSend, txFee, txFeeFactor)
     }
 
-    fun calculateFeeToTransferAmountSA(guid: String, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
+    fun calculateFeeToTransferAmountUnrelated(guid: String, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
         return calculateFeeToTransferAmount(unrelatedAccountsMap[guid]!!, amountToSend, txFee, txFeeFactor)
     }
 
