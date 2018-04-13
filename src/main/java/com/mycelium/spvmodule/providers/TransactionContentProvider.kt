@@ -105,7 +105,7 @@ class TransactionContentProvider : ContentProvider() {
                         )
                         cursor.addRow(columnValues)
                     }
-                } else if (selection == AccountBalance.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID) {
+                } else if (selection == AccountBalance.SELECTION_HD) {
                     val guid = selectionArgs!!.get(0)
 
                     val columnValues = listOf(
@@ -134,15 +134,22 @@ class TransactionContentProvider : ContentProvider() {
                 if (selection == CurrentReceiveAddress.SELECTION_ACCOUNT_INDEX) {
                     // this is the CURRENT_RECEIVE_ADDRESS_ID case but we don't read the selection from the url (yet?)
                     val accountIndex = selectionArgs!![0].toInt()
-                    listOf(accountIndex)
-                } else {
-                    // we assume no selection for now and return all accounts
-                    service.getAccountIndices()
-                }.forEach { accountIndex ->
+
                     val currentReceiveAddress = service.getAccountCurrentReceiveAddress(accountIndex)
                     val qrAddressString = Constants.QR_ADDRESS_PREFIX + currentReceiveAddress
                     val columnValues = listOf(
                             accountIndex,                           //TransactionContract.CurrentReceiveAddress._ID
+                            currentReceiveAddress?.toString(),      //TransactionContract.CurrentReceiveAddress.ADDRESS
+                            qrAddressString                         //TransactionContract.CurrentReceiveAddress.ADDRESS_QR
+                    )
+                    cursor.addRow(columnValues)
+
+                } else if (selection == CurrentReceiveAddress.SELECTION_UNRELATED) {
+                    val guid = selectionArgs!![0]
+                    val currentReceiveAddress = service.getAccountCurrentReceiveAddressUnrelatedHD(guid)
+                    val qrAddressString = Constants.QR_ADDRESS_PREFIX + currentReceiveAddress
+                    val columnValues = listOf(
+                            guid,                           //TransactionContract.CurrentReceiveAddress._ID
                             currentReceiveAddress?.toString(),      //TransactionContract.CurrentReceiveAddress.ADDRESS
                             qrAddressString                         //TransactionContract.CurrentReceiveAddress.ADDRESS_QR
                     )
@@ -259,9 +266,16 @@ class TransactionContentProvider : ContentProvider() {
                 }
             }
             GET_PRIVATE_KEYS_COUNT_ID -> {
-                val accountIndex = selectionArgs!![0].toInt()
-                return GetPrivateKeysCountCursor().apply {
-                    addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)))
+                if (selection == GetPrivateKeysCount.SELECTION_ACCOUNT_INDEX) {
+                    val accountIndex = selectionArgs!![0].toInt()
+                    return GetPrivateKeysCountCursor().apply {
+                        addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)))
+                    }
+                } else if (selection == GetPrivateKeysCount.SELECTION_UNRELATED) {
+                    val accountGuid = selectionArgs!![0]
+                    return GetPrivateKeysCountCursor().apply {
+                        addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCountUnrelated(accountGuid)))
+                    }
                 }
             }
             UriMatcher.NO_MATCH -> {

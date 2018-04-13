@@ -684,6 +684,12 @@ class Bip44AccountIdleService : Service() {
                 ?: return 0
     }
 
+    fun getPrivateKeysCountUnrelated(guid : String) : Int {
+        return unrelatedAccountsMap[guid]?.activeKeyChain?.issuedExternalKeys
+        //If we don't have an account with corresponding index
+                ?: return 0
+    }
+
     fun getSingleAddressWalletAccount(guid: String) : Wallet = unrelatedAccountsMap[guid]!!
 
     @Synchronized
@@ -988,6 +994,13 @@ class Bip44AccountIdleService : Service() {
         val walletAccount = walletsAccountsMap[accountIndex] ?: return null
         return walletAccount.currentReceiveAddress() ?: walletAccount.freshReceiveAddress()
     }
+
+    fun getAccountCurrentReceiveAddressUnrelatedHD(guid: String): org.bitcoinj.core.Address? {
+        propagate(Constants.CONTEXT)
+        val walletAccount = unrelatedAccountsMap[guid] ?: return null
+        return walletAccount.currentReceiveAddress() ?: walletAccount.freshReceiveAddress()
+    }
+
 
     fun isValid(qrCode :String): Boolean {
         propagate(Constants.CONTEXT)
