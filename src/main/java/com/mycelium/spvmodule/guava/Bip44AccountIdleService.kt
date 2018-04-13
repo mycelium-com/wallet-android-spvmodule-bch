@@ -806,7 +806,9 @@ class Bip44AccountIdleService : Service() {
     private val singleAddressWalletEventListener = WalletCoinsReceivedEventListener { walletAccount, transaction, _, _ ->
         for (key in singleAddressAccountsMap.keys()) {
             if(singleAddressAccountsMap[key] == walletAccount) {
-                if(transaction!!.confidence.appearedAtChainHeight >= highestChainHeight) {
+                val confidence = transaction!!.confidence
+                if(confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING &&
+                    confidence.appearedAtChainHeight >= highestChainHeight) {
                     notifySingleAddressSatoshisReceived(transaction.getValue(walletAccount).value,
                             0L, key)
                 }
