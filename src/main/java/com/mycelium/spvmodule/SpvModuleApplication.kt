@@ -92,8 +92,14 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     fun addUnrelatedAccountWithPublicKey(guid: String, publicKeyB58: String, accountType : Int) {
         when(accountType) {
             IntentContract.UNRELATED_ACCOUNT_TYPE_HD -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountHD(guid, publicKeyB58)
-            IntentContract.UNRELATED_ACCOUNT_TYPE_SA -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountSA(guid, publicKeyB58)
+            IntentContract.UNRELATED_ACCOUNT_TYPE_SA -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountByPublicKey(guid, publicKeyB58)
         }
+        restartBip44AccountIdleService(true)
+    }
+
+    @Synchronized
+    fun addUnrelatedAccountWithAddress(guid: String, address: String) {
+        Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountByAddress(guid, address)
         restartBip44AccountIdleService(true)
     }
 

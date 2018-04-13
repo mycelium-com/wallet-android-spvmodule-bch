@@ -123,7 +123,11 @@ class SpvService : IntentService("SpvService") {
 
                     //We need to specify the change address manually only in the case of Single Address unrelated account
                     if (unrelatedAccountType == IntentContract.UNRELATED_ACCOUNT_TYPE_SA) {
-                        sendRequest.changeAddress = wallet.watchedAddresses.get(0)
+                        if (wallet.importedKeys.size > 0) {
+                            sendRequest.changeAddress = wallet.importedKeys.get(0).toAddress(Constants.NETWORK_PARAMETERS)
+                        } else if (wallet.watchedAddresses.size > 0){
+                            sendRequest.changeAddress = wallet.watchedAddresses.get(0)
+                        }
                     }
 
                     val txFee = TransactionFee.valueOf(txFeeStr)
@@ -175,6 +179,12 @@ class SpvService : IntentService("SpvService") {
                     val publicKey = intent.getStringExtra(IntentContract.SendUnrelatedPublicKeyToSPV.PUBLIC_KEY_B58)
                     val accountType = intent.getIntExtra(IntentContract.UNRELATED_ACCOUNT_TYPE, -1)
                     SpvModuleApplication.getApplication().addUnrelatedAccountWithPublicKey(guid, publicKey, accountType)
+                }
+
+                ACTION_REQUEST_UNRELATED_WATCH_ADDRESS -> {
+                    val guid = intent.getStringExtra(IntentContract.SendUnrelatedWatchedAddressToSPV.UNRELATED_ACCOUNT_GUID)
+                    val address = intent.getStringExtra(IntentContract.SendUnrelatedWatchedAddressToSPV.ADDRESS)
+                    SpvModuleApplication.getApplication().addUnrelatedAccountWithAddress(guid, address)
                 }
 
                 ACTION_REMOVE_HD_ACCOUNT -> {
@@ -242,6 +252,7 @@ class SpvService : IntentService("SpvService") {
         val ACTION_CREATE_UNSIGNED_TRANSACTION = PACKAGE_NAME + ".create_unsigned_transaction"
         val ACTION_REQUEST_ACCOUNT_LEVEL_KEYS = PACKAGE_NAME + ".request_account_level_keys"
         val ACTION_REQUEST_UNRELATED_PUBLIC_KEY = PACKAGE_NAME + ".request_unrelated_public_key"
+        var ACTION_REQUEST_UNRELATED_WATCH_ADDRESS = PACKAGE_NAME + ".request_unrelated_watch_address"
         val ACTION_REMOVE_HD_ACCOUNT = PACKAGE_NAME + ".remove_hd_account"
         val ACTION_REMOVE_UNRELATED_ACCOUNT = PACKAGE_NAME + ".remove_unrelated_account"
         val ACTION_FORCE_CACHE_CLEAN = PACKAGE_NAME + ".force_cache_clean"

@@ -597,7 +597,14 @@ class Bip44AccountIdleService : Service() {
     }
 
     @Synchronized
-    fun addUnrelatedAccountSA(guid: String, address: String) {
+    fun addUnrelatedAccountByPublicKey(guid: String, publicKey: String) {
+        val walletAccount = Wallet(Constants.NETWORK_PARAMETERS)
+        walletAccount.importKey(ECKey.fromPublicOnly(Hex.decode(publicKey)))
+        addSingleAddressAccount(walletAccount, guid)
+    }
+
+    @Synchronized
+    fun addUnrelatedAccountByAddress(guid: String, address: String) {
         val walletAccount = Wallet(Constants.NETWORK_PARAMETERS)
         walletAccount.addWatchedAddress(Address.fromBase58(Constants.NETWORK_PARAMETERS, address))
         addSingleAddressAccount(walletAccount, guid)
