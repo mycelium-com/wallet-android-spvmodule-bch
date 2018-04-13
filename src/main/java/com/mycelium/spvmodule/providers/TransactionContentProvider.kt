@@ -227,7 +227,7 @@ class TransactionContentProvider : ContentProvider() {
                     val amount = selectionArgs[3].toLong()
                     val estimatedFee = service.calculateFeeToTransferAmountHD(accountIndex, amount, txFee, txFeeFactor)
                     cursor.addRow(listOf(estimatedFee))
-                } else if (selection == EstimateFeeFromTransferrableAmount.SELECTION_SA) {
+                } else if (selection == EstimateFeeFromTransferrableAmount.SELECTION_UNRELATED) {
                     val accountGuid = selectionArgs!!.get(0)
                     val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
