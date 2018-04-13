@@ -110,9 +110,9 @@ class TransactionContentProvider : ContentProvider() {
 
                     val columnValues = listOf(
                             0,                             //TransactionContract.AccountBalance._ID
-                            service.getSingleAddressAccountBalance(guid),  //TransactionContract.AccountBalance.CONFIRMED
-                            service.getSingleAddressAccountSending(guid),  //TransactionContract.AccountBalance.SENDING
-                            service.getSingleAddressAccountReceiving(guid) //TransactionContract.AccountBalance.RECEIVING
+                            service.getUnrelatedAccountBalance(guid),  //TransactionContract.AccountBalance.CONFIRMED
+                            service.getUnrelatedAccountSending(guid),  //TransactionContract.AccountBalance.SENDING
+                            service.getUnrelatedAccountReceiving(guid) //TransactionContract.AccountBalance.RECEIVING
                     )
                     cursor.addRow(columnValues)
                 } else {
@@ -183,7 +183,7 @@ class TransactionContentProvider : ContentProvider() {
                     val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     val txFeeFactor = selectionArgs[2].toFloat()
-                    val maxSpendableAmount = service.calculateMaxSpendableAmountSingleAddress(accountGuid, txFee, txFeeFactor)
+                    val maxSpendableAmount = service.calculateMaxSpendableAmountUnrelated(accountGuid, txFee, txFeeFactor)
                     val columnValues = listOf(
                             txFee,                  //CalculateMaxSpendable.TX_FEE
                             txFeeFactor,            //CalculateMaxSpendable.TX_FEE_FACTOR

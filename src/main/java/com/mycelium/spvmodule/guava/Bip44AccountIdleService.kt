@@ -54,12 +54,12 @@ class Bip44AccountIdleService : Service() {
 
     private var highestChainHeight: Int = sharedPreferences.getInt(HIGHEST_CHAIN_HEIGHT_PREF, 0)
 
-    //Read list of accounts indexes
+    //Read list of master seed derived HD account' indexes
     private val accountIndexStrings: ConcurrentSkipListSet<String> = ConcurrentSkipListSet<String>().apply {
         addAll(sharedPreferences.getStringSet(ACCOUNT_INDEX_STRING_SET_PREF, emptySet()))
     }
-    //List of single address accounts guids
-    private val singleAddressAccountGuidStrings: ConcurrentSkipListSet<String> = ConcurrentSkipListSet<String>().apply {
+    //List of unrelated account' guids
+    private val unrelatedAccountGuidStrings: ConcurrentSkipListSet<String> = ConcurrentSkipListSet<String>().apply {
         addAll(sharedPreferences.getStringSet(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF, emptySet()))
     }
     //List of accounts indexes
@@ -157,8 +157,8 @@ class Bip44AccountIdleService : Service() {
             notifyCurrentReceiveAddress()
         }
 
-        for (guid in singleAddressAccountGuidStrings) {
-            val walletAccount = getSingleAddressAccountWallet(guid)
+        for (guid in unrelatedAccountGuidStrings) {
+            val walletAccount = getUnrelatedAccountWallet(guid)
             if (walletAccount != null) {
                 unrelatedAccountsMap[guid] = walletAccount
                 if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint) {
@@ -386,7 +386,7 @@ class Bip44AccountIdleService : Service() {
         return wallet!!
     }
 
-    private fun getSingleAddressAccountWallet(guid: String): Wallet? {
+    private fun getUnrelatedAccountWallet(guid: String): Wallet? {
         var wallet: Wallet? = unrelatedAccountsMap[guid]
         if (wallet != null) {
             return wallet
@@ -606,9 +606,9 @@ class Bip44AccountIdleService : Service() {
     private fun addSingleAddressAccount(walletAccount: Wallet, guid: String) {
         saveWalletAccountToFile(walletAccount, singleAddressWalletFile(guid))
 
-        singleAddressAccountGuidStrings.add(guid)
+        unrelatedAccountGuidStrings.add(guid)
         sharedPreferences.edit()
-                .putStringSet(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF, singleAddressAccountGuidStrings)
+                .putStringSet(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF, unrelatedAccountGuidStrings)
                 .apply()
 
         unrelatedAccountsMap[guid] = walletAccount
@@ -957,13 +957,13 @@ class Bip44AccountIdleService : Service() {
         }
     }
 
-    fun getSingleAddressAccountBalance(guid: String): Long {
+    fun getUnrelatedAccountBalance(guid: String): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = unrelatedAccountsMap[guid]
         return walletAccount?.getBalance(Wallet.BalanceType.ESTIMATED)?.getValue()?: 0
     }
 
-    fun getSingleAddressAccountReceiving(guid: String): Long {
+    fun getUnrelatedAccountReceiving(guid: String): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = unrelatedAccountsMap[guid] ?: return 0
         return walletAccount.pendingTransactions.sumByLong {
@@ -973,7 +973,7 @@ class Bip44AccountIdleService : Service() {
         }
     }
 
-    fun getSingleAddressAccountSending(guid: String): Long {
+    fun getUnrelatedAccountSending(guid: String): Long {
         propagate(Constants.CONTEXT)
         val walletAccount = unrelatedAccountsMap[guid] ?: return 0
         return walletAccount.pendingTransactions.sumByLong {
@@ -1016,7 +1016,7 @@ class Bip44AccountIdleService : Service() {
         return balance.subtract(Coin.valueOf(feeToUse))
     }
 
-    fun calculateMaxSpendableAmountSingleAddress(guid: String, txFee: TransactionFee, txFeeFactor: Float): Coin? {
+    fun calculateMaxSpendableAmountUnrelated(guid: String, txFee: TransactionFee, txFeeFactor: Float): Coin? {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "calculateMaxSpendableAmount, guid = $guid, txFee = $txFee, txFeeFactor = $txFeeFactor")
         val walletAccount = unrelatedAccountsMap[guid] ?: return null
