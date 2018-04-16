@@ -1121,6 +1121,13 @@ class Bip44AccountIdleService : Service() {
 
         var amountToSend = amountToTransfer - feeEstimated
 
+        // It could happen that specified amountToTransfer sum is not enough to make transaction
+        // since it could be even smaller than fee.So it is impossible to get more presize fee
+        // estimation by transaction using bitcoincashj
+        if (amountToSend < 0) {
+            return Coin.valueOf(feeEstimated)
+        }
+
         while(true) {
             val sendRequest = SendRequest.to(getNullAddress(Constants.NETWORK_PARAMETERS), Coin.valueOf(amountToSend))
             sendRequest.feePerKb = feePerKb
