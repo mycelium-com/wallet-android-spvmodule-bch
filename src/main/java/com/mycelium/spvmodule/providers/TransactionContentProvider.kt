@@ -105,7 +105,7 @@ class TransactionContentProvider : ContentProvider() {
                         )
                         cursor.addRow(columnValues)
                     }
-                } else if (selection == AccountBalance.SELECTION_HD) {
+                } else if (selection == AccountBalance.SELECTION_GUID) {
                     val guid = selectionArgs!!.get(0)
 
                     val columnValues = listOf(
