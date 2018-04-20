@@ -89,14 +89,17 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPublicKey(guid: String, publicKey: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithPublicKey(guid, publicKey)
+    fun addUnrelatedAccountWithPublicKey(guid: String, publicKeyB58: String, accountType : Int) {
+        when(accountType) {
+            IntentContract.UNRELATED_ACCOUNT_TYPE_HD -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountHD(guid, publicKeyB58)
+            IntentContract.UNRELATED_ACCOUNT_TYPE_SA -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountByPublicKey(guid, publicKeyB58)
+        }
         restartBip44AccountIdleService(true)
     }
 
     @Synchronized
-    fun addSingleAddressAccount(guid: String, address: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithAddress(guid, address)
+    fun addUnrelatedAccountWithAddress(guid: String, address: String) {
+        Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountByAddress(guid, address)
         restartBip44AccountIdleService(true)
     }
 
@@ -174,8 +177,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     internal fun doesWalletAccountExist(accountIndex: Int): Boolean =
             Bip44AccountIdleService.getInstance()!!.doesWalletAccountExist(accountIndex)
 
-    internal fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
-            Bip44AccountIdleService.getInstance()!!.doesSingleAddressWalletAccountExist(guid)
+    internal fun doesUnrelatedAccountExist(guid: String): Boolean =
+            Bip44AccountIdleService.getInstance()!!.doesUnrelatedAccountExist(guid)
 
     companion object {
         private var INSTANCE: SpvModuleApplication? = null
@@ -216,8 +219,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         fun doesWalletAccountExist(accountIndex: Int): Boolean =
                 INSTANCE!!.doesWalletAccountExist(accountIndex)
 
-        fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
-                INSTANCE!!.doesSingleAddressWalletAccountExist(guid)
+        fun doesUnrelatedAccountExist(guid: String): Boolean =
+                INSTANCE!!.doesUnrelatedAccountExist(guid)
     }
 
     fun createAccounts(accountIndexes: ArrayList<Int>, accountKeys: ArrayList<String>,
