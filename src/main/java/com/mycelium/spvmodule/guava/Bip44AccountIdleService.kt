@@ -14,7 +14,7 @@ import android.widget.Toast
 import com.google.common.base.Optional
 import com.mrd.bitlib.StandardTransactionBuilder
 import com.mycelium.spvmodule.*
-import com.mycelium.spvmodule.currency.ExactBitcoinValue
+import com.mycelium.spvmodule.currency.ExactBitcoinCashValue
 import com.mycelium.spvmodule.model.TransactionDetails
 import com.mycelium.spvmodule.model.TransactionSummary
 import com.mycelium.spvmodule.providers.TransactionContract
@@ -876,7 +876,7 @@ class Bip44AccountIdleService : Service() {
                 //continue
             }
 
-            val bitcoinValue =  ExactBitcoinValue.from(Math.abs(bitcoinJValue.value))
+            val bitcoinValue =  ExactBitcoinCashValue.from(Math.abs(bitcoinJValue.value))
 
             val transactionSummary = TransactionSummary(transactionBitcoinJ.hash,
                     bitcoinValue,

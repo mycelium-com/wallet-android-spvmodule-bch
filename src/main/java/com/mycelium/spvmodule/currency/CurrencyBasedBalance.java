@@ -36,7 +36,7 @@ package com.mycelium.spvmodule.currency;
 
 public class CurrencyBasedBalance {
    public final static CurrencyBasedBalance ZERO_BITCOIN_BALANCE = new CurrencyBasedBalance(
-         ExactBitcoinValue.ZERO, ExactBitcoinValue.ZERO, ExactBitcoinValue.ZERO);
+         ExactBitcoinCashValue.ZERO, ExactBitcoinCashValue.ZERO, ExactBitcoinCashValue.ZERO);
 
    public final ExactCurrencyValue confirmed;
    public final ExactCurrencyValue sending;
