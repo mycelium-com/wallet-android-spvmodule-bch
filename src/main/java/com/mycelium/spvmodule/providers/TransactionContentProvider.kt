@@ -350,6 +350,13 @@ class TransactionContentProvider : ContentProvider() {
                     }
                 }
             }
+            BLOCKCHAIN_HEIGHT_ID -> {
+                val cursor = BlockchainHeightCursor()
+                val columnValues = listOf(
+                        Bip44AccountIdleService.getInstance()!!.getBestChainHeight())
+                cursor.addRow(columnValues)
+                return cursor
+            }
             UriMatcher.NO_MATCH -> {
                 Log.e(LOG_TAG, "no match for uri $uri")
             }
@@ -416,6 +423,7 @@ class TransactionContentProvider : ContentProvider() {
             VALIDATE_QR_CODE_ID -> ValidateQrCode.CONTENT_TYPE
             CALCULATE_MAX_SPENDABLE_ID -> CalculateMaxSpendable.CONTENT_TYPE
             CHECK_SEND_AMOUNT_ID -> CheckSendAmount.CONTENT_TYPE
+            BLOCKCHAIN_HEIGHT_ID -> BlockchainHeight.CONTENT_TYPE
             else -> null
         }
     }
@@ -436,6 +444,7 @@ class TransactionContentProvider : ContentProvider() {
         private val GET_PRIVATE_KEYS_COUNT_ID = 13
         private val ESTIMATE_FEES_FROM_TRANSFERRABLE_AMOUNT_ID = 14
         private val GET_MAX_FUNDS_TRANSFERRABLE_ID = 15
+        private val BLOCKCHAIN_HEIGHT_ID = 16
 
         private val URI_MATCHER: UriMatcher = UriMatcher(UriMatcher.NO_MATCH).apply {
             val auth = TransactionContract.AUTHORITY(BuildConfig.APPLICATION_ID)
@@ -454,6 +463,7 @@ class TransactionContentProvider : ContentProvider() {
             addURI(auth, GetPrivateKeysCount.TABLE_NAME, GET_PRIVATE_KEYS_COUNT_ID)
             addURI(auth, EstimateFeeFromTransferrableAmount.TABLE_NAME, ESTIMATE_FEES_FROM_TRANSFERRABLE_AMOUNT_ID)
             addURI(auth, GetMaxFundsTransferrable.TABLE_NAME, GET_MAX_FUNDS_TRANSFERRABLE_ID)
+            addURI(auth, BlockchainHeight.TABLE_NAME, BLOCKCHAIN_HEIGHT_ID)
         }
 
         private fun getTableFromMatch(match: Int): String = when (match) {
