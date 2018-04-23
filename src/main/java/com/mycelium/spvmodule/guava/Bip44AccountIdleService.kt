@@ -855,7 +855,6 @@ class Bip44AccountIdleService : Service() {
 
             for (transactionOutput in transactionBitcoinJ.outputs) {
                 val toAddress = transactionOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
-
                 if (!transactionOutput.isMine(walletAccount)) {
                     destAddress = toAddress
                 }
@@ -909,8 +908,17 @@ class Bip44AccountIdleService : Service() {
 
     fun getTransactionDetails(accountIndex: Int, hash: String): TransactionDetails? {
         propagate(Constants.CONTEXT)
-        Log.d(LOG_TAG, "getTransactionDetails, accountIndex = $accountIndex, hash = $hash")
         val walletAccount = walletsAccountsMap[accountIndex] ?: return null
+        return getTransactionDetails(walletAccount, hash)
+    }
+
+    fun getTransactionDetails(accountUuid: UUID, hash: String): TransactionDetails? {
+        propagate(Constants.CONTEXT)
+        val walletAccount = unrelatedAccountsMap[accountUuid.toString()] ?: return null
+        return getTransactionDetails(walletAccount, hash)
+    }
+
+    private fun getTransactionDetails(walletAccount: Wallet, hash: String): TransactionDetails? {
         val transactionBitcoinJ = walletAccount.getTransaction(Sha256Hash.wrap(hash))!!
         val inputs: MutableList<TransactionDetails.Item> = mutableListOf()
 

@@ -16,6 +16,7 @@ import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.providers.TransactionContract.*
 import com.mycelium.spvmodule.providers.data.*
 import org.bitcoinj.core.Utils
+import java.util.UUID
 import java.util.concurrent.TimeUnit
 
 class TransactionContentProvider : ContentProvider() {
@@ -134,8 +135,22 @@ class TransactionContentProvider : ContentProvider() {
                 if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX) {
                     val cursor = TransactionDetailsCursor()
                     val accountIndex = selectionArgs!!.get(0)
+                    var accountUuid: UUID? = null
+                    var accountIdInt: Int = -1
+                    try {
+                        accountIdInt = accountIndex.toInt()
+                    } catch (e:NumberFormatException) {
+                        accountUuid = UUID.fromString(accountIndex)
+                    }
                     val hash = uri!!.lastPathSegment
-                    val transactionDetails = service.getTransactionDetails(accountIndex.toInt(), hash) ?: return cursor
+                    val transactionDetails : com.mycelium.spvmodule.model.TransactionDetails
+                    if(accountIdInt == -1) {
+                        transactionDetails = service.getTransactionDetails(accountUuid!!, hash)
+                                ?: return cursor
+                    } else {
+                        transactionDetails = service.getTransactionDetails(accountIndex.toInt(), hash)
+                                ?: return cursor
+                    }
 
                     val inputs = transactionDetails.inputs.map { "${it.value} BCH${it.address}" }.joinToString(",")
                     val outputs = transactionDetails.outputs.map { "${it.value} BCH${it.address}" }.joinToString(",")
