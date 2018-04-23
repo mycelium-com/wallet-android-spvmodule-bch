@@ -341,12 +341,14 @@ class TransactionContentProvider : ContentProvider() {
                 if (selection == GetPrivateKeysCount.SELECTION_ACCOUNT_INDEX) {
                     val accountIndex = selectionArgs!![0].toInt()
                     return GetPrivateKeysCountCursor().apply {
-                        addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)))
+                        val issuedKeysPair = Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)
+                        addRow(listOf(issuedKeysPair.first, issuedKeysPair.second))
                     }
                 } else if (selection == GetPrivateKeysCount.SELECTION_UNRELATED) {
                     val accountGuid = selectionArgs!![0]
                     return GetPrivateKeysCountCursor().apply {
-                        addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCountUnrelated(accountGuid)))
+                        val issuedKeysPair = Bip44AccountIdleService.getInstance()!!.getPrivateKeysCountUnrelated(accountGuid)
+                        addRow(listOf(issuedKeysPair.first, issuedKeysPair.second))
                     }
                 }
             }

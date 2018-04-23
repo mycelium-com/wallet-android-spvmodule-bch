@@ -685,16 +685,16 @@ class Bip44AccountIdleService : Service() {
         saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
     }
 
-    fun getPrivateKeysCount(accountIndex : Int) : Int {
-        return walletsAccountsMap[accountIndex]?.activeKeyChain?.issuedExternalKeys
-                //If we don't have an account with corresponding index
-                ?: return 0
+    fun getPrivateKeysCount(accountIndex : Int) : Pair<Int, Int> {
+        val issuedExternalKeys = walletsAccountsMap[accountIndex]?.activeKeyChain?.issuedExternalKeys ?: 0
+        val issuedInternalKeys = walletsAccountsMap[accountIndex]?.activeKeyChain?.issuedInternalKeys ?: 0
+        return Pair(issuedExternalKeys, issuedInternalKeys)
     }
 
-    fun getPrivateKeysCountUnrelated(guid : String) : Int {
-        return unrelatedAccountsMap[guid]?.activeKeyChain?.issuedExternalKeys
-        //If we don't have an account with corresponding index
-                ?: return 0
+    fun getPrivateKeysCountUnrelated(guid : String) : Pair<Int, Int>  {
+        val issuedExternalKeys = unrelatedAccountsMap[guid]?.activeKeyChain?.issuedExternalKeys ?: 0
+        val issuedInternalKeys = unrelatedAccountsMap[guid]?.activeKeyChain?.issuedInternalKeys ?: 0
+        return Pair(issuedExternalKeys, issuedInternalKeys)
     }
 
     fun getSingleAddressWalletAccount(guid: String) : Wallet = unrelatedAccountsMap[guid]!!
