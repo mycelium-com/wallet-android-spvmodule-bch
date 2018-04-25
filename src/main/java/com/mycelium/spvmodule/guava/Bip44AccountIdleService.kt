@@ -857,11 +857,10 @@ class Bip44AccountIdleService : Service() {
                 val toAddress = transactionOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
 
                 val isIncoming = transactionBitcoinJ.getValue(walletAccount).isPositive
-
-                if (!transactionOutput.isMine(walletAccount) && !isIncoming) {
+                if (!transactionOutput.isMine(walletAccount)
+                        || (transactionOutput.isMine(walletAccount) && isIncoming)) {
                     destAddress = toAddress
                 }
-
                 toAddresses.add(toAddress)
             }
 
