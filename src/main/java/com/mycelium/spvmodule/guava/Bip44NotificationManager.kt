@@ -60,7 +60,7 @@ class Bip44NotificationManager {
             if (blockchainState != null) {
                 val downloadPercentDone = blockchainState!!.chainDownloadPercentDone
                 contentText += " " + if (downloadPercentDone < 100) {
-                    spvModuleApplication.getString(R.string.notification_chain_status, downloadPercentDone)
+                     spvModuleApplication.getString(R.string.notification_chain_status, downloadPercentDone)
                 } else {
                     spvModuleApplication.getString(R.string.notification_chain_status_synchronized)
                 }
