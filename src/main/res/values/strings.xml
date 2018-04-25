@@ -67,7 +67,7 @@
         <item quantity="one">One peer connected.</item>
         <item quantity="other">%d peers connected.</item>
     </plurals>
-    <string name="notification_chain_status">Synchronization: %.2f%%.</string>
+    <string name="notification_chain_status">Sync: %.2f%%.</string>
     <string name="notification_chain_status_synchronized">Fully synchronized.</string>
     <string name="notification_chain_status_impediment">Chain syncing problem: %s</string>
 
