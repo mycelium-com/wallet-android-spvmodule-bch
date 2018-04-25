@@ -10,6 +10,7 @@ import android.util.Log
 import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.spvmodule.BuildConfig
 import com.mycelium.spvmodule.Constants
+import com.mycelium.spvmodule.SpvModuleApplication
 import com.mycelium.spvmodule.TransactionFee
 import com.mycelium.spvmodule.currency.ExactBitcoinCashValue
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
@@ -31,6 +32,7 @@ class TransactionContentProvider : ContentProvider() {
 
     override fun query(uri: Uri?, projection: Array<out String>?, selection: String?,
                        selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
+        SpvModuleApplication.getApplication().waitUntilInitialized()
         checkSignature(callingPackage)
         val match = URI_MATCHER.match(uri)
         val service = Bip44AccountIdleService.getInstance() ?: return MatrixCursor(emptyArray(), 0)
