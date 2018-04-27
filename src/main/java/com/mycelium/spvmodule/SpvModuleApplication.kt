@@ -60,7 +60,13 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         configuration = Configuration(PreferenceManager.getDefaultSharedPreferences(this))
         activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-        if(!CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())) {
+        val paired = try {
+            CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())
+        } catch (se: SecurityException) {
+            Log.w(LOG_TAG, se.message)
+            false
+        }
+        if(!paired) {
             Log.w(LOG_TAG, "pairing failed. Exiting.")
             return
         }
