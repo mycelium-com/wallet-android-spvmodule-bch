@@ -151,6 +151,7 @@ class Bip44AccountIdleService : Service() {
             val accountIndex: Int = accountIndexString.toInt()
             val walletAccount = getAccountWallet(accountIndex)
             if (walletAccount != null) {
+                walletAccount.allowSpendingUnconfirmedTransactions()
                 walletsAccountsMap[accountIndex] = walletAccount
                 if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint) {
                     shouldInitializeCheckpoint = false

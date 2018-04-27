@@ -8,9 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.support.v4.content.LocalBroadcastManager
-import android.text.format.DateUtils
 import com.mycelium.spvmodule.*
-import java.util.*
 
 class Bip44NotificationManager {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
@@ -60,9 +58,14 @@ class Bip44NotificationManager {
             setContentTitle(spvModuleApplication.getString(R.string.app_name))
             var contentText = spvModuleApplication.resources.getQuantityString(R.plurals.notification_peers_connected_msg, peerCount, peerCount)
             if (blockchainState != null) {
-                val daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
-                if (daysBehind > 1) {
-                    contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_behind, daysBehind)
+                val downloadPercentDone = blockchainState!!.chainDownloadPercentDone
+                contentText += " " + if (downloadPercentDone < 100) {
+                     spvModuleApplication.getString(R.string.notification_chain_status, downloadPercentDone)
+                } else {
+                    spvModuleApplication.getString(R.string.notification_chain_status_synchronized)
+                }
+                if (downloadPercentDone < 100) {
+                    setProgress(100, Math.round(downloadPercentDone), false)
                 }
                 if (blockchainState!!.impediments.size > 0) {
                     // TODO: this is potentially unreachable as the service stops when offline.
