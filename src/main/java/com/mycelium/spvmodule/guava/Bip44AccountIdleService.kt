@@ -93,7 +93,9 @@ class Bip44AccountIdleService : Service() {
             addAction(Intent.ACTION_DEVICE_STORAGE_OK)
         }
         spvModuleApplication.applicationContext.registerReceiver(connectivityReceiver, intentFilter)
-
+        if(intent!!.getBooleanExtra(IntentContract.RESET_BLOCKCHAIN_STATE, false)) {
+            resetBlockchainState()
+        }
         blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, getBlockchainFile())
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
