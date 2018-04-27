@@ -197,17 +197,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         private val LOG_TAG: String? = this::class.java.simpleName
 
-        // TODO: move this to build.gradle. For now, moving it there by adding
-        // buildConfigField "String", "DEBUG_STRING", "\".debug/\"" to buildTypes and
-        // buildConfigField "String", "MBW_MODULE_PACKAGE", "\"com.mycelium.wallet/com.testnet.wallet\" + DEBUG_STRING"
-        // to productFlavors failed, as BuildConfig doesn't reliably get refreshed on build variant changes!?!?
-        fun getMbwModulePackage(): String = when (BuildConfig.APPLICATION_ID) {
-            "com.mycelium.module.spvbch" -> "com.mycelium.wallet"
-            "com.mycelium.module.spvbch.debug" -> "com.mycelium.wallet.debug"
-            "com.mycelium.module.spvbch.testnet" -> "com.mycelium.testnetwallet"
-            "com.mycelium.module.spvbch.testnet.debug" -> "com.mycelium.testnetwallet.debug"
-            else -> throw RuntimeException("No mbw module defined for BuildConfig " + BuildConfig.APPLICATION_ID)
-        }
+        fun getMbwModulePackage(): String = BuildConfig.appIdWallet
 
         fun isMbwInstalled(context: Context): Boolean =
                 context.packageManager.getInstalledPackages(0).any { packageInfo ->
