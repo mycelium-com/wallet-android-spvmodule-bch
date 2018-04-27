@@ -54,19 +54,21 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         propagate(Constants.CONTEXT)
 
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
-
         super.onCreate()
 
         packageInfo = packageInfoFromContext(this)
 
         configuration = Configuration(PreferenceManager.getDefaultSharedPreferences(this))
         activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        if(!CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())) {
+            Log.w(LOG_TAG, "pairing failed. Exiting.")
+            return
+        }
 
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
         startService(serviceIntent)
-        CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())
     }
 
     fun stopBlockchainService() {

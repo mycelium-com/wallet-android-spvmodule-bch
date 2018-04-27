@@ -78,9 +78,7 @@ class Bip44AccountIdleService : Service() {
         }, 2, 2, TimeUnit.MINUTES)
     }
 
-    override fun onBind(intent: Intent?): IBinder? {
-        return null
-    }
+    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         ready = false
