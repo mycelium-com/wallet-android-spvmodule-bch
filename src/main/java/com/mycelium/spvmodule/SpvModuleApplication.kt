@@ -56,12 +56,13 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
         super.onCreate()
 
+        CommunicationManager.init(this, com.mycelium.spvmodulecontract.BuildConfig.SpvApiVersion)
         packageInfo = packageInfoFromContext(this)
 
         configuration = Configuration(PreferenceManager.getDefaultSharedPreferences(this))
         activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
         val paired = try {
-            CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())
+            CommunicationManager.getInstance().requestPair(getMbwModulePackage())
         } catch (se: SecurityException) {
             Log.w(LOG_TAG, se.message)
             false
@@ -146,9 +147,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     fun getSingleAddressWalletAccount(guid: String) : Wallet =
             Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
 
-    fun getWalletAccount(accountIndex: Int): Wallet {
-        return Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
-    }
+    fun getWalletAccount(accountIndex: Int): Wallet =
+            Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
 
     fun broadcastTransaction(tx: Transaction, accountIndex: Int) {
         Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountIndex)
@@ -211,7 +211,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 }
 
         fun sendMbw(intent: Intent) {
-            CommunicationManager.getInstance(getApplication()).send(getMbwModulePackage(), intent)
+            CommunicationManager.getInstance().send(getMbwModulePackage(), intent)
         }
 
         fun doesWalletAccountExist(accountIndex: Int): Boolean =
