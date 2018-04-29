@@ -111,6 +111,7 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     }
 
     private val reportProgress = {
+        setSyncProgress(getDownloadPercentDone())
         lastMessageTime.set(System.currentTimeMillis())
         configuration.maybeIncrementBestChainHeightEver(blockChain.chainHead.height)
         broadcastBlockchainState()
