@@ -26,7 +26,8 @@ class TransactionContentProvider : ContentProvider() {
     private val LOG_TAG = this::class.java.simpleName
 
     override fun onCreate(): Boolean {
-        communicationManager = CommunicationManager.getInstance(context)
+        CommunicationManager.init(context, com.mycelium.spvmodulecontract.BuildConfig.SpvApiVersion)
+        communicationManager = CommunicationManager.getInstance()
         return true
     }
 
@@ -276,7 +277,7 @@ class TransactionContentProvider : ContentProvider() {
             }
 
             GET_MAX_FUNDS_TRANSFERRABLE_ID -> {
-                var cursor = GetMaxFundsTransferrableCursor()
+                val cursor = GetMaxFundsTransferrableCursor()
                 if (selection == GetMaxFundsTransferrable.SELECTION_HD) {
                     val accountIndex = selectionArgs!![0].toInt()
                     val maxAmount = service.getMaxFundsTranferableBySingleTransactionHD(accountIndex)
@@ -291,7 +292,7 @@ class TransactionContentProvider : ContentProvider() {
             }
 
             ESTIMATE_FEES_FROM_TRANSFERRABLE_AMOUNT_ID -> {
-                var cursor = EstimateFeeFromTransferrableAmountCursor()
+                val cursor = EstimateFeeFromTransferrableAmountCursor()
 
                 if (selection == EstimateFeeFromTransferrableAmount.SELECTION_HD) {
                     val accountIndex = selectionArgs!![0].toInt()

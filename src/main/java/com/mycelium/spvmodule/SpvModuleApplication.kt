@@ -54,19 +54,28 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         propagate(Constants.CONTEXT)
 
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
-
         super.onCreate()
 
+        CommunicationManager.init(this, com.mycelium.spvmodulecontract.BuildConfig.SpvApiVersion)
         packageInfo = packageInfoFromContext(this)
 
         configuration = Configuration(PreferenceManager.getDefaultSharedPreferences(this))
         activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val paired = try {
+            CommunicationManager.getInstance().requestPair(getMbwModulePackage())
+        } catch (se: SecurityException) {
+            Log.w(LOG_TAG, se.message)
+            false
+        }
+        if(!paired) {
+            Log.w(LOG_TAG, "pairing failed. Exiting.")
+            return
+        }
 
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
         startService(serviceIntent)
-        CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())
     }
 
     fun stopBlockchainService() {
@@ -139,9 +148,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     fun getSingleAddressWalletAccount(guid: String) : Wallet =
             Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
 
-    fun getWalletAccount(accountIndex: Int): Wallet {
-        return Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
-    }
+    fun getWalletAccount(accountIndex: Int): Wallet =
+            Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
 
     fun broadcastTransaction(tx: Transaction, accountIndex: Int) {
         Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountIndex)
@@ -196,17 +204,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         private val LOG_TAG: String? = this::class.java.simpleName
 
-        // TODO: move this to build.gradle. For now, moving it there by adding
-        // buildConfigField "String", "DEBUG_STRING", "\".debug/\"" to buildTypes and
-        // buildConfigField "String", "MBW_MODULE_PACKAGE", "\"com.mycelium.wallet/com.testnet.wallet\" + DEBUG_STRING"
-        // to productFlavors failed, as BuildConfig doesn't reliably get refreshed on build variant changes!?!?
-        fun getMbwModulePackage(): String = when (BuildConfig.APPLICATION_ID) {
-            "com.mycelium.module.spvbch" -> "com.mycelium.wallet"
-            "com.mycelium.module.spvbch.debug" -> "com.mycelium.wallet.debug"
-            "com.mycelium.module.spvbch.testnet" -> "com.mycelium.testnetwallet"
-            "com.mycelium.module.spvbch.testnet.debug" -> "com.mycelium.testnetwallet.debug"
-            else -> throw RuntimeException("No mbw module defined for BuildConfig " + BuildConfig.APPLICATION_ID)
-        }
+        fun getMbwModulePackage(): String = BuildConfig.appIdWallet
 
         fun isMbwInstalled(context: Context): Boolean =
                 context.packageManager.getInstalledPackages(0).any { packageInfo ->
@@ -214,7 +212,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 }
 
         fun sendMbw(intent: Intent) {
-            CommunicationManager.getInstance(getApplication()).send(getMbwModulePackage(), intent)
+            CommunicationManager.getInstance().send(getMbwModulePackage(), intent)
         }
 
         fun doesWalletAccountExist(accountIndex: Int): Boolean =

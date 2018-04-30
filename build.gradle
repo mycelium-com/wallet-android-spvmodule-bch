@@ -87,6 +87,10 @@ android {
                     '"tcp://bitcoin-abc-3.mycelium.com:8444",' +
                     '"tcp://bitcoin-abc-4.mycelium.com:8444"' +
                     '}'
+            ext {
+                appIdWallet = [release: "com.mycelium.wallet",
+                               debug: "com.mycelium.wallet.debug"]
+            }
         }
         btctestnet {
             applicationId 'com.mycelium.module.spvbch.testnet'
@@ -99,7 +103,15 @@ android {
                     '"tcp://bitcoin-abc-3.mycelium.com:18444",' +
                     '"tcp://bitcoin-abc-4.mycelium.com:18444"' +
                     '}'
+            ext {
+                appIdWallet = [release: "com.mycelium.testnetwallet",
+                               debug: "com.mycelium.testnetwallet.debug"]
+            }
         }
+    }
+    applicationVariants.all { variant ->
+        def flavor = variant.productFlavors[0]
+        variant.buildConfigField "String", "appIdWallet", "\"${flavor.ext.appIdWallet[variant.buildType.name]}\""
     }
 }
 
