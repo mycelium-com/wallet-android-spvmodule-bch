@@ -16,6 +16,7 @@ class PackageRemovedReceiver : BroadcastReceiver() {
                         uninstallIntent.data = Uri.parse("package:" + context.packageName)
                         context.startActivity(uninstallIntent)
                     }
+                    Intent.ACTION_PACKAGE_REPLACED -> Runtime.getRuntime().exit(0)
                 }
             }
         }
