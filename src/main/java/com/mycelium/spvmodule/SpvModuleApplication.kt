@@ -127,8 +127,9 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         } catch (e : Throwable) {
             Log.e(LOG_TAG, e.localizedMessage, e)
         } finally {
-            if (rescan)
-                Bip44AccountIdleService().resetBlockchainState()
+            if (rescan) {
+                serviceIntent.putExtra(IntentContract.RESET_BLOCKCHAIN_STATE, true)
+            }
             Log.d(LOG_TAG, "restartBip44AccountIdleService, startAsync")
             startService(serviceIntent)
             Log.d(LOG_TAG, "restartBip44AccountIdleService, DONE")
