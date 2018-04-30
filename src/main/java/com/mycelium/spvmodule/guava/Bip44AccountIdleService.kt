@@ -946,8 +946,10 @@ class Bip44AccountIdleService : Service() {
             //val addressBitLib: Address = Address.fromString(addressBitcoinJ.toBase58(), networkParametersBitlib)
             outputs.add(TransactionDetails.Item(addressBitcoinJ, output.value!!.value, false))
         }
-
-        val height = transactionBitcoinJ.confidence.appearedAtChainHeight
+        var height = -1
+        if(transactionBitcoinJ.confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING) {
+            height = transactionBitcoinJ.confidence.appearedAtChainHeight
+        }
         return TransactionDetails(Sha256Hash.wrap(hash),
                 height,
                 (transactionBitcoinJ.updateTime.time / 1000).toInt(), inputs.toTypedArray(),
