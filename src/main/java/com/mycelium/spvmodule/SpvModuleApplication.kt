@@ -56,7 +56,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
         super.onCreate()
 
-        CommunicationManager.init(this, com.mycelium.spvmodulecontract.BuildConfig.SpvApiVersion)
+        CommunicationManager.init(this)
         packageInfo = packageInfoFromContext(this)
 
         configuration = Configuration(PreferenceManager.getDefaultSharedPreferences(this))
