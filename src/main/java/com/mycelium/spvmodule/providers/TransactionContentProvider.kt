@@ -26,7 +26,7 @@ class TransactionContentProvider : ContentProvider() {
     private val LOG_TAG = this::class.java.simpleName
 
     override fun onCreate(): Boolean {
-        CommunicationManager.init(context, com.mycelium.spvmodulecontract.BuildConfig.SpvApiVersion)
+        CommunicationManager.init(context)
         communicationManager = CommunicationManager.getInstance()
         return true
     }

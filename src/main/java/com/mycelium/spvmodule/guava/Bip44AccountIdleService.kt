@@ -593,7 +593,8 @@ class Bip44AccountIdleService : Service() {
 
     @Synchronized
     fun addUnrelatedAccountHD(guid: String, publicKeyB58: String) {
-        val walletAccount = Wallet.fromWatchingKeyB58(Constants.NETWORK_PARAMETERS, publicKeyB58, 0)
+        val path = DeterministicKey.deserializeB58(publicKeyB58, Constants.NETWORK_PARAMETERS).path
+        val walletAccount = Wallet.fromWatchingKeyB58(Constants.NETWORK_PARAMETERS, publicKeyB58, 0, path)
         addSingleAddressAccount(walletAccount, guid)
     }
 
