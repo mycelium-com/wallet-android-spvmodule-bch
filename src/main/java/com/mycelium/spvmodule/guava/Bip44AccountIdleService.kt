@@ -94,7 +94,10 @@ class Bip44AccountIdleService : Service() {
         if(intent!!.getBooleanExtra(IntentContract.RESET_BLOCKCHAIN_STATE, false)) {
             resetBlockchainState()
         }
-        blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, getBlockchainFile())
+        val blockchainFile = getBlockchainFile()
+        synchronized(blockchainFile.absolutePath.intern()) {
+            blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, blockchainFile)
+        }
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
         initializePeergroup()
@@ -123,11 +126,14 @@ class Bip44AccountIdleService : Service() {
 
     fun resetBlockchainState() {
         val blockchainFile = getBlockchainFile()
-        sharedPreferences.edit()
-                .remove(SYNC_PROGRESS_PREF)
-                .apply()
-        if (blockchainFile.exists())
-            blockchainFile.delete()
+        synchronized(blockchainFile.absolutePath.intern()) {
+            sharedPreferences.edit()
+                    .remove(SYNC_PROGRESS_PREF)
+                    .apply()
+            if (blockchainFile.exists()) {
+                blockchainFile.delete()
+            }
+        }
     }
 
     private fun initializeWalletAccountsListeners() {
