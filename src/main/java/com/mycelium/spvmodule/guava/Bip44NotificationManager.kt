@@ -26,8 +26,8 @@ class Bip44NotificationManager {
         localBroadcastManager.registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
         localBroadcastManager.registerReceiver(peerCountBroadcastReceiver, IntentFilter(SpvService.ACTION_PEER_STATE))
         changed()
-        if (notification != null && Bip44AccountIdleService.getSyncProgress() < 99.9F) {
-            Bip44AccountIdleService.getInstance()!!.startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
+        if (notification != null && Bip44DownloadProgressTracker.getSyncProgress() < 99.9F) {
+            Bip44AccountIdleService.getInstance().startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
         }
     }
 
@@ -40,8 +40,8 @@ class Bip44NotificationManager {
         val connectivityNotificationEnabled = configuration.connectivityNotificationEnabled
 
         //We need to check fo 100 to prevent not partial sync on first run.
-        if (Bip44AccountIdleService.getSyncProgress() == 100F) {
-            Bip44AccountIdleService.getInstance()!!.stopForeground(false)
+        if (Bip44DownloadProgressTracker.getSyncProgress() == 100F) {
+            Bip44AccountIdleService.getInstance().stopForeground(false)
             if (!connectivityNotificationEnabled) {
                 notificationManager.cancel(Constants.NOTIFICATION_ID_CONNECTED)
                 return

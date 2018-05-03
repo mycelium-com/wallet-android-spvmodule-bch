@@ -1224,7 +1224,13 @@ class Bip44AccountIdleService : Service() {
 
     companion object {
         private var INSTANCE: Bip44AccountIdleService? = null
-        fun getInstance(): Bip44AccountIdleService? = INSTANCE
+        fun getInstance(): Bip44AccountIdleService  {
+            if (INSTANCE == null) {
+                SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                waitUntilInitialized()
+            }
+            return INSTANCE!!
+        }
         private val LOG_TAG = Bip44AccountIdleService::class.java.simpleName
         private const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private const val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
@@ -1241,10 +1247,6 @@ class Bip44AccountIdleService : Service() {
         private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
         const val SYNC_PROGRESS_PREF = "syncprogress"
-
-        fun getSyncProgress(): Float {
-            return Bip44DownloadProgressTracker.getSyncProgress()
-        }
 
         fun waitUntilInitialized() {
             synchronized(initializingMonitor){

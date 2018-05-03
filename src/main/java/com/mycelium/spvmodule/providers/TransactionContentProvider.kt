@@ -14,6 +14,7 @@ import com.mycelium.spvmodule.SpvModuleApplication
 import com.mycelium.spvmodule.TransactionFee
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
+import com.mycelium.spvmodule.guava.Bip44DownloadProgressTracker
 import com.mycelium.spvmodule.providers.TransactionContract.*
 import com.mycelium.spvmodule.providers.data.*
 import java.util.concurrent.TimeUnit
@@ -34,7 +35,7 @@ class TransactionContentProvider : ContentProvider() {
         SpvModuleApplication.getApplication().waitUntilInitialized()
         checkSignature(callingPackage)
         val match = URI_MATCHER.match(uri)
-        val service = Bip44AccountIdleService.getInstance() ?: return MatrixCursor(emptyArray(), 0)
+        val service = Bip44AccountIdleService.getInstance()
         when (match) {
             TRANSACTION_SUMMARY_ID -> {
                 Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST $selection")
@@ -265,20 +266,20 @@ class TransactionContentProvider : ContentProvider() {
             }
             GET_SYNC_PROGRESS_ID -> {
                 return SyncProgressCursor().apply {
-                    addRow(listOf(Bip44AccountIdleService.getSyncProgress()))
+                    addRow(listOf(Bip44DownloadProgressTracker.getSyncProgress()))
                 }
             }
             GET_PRIVATE_KEYS_COUNT_ID -> {
                 if (selection == GetPrivateKeysCount.SELECTION_ACCOUNT_INDEX) {
                     val accountIndex = selectionArgs!![0].toInt()
                     return GetPrivateKeysCountCursor().apply {
-                        val issuedKeysPair = Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)
+                        val issuedKeysPair = Bip44AccountIdleService.getInstance().getPrivateKeysCount(accountIndex)
                         addRow(listOf(issuedKeysPair.first, issuedKeysPair.second))
                     }
                 } else if (selection == GetPrivateKeysCount.SELECTION_UNRELATED) {
                     val accountGuid = selectionArgs!![0]
                     return GetPrivateKeysCountCursor().apply {
-                        val issuedKeysPair = Bip44AccountIdleService.getInstance()!!.getPrivateKeysCountUnrelated(accountGuid)
+                        val issuedKeysPair = Bip44AccountIdleService.getInstance().getPrivateKeysCountUnrelated(accountGuid)
                         addRow(listOf(issuedKeysPair.first, issuedKeysPair.second))
                     }
                 }
