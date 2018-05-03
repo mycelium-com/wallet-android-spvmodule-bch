@@ -117,6 +117,7 @@ class Bip44AccountIdleService : Service() {
         ready = false
         stopPeergroup()
         idlingCheckerExecutor.shutdownNow()
+        INSTANCE = null
     }
 
     private fun getBlockchainFile() : File {
@@ -340,7 +341,9 @@ class Bip44AccountIdleService : Service() {
                     } catch(e: Exception) {}
                 }
                 if (impediments.isEmpty()) {
-                    downloadProgressTracker = Bip44DownloadProgressTracker(blockChain!!, impediments)
+                    if (downloadProgressTracker == null) {
+                        downloadProgressTracker = Bip44DownloadProgressTracker(blockChain!!, impediments)
+                    }
 
                     //Start download blockchain
                     Log.i(LOG_TAG, "checkImpediments, peergroup startBlockChainDownload")
@@ -1224,6 +1227,11 @@ class Bip44AccountIdleService : Service() {
 
     companion object {
         private var INSTANCE: Bip44AccountIdleService? = null
+
+        fun getInstanceUnsafe(): Bip44AccountIdleService?  {
+            return INSTANCE
+        }
+
         fun getInstance(): Bip44AccountIdleService  {
             if (INSTANCE == null) {
                 SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)

@@ -41,7 +41,7 @@ class Bip44NotificationManager {
 
         //We need to check fo 100 to prevent not partial sync on first run.
         if (Bip44DownloadProgressTracker.getSyncProgress() == 100F) {
-            Bip44AccountIdleService.getInstance().stopForeground(false)
+            Bip44AccountIdleService.getInstanceUnsafe()?.stopForeground(false)
             if (!connectivityNotificationEnabled) {
                 notificationManager.cancel(Constants.NOTIFICATION_ID_CONNECTED)
                 return
