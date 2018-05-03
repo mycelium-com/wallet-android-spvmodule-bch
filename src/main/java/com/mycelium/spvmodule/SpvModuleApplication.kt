@@ -94,37 +94,37 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             return
         }
 
-        Bip44AccountIdleService.getInstance()!!.addWalletAccount(creationTimeSeconds, accountIndex)
+        Bip44AccountIdleService.getInstance().addWalletAccount(creationTimeSeconds, accountIndex)
     }
 
     @Synchronized
     fun addUnrelatedAccountWithPublicKey(guid: String, publicKeyB58: String, accountType : Int) {
         when(accountType) {
-            IntentContract.UNRELATED_ACCOUNT_TYPE_HD -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountHD(guid, publicKeyB58)
-            IntentContract.UNRELATED_ACCOUNT_TYPE_SA -> Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountByPublicKey(guid, publicKeyB58)
+            IntentContract.UNRELATED_ACCOUNT_TYPE_HD -> Bip44AccountIdleService.getInstance().addUnrelatedAccountHD(guid, publicKeyB58)
+            IntentContract.UNRELATED_ACCOUNT_TYPE_SA -> Bip44AccountIdleService.getInstance().addUnrelatedAccountByPublicKey(guid, publicKeyB58)
         }
         restartBip44AccountIdleService(true)
     }
 
     @Synchronized
     fun addUnrelatedAccountWithAddress(guid: String, address: String) {
-        Bip44AccountIdleService.getInstance()!!.addUnrelatedAccountByAddress(guid, address)
+        Bip44AccountIdleService.getInstance().addUnrelatedAccountByAddress(guid, address)
         restartBip44AccountIdleService(true)
     }
 
     fun removeHdAccount(accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.removeHdAccount(accountIndex)
+        Bip44AccountIdleService.getInstance().removeHdAccount(accountIndex)
         restartBip44AccountIdleService()
     }
 
     fun removeSingleAddressAccount(guid: String) {
-        Bip44AccountIdleService.getInstance()!!.removeSingleAddressAccount(guid)
+        Bip44AccountIdleService.getInstance().removeSingleAddressAccount(guid)
         restartBip44AccountIdleService()
     }
 
     @Synchronized
     fun clearAllAccounts() {
-        Bip44AccountIdleService.getInstance()!!.removeAllAccounts()
+        Bip44AccountIdleService.getInstance().removeAllAccounts()
         restartBip44AccountIdleService(true)
     }
 
@@ -146,29 +146,29 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     fun getSingleAddressWalletAccount(guid: String) : Wallet =
-            Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
+            Bip44AccountIdleService.getInstance().getSingleAddressWalletAccount(guid)
 
     fun getWalletAccount(accountIndex: Int): Wallet =
-            Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
+            Bip44AccountIdleService.getInstance().getWalletAccount(accountIndex)
 
     fun broadcastTransaction(tx: Transaction, accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountIndex)
+        Bip44AccountIdleService.getInstance().broadcastTransaction(tx, accountIndex)
     }
 
     fun broadcastTransactionSingleAddress(tx: Transaction, guid: String) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(tx, guid)
+        Bip44AccountIdleService.getInstance().broadcastTransactionSingleAddress(tx, guid)
     }
 
     fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.createUnsignedTransaction(operationId, sendRequest, accountIndex)
+        Bip44AccountIdleService.getInstance().createUnsignedTransaction(operationId, sendRequest, accountIndex)
     }
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
-        Bip44AccountIdleService.getInstance()!!.createUnsignedTransactionSingleAddress(operationId, sendRequest, guid)
+        Bip44AccountIdleService.getInstance().createUnsignedTransactionSingleAddress(operationId, sendRequest, guid)
     }
 
     fun launchBlockchainScanIfNecessary() {
-        Bip44AccountIdleService.getInstance()!!.checkImpediments()
+        Bip44AccountIdleService.getInstance().checkImpediments()
     }
 
     fun maxConnectedPeers(max :Int): Int {
@@ -184,10 +184,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             }
 
     internal fun doesWalletAccountExist(accountIndex: Int): Boolean =
-            Bip44AccountIdleService.getInstance()!!.doesWalletAccountExist(accountIndex)
+            Bip44AccountIdleService.getInstance().doesWalletAccountExist(accountIndex)
 
     internal fun doesUnrelatedAccountExist(guid: String): Boolean =
-            Bip44AccountIdleService.getInstance()!!.doesUnrelatedAccountExist(guid)
+            Bip44AccountIdleService.getInstance().doesUnrelatedAccountExist(guid)
 
     companion object {
         private var INSTANCE: SpvModuleApplication? = null
@@ -224,6 +224,6 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
     fun createAccounts(accountIndexes: ArrayList<Int>, accountKeys: ArrayList<String>,
                        creationTimeSeconds: Long) {
-        Bip44AccountIdleService.getInstance()!!.createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
+        Bip44AccountIdleService.getInstance().createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
     }
 }
