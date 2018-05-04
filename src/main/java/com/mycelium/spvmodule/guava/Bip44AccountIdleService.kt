@@ -1228,14 +1228,14 @@ class Bip44AccountIdleService : Service() {
     companion object {
         private var INSTANCE: Bip44AccountIdleService? = null
 
-        fun getInstanceUnsafe(): Bip44AccountIdleService?  {
-            return INSTANCE
-        }
+        fun getInstanceUnsafe(): Bip44AccountIdleService? = INSTANCE
 
         fun getInstance(): Bip44AccountIdleService  {
-            if (INSTANCE == null) {
-                SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
-                waitUntilInitialized()
+            synchronized(this) {
+                if (INSTANCE == null) {
+                    SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                    waitUntilInitialized()
+                }
             }
             return INSTANCE!!
         }
