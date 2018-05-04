@@ -955,7 +955,7 @@ class Bip44AccountIdleService : Service() {
             outputs.add(TransactionDetails.Item(addressBitcoinJ, output.value!!.value, false))
         }
         var height = -1
-        if(transactionBitcoinJ.confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING) {
+        if (transactionBitcoinJ.confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING) {
             height = transactionBitcoinJ.confidence.appearedAtChainHeight
         }
         return TransactionDetails(Sha256Hash.wrap(hash),
@@ -1282,11 +1282,6 @@ class Bip44AccountIdleService : Service() {
 
     fun doesUnrelatedAccountExist(guid: String) : Boolean =
             null != unrelatedAccountsMap[guid]
-
-    fun getBestChainHeight(): Int {
-        return blockChain!!.bestChainHeight
-
-    }
 }
 
 // TODO: in bitcoin we are often dealing with long, where kotlin decided to only provide int, so we
