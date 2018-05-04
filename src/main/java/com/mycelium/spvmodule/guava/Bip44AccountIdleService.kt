@@ -94,7 +94,10 @@ class Bip44AccountIdleService : Service() {
         if(intent!!.getBooleanExtra(IntentContract.RESET_BLOCKCHAIN_STATE, false)) {
             resetBlockchainState()
         }
-        blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, getBlockchainFile())
+        val blockchainFile = getBlockchainFile()
+        synchronized(blockchainFile.absolutePath.intern()) {
+            blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, blockchainFile)
+        }
         blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
         initializePeergroup()
@@ -114,6 +117,7 @@ class Bip44AccountIdleService : Service() {
         ready = false
         stopPeergroup()
         idlingCheckerExecutor.shutdownNow()
+        INSTANCE = null
     }
 
     private fun getBlockchainFile() : File {
@@ -123,11 +127,14 @@ class Bip44AccountIdleService : Service() {
 
     fun resetBlockchainState() {
         val blockchainFile = getBlockchainFile()
-        sharedPreferences.edit()
-                .remove(SYNC_PROGRESS_PREF)
-                .apply()
-        if (blockchainFile.exists())
-            blockchainFile.delete()
+        synchronized(blockchainFile.absolutePath.intern()) {
+            sharedPreferences.edit()
+                    .remove(SYNC_PROGRESS_PREF)
+                    .apply()
+            if (blockchainFile.exists()) {
+                blockchainFile.delete()
+            }
+        }
     }
 
     private fun initializeWalletAccountsListeners() {
@@ -334,7 +341,9 @@ class Bip44AccountIdleService : Service() {
                     } catch(e: Exception) {}
                 }
                 if (impediments.isEmpty()) {
-                    downloadProgressTracker = Bip44DownloadProgressTracker(blockChain!!, impediments)
+                    if (downloadProgressTracker == null) {
+                        downloadProgressTracker = Bip44DownloadProgressTracker(blockChain!!, impediments)
+                    }
 
                     //Start download blockchain
                     Log.i(LOG_TAG, "checkImpediments, peergroup startBlockChainDownload")
@@ -1227,7 +1236,18 @@ class Bip44AccountIdleService : Service() {
 
     companion object {
         private var INSTANCE: Bip44AccountIdleService? = null
-        fun getInstance(): Bip44AccountIdleService? = INSTANCE
+
+        fun getInstanceUnsafe(): Bip44AccountIdleService? = INSTANCE
+
+        fun getInstance(): Bip44AccountIdleService  {
+            synchronized(this) {
+                if (INSTANCE == null) {
+                    SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                    waitUntilInitialized()
+                }
+            }
+            return INSTANCE!!
+        }
         private val LOG_TAG = Bip44AccountIdleService::class.java.simpleName
         private const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private const val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
@@ -1244,10 +1264,6 @@ class Bip44AccountIdleService : Service() {
         private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
         const val SYNC_PROGRESS_PREF = "syncprogress"
-
-        fun getSyncProgress(): Float {
-            return Bip44DownloadProgressTracker.getSyncProgress()
-        }
 
         fun waitUntilInitialized() {
             synchronized(initializingMonitor){
