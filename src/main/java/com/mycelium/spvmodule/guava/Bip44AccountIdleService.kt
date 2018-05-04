@@ -81,6 +81,9 @@ class Bip44AccountIdleService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (INSTANCE != null) {
+            return START_REDELIVER_INTENT
+        }
         ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
