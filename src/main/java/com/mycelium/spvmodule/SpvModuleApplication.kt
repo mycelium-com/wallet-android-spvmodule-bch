@@ -12,6 +12,7 @@ import android.util.Log
 import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
+import com.mycelium.spvmodule.guava.BlockStoreController
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.enableStrictMode
 import org.bitcoinj.core.Context.propagate
@@ -29,6 +30,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var packageInfo: PackageInfo? = null
         private set
     private val spvMessageReceiver: SpvMessageReceiver = SpvMessageReceiver(this)
+    lateinit var blockStoreController : BlockStoreController
 
     override fun onMessage(callingPackageName: String, intent: Intent) = spvMessageReceiver.onMessage(callingPackageName, intent)
 
@@ -74,6 +76,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
+
+        blockStoreController = BlockStoreController(this)
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
         startService(serviceIntent)
     }
