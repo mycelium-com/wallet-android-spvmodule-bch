@@ -11,6 +11,7 @@ import android.util.Log
 import com.mycelium.spvmodule.BlockchainState
 import com.mycelium.spvmodule.SpvModuleApplication
 import com.mycelium.spvmodule.SpvService
+import com.mycelium.spvmodule.guava.Bip44AccountIdleService.Companion.SHARED_PREFERENCES_FILE_NAME
 import org.bitcoinj.core.*
 import org.bitcoinj.core.listeners.DownloadProgressTracker
 import java.util.*
@@ -164,7 +165,6 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
         private val LOG_TAG = Bip44DownloadProgressTracker::class.java.simpleName
         private const val BLOCKCHAIN_STATE_BROADCAST_THROTTLE_MS = DateUtils.SECOND_IN_MILLIS
         private const val MAX_HISTORY_SIZE = 10
-        private const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private val spvModuleApplication = SpvModuleApplication.getApplication()
         private val sharedPreferences: SharedPreferences = spvModuleApplication.getSharedPreferences(
                 SHARED_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE)
