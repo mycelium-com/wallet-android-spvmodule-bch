@@ -1205,9 +1205,8 @@ class Bip44AccountIdleService : Service() {
             Constants.Files.WALLET_FILENAME_PROTOBUF + "_$guid"
 
     companion object {
+        @Volatile
         private var INSTANCE: Bip44AccountIdleService? = null
-
-        fun getInstanceUnsafe(): Bip44AccountIdleService? = INSTANCE
 
         fun getInstance(): Bip44AccountIdleService  {
             if (INSTANCE == null) {
