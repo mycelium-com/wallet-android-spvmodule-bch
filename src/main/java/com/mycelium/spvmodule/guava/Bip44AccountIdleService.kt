@@ -43,6 +43,7 @@ class Bip44AccountIdleService : Service() {
     private val impediments = EnumSet.noneOf(BlockchainState.Impediment::class.java)
     private val connectivityReceiver = Bip44ConnectivityReceiver(impediments)
     private val idlingCheckerExecutor = Executors.newSingleThreadScheduledExecutor()
+    private lateinit var notificationManager : Bip44NotificationManager
 
     private var peerGroup: PeerGroup? = null
 
@@ -98,7 +99,7 @@ class Bip44AccountIdleService : Service() {
         initializeWalletsAccounts()
         initializePeergroup()
         checkImpediments()
-        Bip44NotificationManager()
+        notificationManager = Bip44NotificationManager(this)
         runOneIteration()
 
         synchronized (initializingMonitor) {
@@ -1204,15 +1205,16 @@ class Bip44AccountIdleService : Service() {
             Constants.Files.WALLET_FILENAME_PROTOBUF + "_$guid"
 
     companion object {
+        @Volatile
         private var INSTANCE: Bip44AccountIdleService? = null
 
-        fun getInstanceUnsafe(): Bip44AccountIdleService? = INSTANCE
-
         fun getInstance(): Bip44AccountIdleService  {
-            synchronized(this) {
-                if (INSTANCE == null) {
-                    SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
-                    waitUntilInitialized()
+            if (INSTANCE == null) {
+                synchronized(initializingMonitor) {
+                    if (INSTANCE == null) {
+                        SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                        waitUntilInitialized()
+                    }
                 }
             }
             return INSTANCE!!
