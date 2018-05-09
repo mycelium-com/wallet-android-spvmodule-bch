@@ -10,7 +10,7 @@ import android.content.IntentFilter
 import android.support.v4.content.LocalBroadcastManager
 import com.mycelium.spvmodule.*
 
-class Bip44NotificationManager(bip44IdleServiceInstance: Bip44AccountIdleService?) {
+class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44AccountIdleService?) {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
     private val configuration = spvModuleApplication.configuration!!
     private val notificationManager = spvModuleApplication.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -41,7 +41,7 @@ class Bip44NotificationManager(bip44IdleServiceInstance: Bip44AccountIdleService
 
         //We need to check fo 100 to prevent not partial sync on first run.
         if (Bip44DownloadProgressTracker.getSyncProgress() == 100F) {
-            Bip44AccountIdleService.getInstanceUnsafe()?.stopForeground(false)
+            this.bip44IdleServiceInstance?.stopForeground(false)
             if (!connectivityNotificationEnabled) {
                 notificationManager.cancel(Constants.NOTIFICATION_ID_CONNECTED)
                 return
