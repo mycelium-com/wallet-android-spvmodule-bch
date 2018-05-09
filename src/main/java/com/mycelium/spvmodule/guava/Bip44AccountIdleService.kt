@@ -43,6 +43,7 @@ class Bip44AccountIdleService : Service() {
     private val impediments = EnumSet.noneOf(BlockchainState.Impediment::class.java)
     private val connectivityReceiver = Bip44ConnectivityReceiver(impediments)
     private val idlingCheckerExecutor = Executors.newSingleThreadScheduledExecutor()
+    private lateinit var notificationManager : Bip44NotificationManager
 
     private var peerGroup: PeerGroup? = null
 
@@ -98,7 +99,7 @@ class Bip44AccountIdleService : Service() {
         initializeWalletsAccounts()
         initializePeergroup()
         checkImpediments()
-        Bip44NotificationManager()
+        notificationManager = Bip44NotificationManager(this)
         runOneIteration()
 
         synchronized (initializingMonitor) {

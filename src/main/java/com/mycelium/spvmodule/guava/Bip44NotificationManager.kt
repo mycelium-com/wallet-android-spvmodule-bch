@@ -10,7 +10,7 @@ import android.content.IntentFilter
 import android.support.v4.content.LocalBroadcastManager
 import com.mycelium.spvmodule.*
 
-class Bip44NotificationManager {
+class Bip44NotificationManager(bip44IdleServiceInstance: Bip44AccountIdleService?) {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
     private val configuration = spvModuleApplication.configuration!!
     private val notificationManager = spvModuleApplication.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -27,7 +27,7 @@ class Bip44NotificationManager {
         localBroadcastManager.registerReceiver(peerCountBroadcastReceiver, IntentFilter(SpvService.ACTION_PEER_STATE))
         changed()
         if (notification != null && Bip44DownloadProgressTracker.getSyncProgress() < 99.9F) {
-            Bip44AccountIdleService.getInstance().startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
+            bip44IdleServiceInstance!!.startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
         }
     }
 
