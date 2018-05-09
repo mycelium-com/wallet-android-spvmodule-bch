@@ -1209,10 +1209,12 @@ class Bip44AccountIdleService : Service() {
         fun getInstanceUnsafe(): Bip44AccountIdleService? = INSTANCE
 
         fun getInstance(): Bip44AccountIdleService  {
-            synchronized(this) {
-                if (INSTANCE == null) {
-                    SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
-                    waitUntilInitialized()
+            if (INSTANCE == null) {
+                synchronized(initializingMonitor) {
+                    if (INSTANCE == null) {
+                        SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                        waitUntilInitialized()
+                    }
                 }
             }
             return INSTANCE!!
