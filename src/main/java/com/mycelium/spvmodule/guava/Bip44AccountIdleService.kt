@@ -337,6 +337,7 @@ class Bip44AccountIdleService : Service() {
                     for (walletAccount in walletsAccountsMap.values + unrelatedAccountsMap.values) {
                         removeWallet(walletAccount)
                     }
+                    downloadProgressTracker = null
                 }
                 //Release wakelock
                 if (wakeLock.isHeld) {
