@@ -8,7 +8,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.support.v4.content.LocalBroadcastManager
+import android.text.format.DateUtils
 import com.mycelium.spvmodule.*
+import java.util.*
 
 class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44AccountIdleService?) {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
@@ -36,6 +38,8 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
         localBroadcastManager.unregisterReceiver(peerCountBroadcastReceiver)
     }
 
+    private var daysBehind: Long = Long.MAX_VALUE
+    var oldNotificationBasics = ""
     private fun changed() {
         val connectivityNotificationEnabled = configuration.connectivityNotificationEnabled
 
@@ -48,6 +52,14 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
             }
         }
 
+        if(blockchainState != null) {
+            daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
+        }
+        val notificationBasics = "$peerCount,$daysBehind,${blockchainState?.impediments?.size ?:"nope"}"
+        if(notificationBasics == oldNotificationBasics) {
+            return
+        }
+        oldNotificationBasics = notificationBasics
         notification = buildNotification()
         notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification)
     }

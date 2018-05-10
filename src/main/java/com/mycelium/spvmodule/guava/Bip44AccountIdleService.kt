@@ -333,7 +333,7 @@ class Bip44AccountIdleService : Service() {
                         SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
                     }
                 } else {
-                    Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $peerGroup")
+                    Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $this")
                     for (walletAccount in walletsAccountsMap.values + unrelatedAccountsMap.values) {
                         removeWallet(walletAccount)
                     }
