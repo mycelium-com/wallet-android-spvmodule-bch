@@ -10,9 +10,11 @@ import android.util.Log
 import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.spvmodule.BuildConfig
 import com.mycelium.spvmodule.Constants
+import com.mycelium.spvmodule.SpvModuleApplication
 import com.mycelium.spvmodule.TransactionFee
 import com.mycelium.spvmodule.currency.ExactBitcoinValue
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
+import com.mycelium.spvmodule.guava.Bip44DownloadProgressTracker
 import com.mycelium.spvmodule.providers.TransactionContract.*
 import com.mycelium.spvmodule.providers.data.*
 import java.util.concurrent.TimeUnit
@@ -23,15 +25,17 @@ class TransactionContentProvider : ContentProvider() {
     private val LOG_TAG = this::class.java.simpleName
 
     override fun onCreate(): Boolean {
-        communicationManager = CommunicationManager.getInstance(context)
+        CommunicationManager.init(context)
+        communicationManager = CommunicationManager.getInstance()
         return true
     }
 
     override fun query(uri: Uri?, projection: Array<out String>?, selection: String?,
                        selectionArgs: Array<out String>?, sortOrder: String?): Cursor {
+        SpvModuleApplication.getApplication().waitUntilInitialized()
         checkSignature(callingPackage)
         val match = URI_MATCHER.match(uri)
-        val service = Bip44AccountIdleService.getInstance() ?: return MatrixCursor(emptyArray(), 0)
+        val service = Bip44AccountIdleService.getInstance()
         when (match) {
             TRANSACTION_SUMMARY_ID -> {
                 Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST $selection")
@@ -105,14 +109,14 @@ class TransactionContentProvider : ContentProvider() {
                         )
                         cursor.addRow(columnValues)
                     }
-                } else if (selection == AccountBalance.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID) {
+                } else if (selection == AccountBalance.SELECTION_GUID) {
                     val guid = selectionArgs!!.get(0)
 
                     val columnValues = listOf(
                             0,                             //TransactionContract.AccountBalance._ID
-                            service.getSingleAddressAccountBalance(guid),  //TransactionContract.AccountBalance.CONFIRMED
-                            service.getSingleAddressAccountSending(guid),  //TransactionContract.AccountBalance.SENDING
-                            service.getSingleAddressAccountReceiving(guid) //TransactionContract.AccountBalance.RECEIVING
+                            service.getUnrelatedAccountBalance(guid),  //TransactionContract.AccountBalance.CONFIRMED
+                            service.getUnrelatedAccountSending(guid),  //TransactionContract.AccountBalance.SENDING
+                            service.getUnrelatedAccountReceiving(guid) //TransactionContract.AccountBalance.RECEIVING
                     )
                     cursor.addRow(columnValues)
                 } else {
@@ -134,15 +138,22 @@ class TransactionContentProvider : ContentProvider() {
                 if (selection == CurrentReceiveAddress.SELECTION_ACCOUNT_INDEX) {
                     // this is the CURRENT_RECEIVE_ADDRESS_ID case but we don't read the selection from the url (yet?)
                     val accountIndex = selectionArgs!![0].toInt()
-                    listOf(accountIndex)
-                } else {
-                    // we assume no selection for now and return all accounts
-                    service.getAccountIndices()
-                }.forEach { accountIndex ->
+
                     val currentReceiveAddress = service.getAccountCurrentReceiveAddress(accountIndex)
                     val qrAddressString = Constants.QR_ADDRESS_PREFIX + currentReceiveAddress
                     val columnValues = listOf(
                             accountIndex,                           //TransactionContract.CurrentReceiveAddress._ID
+                            currentReceiveAddress?.toString(),      //TransactionContract.CurrentReceiveAddress.ADDRESS
+                            qrAddressString                         //TransactionContract.CurrentReceiveAddress.ADDRESS_QR
+                    )
+                    cursor.addRow(columnValues)
+
+                } else if (selection == CurrentReceiveAddress.SELECTION_UNRELATED) {
+                    val guid = selectionArgs!![0]
+                    val currentReceiveAddress = service.getAccountCurrentReceiveAddressUnrelatedHD(guid)
+                    val qrAddressString = Constants.QR_ADDRESS_PREFIX + currentReceiveAddress
+                    val columnValues = listOf(
+                            guid,                           //TransactionContract.CurrentReceiveAddress._ID
                             currentReceiveAddress?.toString(),      //TransactionContract.CurrentReceiveAddress.ADDRESS
                             qrAddressString                         //TransactionContract.CurrentReceiveAddress.ADDRESS_QR
                     )
@@ -183,7 +194,7 @@ class TransactionContentProvider : ContentProvider() {
                     val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     val txFeeFactor = selectionArgs[2].toFloat()
-                    val maxSpendableAmount = service.calculateMaxSpendableAmountSingleAddress(accountGuid, txFee, txFeeFactor)
+                    val maxSpendableAmount = service.calculateMaxSpendableAmountUnrelated(accountGuid, txFee, txFeeFactor)
                     val columnValues = listOf(
                             txFee,                  //CalculateMaxSpendable.TX_FEE
                             txFeeFactor,            //CalculateMaxSpendable.TX_FEE_FACTOR
@@ -195,22 +206,22 @@ class TransactionContentProvider : ContentProvider() {
             }
 
             GET_MAX_FUNDS_TRANSFERRABLE_ID -> {
-                var cursor = GetMaxFundsTransferrableCursor()
+                val cursor = GetMaxFundsTransferrableCursor()
                 if (selection == GetMaxFundsTransferrable.SELECTION_HD) {
                     val accountIndex = selectionArgs!![0].toInt()
                     val maxAmount = service.getMaxFundsTranferableBySingleTransactionHD(accountIndex)
                     cursor.addRow(listOf(maxAmount))
 
-                } else if (selection == GetMaxFundsTransferrable.SELECTION_SA) {
+                } else if (selection == GetMaxFundsTransferrable.SELECTION_UNRELATED) {
                     val accountGuid = selectionArgs!!.get(0)
-                    val maxAmount = service.getMaxFundsTranferableBySingleTransactionSA(accountGuid)
+                    val maxAmount = service.getMaxFundsTranferableBySingleTransactionUnrelated(accountGuid)
                     cursor.addRow(listOf(maxAmount))
                 }
                 return cursor
             }
 
             ESTIMATE_FEES_FROM_TRANSFERRABLE_AMOUNT_ID -> {
-                var cursor = EstimateFeeFromTransferrableAmountCursor()
+                val cursor = EstimateFeeFromTransferrableAmountCursor()
 
                 if (selection == EstimateFeeFromTransferrableAmount.SELECTION_HD) {
                     val accountIndex = selectionArgs!![0].toInt()
@@ -220,13 +231,13 @@ class TransactionContentProvider : ContentProvider() {
                     val amount = selectionArgs[3].toLong()
                     val estimatedFee = service.calculateFeeToTransferAmountHD(accountIndex, amount, txFee, txFeeFactor)
                     cursor.addRow(listOf(estimatedFee))
-                } else if (selection == EstimateFeeFromTransferrableAmount.SELECTION_SA) {
+                } else if (selection == EstimateFeeFromTransferrableAmount.SELECTION_UNRELATED) {
                     val accountGuid = selectionArgs!!.get(0)
                     val txFeeStr = selectionArgs[1]
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     val txFeeFactor = selectionArgs[2].toFloat()
                     val amount = selectionArgs[3].toLong()
-                    val estimatedFee = service.calculateFeeToTransferAmountSA(accountGuid, amount, txFee, txFeeFactor)
+                    val estimatedFee = service.calculateFeeToTransferAmountUnrelated(accountGuid, amount, txFee, txFeeFactor)
                     cursor.addRow(listOf(estimatedFee))
                 }
 
@@ -255,13 +266,22 @@ class TransactionContentProvider : ContentProvider() {
             }
             GET_SYNC_PROGRESS_ID -> {
                 return SyncProgressCursor().apply {
-                    addRow(listOf(Bip44AccountIdleService.getSyncProgress()))
+                    addRow(listOf(Bip44DownloadProgressTracker.getSyncProgress()))
                 }
             }
             GET_PRIVATE_KEYS_COUNT_ID -> {
-                val accountIndex = selectionArgs!![0].toInt()
-                return GetPrivateKeysCountCursor().apply {
-                    addRow(listOf(Bip44AccountIdleService.getInstance()!!.getPrivateKeysCount(accountIndex)))
+                if (selection == GetPrivateKeysCount.SELECTION_ACCOUNT_INDEX) {
+                    val accountIndex = selectionArgs!![0].toInt()
+                    return GetPrivateKeysCountCursor().apply {
+                        val issuedKeysPair = Bip44AccountIdleService.getInstance().getPrivateKeysCount(accountIndex)
+                        addRow(listOf(issuedKeysPair.first, issuedKeysPair.second))
+                    }
+                } else if (selection == GetPrivateKeysCount.SELECTION_UNRELATED) {
+                    val accountGuid = selectionArgs!![0]
+                    return GetPrivateKeysCountCursor().apply {
+                        val issuedKeysPair = Bip44AccountIdleService.getInstance().getPrivateKeysCountUnrelated(accountGuid)
+                        addRow(listOf(issuedKeysPair.first, issuedKeysPair.second))
+                    }
                 }
             }
             UriMatcher.NO_MATCH -> {

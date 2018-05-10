@@ -25,8 +25,6 @@ import org.bitcoinj.net.discovery.MultiplexingDiscovery
 import org.bitcoinj.net.discovery.PeerDiscovery
 import org.bitcoinj.net.discovery.PeerDiscoveryException
 import org.bitcoinj.script.Script
-import org.bitcoinj.store.BlockStore
-import org.bitcoinj.store.SPVBlockStore
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.*
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener
@@ -39,12 +37,13 @@ import java.util.concurrent.*
 import kotlin.collections.ArrayList
 
 class Bip44AccountIdleService : Service() {
-    private val singleAddressAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
+    private val unrelatedAccountsMap:ConcurrentHashMap<String, Wallet> = ConcurrentHashMap()
     private val walletsAccountsMap: ConcurrentHashMap<Int, Wallet> = ConcurrentHashMap()
     private var downloadProgressTracker: Bip44DownloadProgressTracker? = null
     private val impediments = EnumSet.noneOf(BlockchainState.Impediment::class.java)
     private val connectivityReceiver = Bip44ConnectivityReceiver(impediments)
     private val idlingCheckerExecutor = Executors.newSingleThreadScheduledExecutor()
+    private lateinit var notificationManager : Bip44NotificationManager
 
     private var peerGroup: PeerGroup? = null
 
@@ -54,23 +53,23 @@ class Bip44AccountIdleService : Service() {
 
     private var highestChainHeight: Int = sharedPreferences.getInt(HIGHEST_CHAIN_HEIGHT_PREF, 0)
 
-    //Read list of accounts indexes
+    //Read list of master seed derived HD account' indexes
     private val accountIndexStrings: ConcurrentSkipListSet<String> = ConcurrentSkipListSet<String>().apply {
         addAll(sharedPreferences.getStringSet(ACCOUNT_INDEX_STRING_SET_PREF, emptySet()))
     }
-    //List of single address accounts guids
-    private val singleAddressAccountGuidStrings: ConcurrentSkipListSet<String> = ConcurrentSkipListSet<String>().apply {
+    //List of unrelated account' guids
+    private val unrelatedAccountGuidStrings: ConcurrentSkipListSet<String> = ConcurrentSkipListSet<String>().apply {
         addAll(sharedPreferences.getStringSet(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF, emptySet()))
     }
     //List of accounts indexes
     private val configuration = spvModuleApplication.configuration!!
     private val peerConnectivityListener: Bip44PeerConnectivityListener = Bip44PeerConnectivityListener()
-    private lateinit var blockStore: BlockStore
+    private val blockStoreController = spvModuleApplication.blockStoreController
 
     private fun runOneIteration() {
         idlingCheckerExecutor.scheduleAtFixedRate({
             Log.d(LOG_TAG, "runOneIteration")
-            if (walletsAccountsMap.isNotEmpty() || singleAddressAccountsMap.isNotEmpty()) {
+            if (walletsAccountsMap.isNotEmpty() || unrelatedAccountsMap.isNotEmpty()) {
                 propagate(Constants.CONTEXT)
                 checkImpediments()
                 downloadProgressTracker!!.checkIfDownloadIsIdling()
@@ -81,6 +80,9 @@ class Bip44AccountIdleService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (INSTANCE != null) {
+            return START_REDELIVER_INTENT
+        }
         ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
@@ -91,13 +93,13 @@ class Bip44AccountIdleService : Service() {
             addAction(Intent.ACTION_DEVICE_STORAGE_OK)
         }
         spvModuleApplication.applicationContext.registerReceiver(connectivityReceiver, intentFilter)
-
-        blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, getBlockchainFile())
-        blockStore.chainHead // detect corruptions as early as possible
+        if(intent!!.getBooleanExtra(IntentContract.RESET_BLOCKCHAIN_STATE, false)) {
+            blockStoreController.resetBlockchainState()
+        }
         initializeWalletsAccounts()
         initializePeergroup()
         checkImpediments()
-        Bip44NotificationManager()
+        notificationManager = Bip44NotificationManager(this)
         runOneIteration()
 
         synchronized (initializingMonitor) {
@@ -112,20 +114,7 @@ class Bip44AccountIdleService : Service() {
         ready = false
         stopPeergroup()
         idlingCheckerExecutor.shutdownNow()
-    }
-
-    private fun getBlockchainFile() : File {
-        return File(spvModuleApplication.getDir("blockstore", Context.MODE_PRIVATE),
-                Constants.Files.BLOCKCHAIN_FILENAME+"-BCH")
-    }
-
-    fun resetBlockchainState() {
-        val blockchainFile = getBlockchainFile()
-        sharedPreferences.edit()
-                .remove(SYNC_PROGRESS_PREF)
-                .apply()
-        if (blockchainFile.exists())
-            blockchainFile.delete()
+        INSTANCE = null
     }
 
     private fun initializeWalletAccountsListeners() {
@@ -134,9 +123,9 @@ class Bip44AccountIdleService : Service() {
             it.addCoinsReceivedEventListener(Threading.SAME_THREAD, walletEventListener)
             it.addCoinsSentEventListener(Threading.SAME_THREAD, walletEventListener)
         }
-        Log.d(LOG_TAG, "initializeWalletAccountsListeners, number of SA accounts = ${singleAddressAccountsMap.values.size}")
-        singleAddressAccountsMap.values.forEach {
-            it.addCoinsReceivedEventListener(Threading.SAME_THREAD, singleAddressWalletEventListener)
+        Log.d(LOG_TAG, "initializeWalletAccountsListeners, number of SA accounts = ${unrelatedAccountsMap.values.size}")
+        unrelatedAccountsMap.values.forEach {
+            it.addCoinsReceivedEventListener(Threading.SAME_THREAD, unrelatedAccountWalletEventListener)
         }
     }
 
@@ -147,6 +136,7 @@ class Bip44AccountIdleService : Service() {
             val accountIndex: Int = accountIndexString.toInt()
             val walletAccount = getAccountWallet(accountIndex)
             if (walletAccount != null) {
+                walletAccount.allowSpendingUnconfirmedTransactions()
                 walletsAccountsMap[accountIndex] = walletAccount
                 if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint) {
                     shouldInitializeCheckpoint = false
@@ -155,10 +145,10 @@ class Bip44AccountIdleService : Service() {
             notifyCurrentReceiveAddress()
         }
 
-        for (guid in singleAddressAccountGuidStrings) {
-            val walletAccount = getSingleAddressAccountWallet(guid)
+        for (guid in unrelatedAccountGuidStrings) {
+            val walletAccount = getUnrelatedAccountWallet(guid)
             if (walletAccount != null) {
-                singleAddressAccountsMap[guid] = walletAccount
+                unrelatedAccountsMap[guid] = walletAccount
                 if (walletAccount.lastBlockSeenHeight >= 0 && shouldInitializeCheckpoint) {
                     shouldInitializeCheckpoint = false
                 }
@@ -172,15 +162,15 @@ class Bip44AccountIdleService : Service() {
                 initializeCheckpoint(earliestKeyCreationTime)
             }
         }
-        blockChain = BlockChain(Constants.NETWORK_PARAMETERS, (walletsAccountsMap.values + singleAddressAccountsMap.values).toList(),
-                blockStore)
+        blockChain = BlockChain(Constants.NETWORK_PARAMETERS, (walletsAccountsMap.values + unrelatedAccountsMap.values).toList(),
+                blockStoreController.blockStore)
         initializeWalletAccountsListeners()
     }
 
     private fun initializeEarliestKeyCreationTime(): Long {
         Log.d(LOG_TAG, "initializeEarliestKeyCreationTime")
         var earliestKeyCreationTime = 0L
-        for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
+        for (walletAccount in (walletsAccountsMap.values + unrelatedAccountsMap.values)) {
             if (earliestKeyCreationTime != 0L) {
                 if (walletAccount.earliestKeyCreationTime < earliestKeyCreationTime) {
                     earliestKeyCreationTime = walletAccount.earliestKeyCreationTime
@@ -199,7 +189,7 @@ class Bip44AccountIdleService : Service() {
             val checkpointsInputStream = spvModuleApplication.assets.open(Constants.Files.CHECKPOINTS_FILENAME)
             //earliestKeyCreationTime = 1477958400L //Should be earliestKeyCreationTime, testing something.
             CheckpointManager.checkpoint(Constants.NETWORK_PARAMETERS, checkpointsInputStream,
-                    blockStore, earliestKeyCreationTime)
+                    blockStoreController.blockStore, earliestKeyCreationTime)
             Log.i(LOG_TAG, "checkpoints loaded from '${Constants.Files.CHECKPOINTS_FILENAME}',"
                     + " took ${System.currentTimeMillis() - start}ms, "
                     + "earliestKeyCreationTime = '$earliestKeyCreationTime'")
@@ -280,7 +270,7 @@ class Bip44AccountIdleService : Service() {
             }
             removeDisconnectedEventListener(peerConnectivityListener)
             removeConnectedEventListener(peerConnectivityListener)
-            for (walletAccount in (walletsAccountsMap.values + singleAddressAccountsMap.values)) {
+            for (walletAccount in (walletsAccountsMap.values + unrelatedAccountsMap.values)) {
                 removeWallet(walletAccount)
             }
         }
@@ -303,14 +293,13 @@ class Bip44AccountIdleService : Service() {
             }
         }
 
-        for (saWallet in singleAddressAccountsMap) {
+        for (saWallet in unrelatedAccountsMap) {
             saWallet.value.run {
                 saveWalletAccountToFile(this, singleAddressWalletFile(saWallet.key))
-                removeCoinsReceivedEventListener(singleAddressWalletEventListener)
+                removeCoinsReceivedEventListener(unrelatedAccountWalletEventListener)
             }
         }
 
-        blockStore.close()
         Log.d(LOG_TAG, "stopPeergroup DONE")
     }
 
@@ -325,13 +314,15 @@ class Bip44AccountIdleService : Service() {
                         "${spvModuleApplication.packageName} blockchain sync init")
                 // TODO: implement logic to both shut down the service every x seconds and acquire the wakeLock for only x + 5 seconds
                 wakeLock.acquire()
-                for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
+                for (walletAccount in walletsAccountsMap.values + unrelatedAccountsMap.values) {
                     try {
                         addWallet(walletAccount)
                     } catch(e: Exception) {}
                 }
                 if (impediments.isEmpty()) {
-                    downloadProgressTracker = Bip44DownloadProgressTracker(blockChain!!, impediments)
+                    if (downloadProgressTracker == null) {
+                        downloadProgressTracker = Bip44DownloadProgressTracker(blockChain!!, impediments)
+                    }
 
                     //Start download blockchain
                     Log.i(LOG_TAG, "checkImpediments, peergroup startBlockChainDownload")
@@ -343,7 +334,7 @@ class Bip44AccountIdleService : Service() {
                     }
                 } else {
                     Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $this")
-                    for (walletAccount in walletsAccountsMap.values + singleAddressAccountsMap.values) {
+                    for (walletAccount in walletsAccountsMap.values + unrelatedAccountsMap.values) {
                         removeWallet(walletAccount)
                     }
                 }
@@ -384,8 +375,8 @@ class Bip44AccountIdleService : Service() {
         return wallet!!
     }
 
-    private fun getSingleAddressAccountWallet(guid: String): Wallet? {
-        var wallet: Wallet? = singleAddressAccountsMap[guid]
+    private fun getUnrelatedAccountWallet(guid: String): Wallet? {
+        var wallet: Wallet? = unrelatedAccountsMap[guid]
         if (wallet != null) {
             return wallet
         }
@@ -589,28 +580,35 @@ class Bip44AccountIdleService : Service() {
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPublicKey(guid: String, publicKey: ByteArray) {
-        val ecKey = ECKey.fromPublicOnly(publicKey)
-        val walletAccount = Wallet.fromKeys(Constants.NETWORK_PARAMETERS, arrayListOf(ecKey))
+    fun addUnrelatedAccountHD(guid: String, publicKeyB58: String) {
+        val path = DeterministicKey.deserializeB58(publicKeyB58, Constants.NETWORK_PARAMETERS).path
+        val walletAccount = Wallet.fromWatchingKeyB58(Constants.NETWORK_PARAMETERS, publicKeyB58, 0, path)
         addSingleAddressAccount(walletAccount, guid)
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithAddress(guid: String, address: ByteArray) {
+    fun addUnrelatedAccountByPublicKey(guid: String, publicKey: String) {
         val walletAccount = Wallet(Constants.NETWORK_PARAMETERS)
-        walletAccount.addWatchedAddress(Address(Constants.NETWORK_PARAMETERS, address))
+        walletAccount.importKey(ECKey.fromPublicOnly(Hex.decode(publicKey)))
+        addSingleAddressAccount(walletAccount, guid)
+    }
+
+    @Synchronized
+    fun addUnrelatedAccountByAddress(guid: String, address: String) {
+        val walletAccount = Wallet(Constants.NETWORK_PARAMETERS)
+        walletAccount.addWatchedAddress(Address.fromBase58(Constants.NETWORK_PARAMETERS, address))
         addSingleAddressAccount(walletAccount, guid)
     }
 
     private fun addSingleAddressAccount(walletAccount: Wallet, guid: String) {
         saveWalletAccountToFile(walletAccount, singleAddressWalletFile(guid))
 
-        singleAddressAccountGuidStrings.add(guid)
+        unrelatedAccountGuidStrings.add(guid)
         sharedPreferences.edit()
-                .putStringSet(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF, singleAddressAccountGuidStrings)
+                .putStringSet(SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF, unrelatedAccountGuidStrings)
                 .apply()
 
-        singleAddressAccountsMap[guid] = walletAccount
+        unrelatedAccountsMap[guid] = walletAccount
     }
 
     fun removeHdAccount(accountIndex: Int) {
@@ -618,11 +616,11 @@ class Bip44AccountIdleService : Service() {
     }
 
     fun removeSingleAddressAccount(guid: String) {
-        singleAddressAccountsMap.remove(guid)
+        unrelatedAccountsMap.remove(guid)
     }
 
     fun removeAllAccounts() {
-        singleAddressAccountsMap.clear()
+        unrelatedAccountsMap.clear()
         walletsAccountsMap.clear()
         sharedPreferences.edit()
                 .remove(ACCOUNT_INDEX_STRING_SET_PREF)
@@ -677,13 +675,19 @@ class Bip44AccountIdleService : Service() {
         saveWalletAccountToFile(walletAccount, walletFile(accountIndex))
     }
 
-    fun getPrivateKeysCount(accountIndex : Int) : Int {
-        return walletsAccountsMap[accountIndex]?.activeKeyChain?.issuedExternalKeys
-                //If we don't have an account with corresponding index
-                ?: return 0
+    fun getPrivateKeysCount(accountIndex : Int) : Pair<Int, Int> {
+        val issuedExternalKeys = walletsAccountsMap[accountIndex]?.activeKeyChain?.issuedExternalKeys ?: 0
+        val issuedInternalKeys = walletsAccountsMap[accountIndex]?.activeKeyChain?.issuedInternalKeys ?: 0
+        return Pair(issuedExternalKeys, issuedInternalKeys)
     }
 
-    fun getSingleAddressWalletAccount(guid: String) : Wallet = singleAddressAccountsMap[guid]!!
+    fun getPrivateKeysCountUnrelated(guid : String) : Pair<Int, Int>  {
+        val issuedExternalKeys = unrelatedAccountsMap[guid]?.activeKeyChain?.issuedExternalKeys ?: 0
+        val issuedInternalKeys = unrelatedAccountsMap[guid]?.activeKeyChain?.issuedInternalKeys ?: 0
+        return Pair(issuedExternalKeys, issuedInternalKeys)
+    }
+
+    fun getSingleAddressWalletAccount(guid: String) : Wallet = unrelatedAccountsMap[guid]!!
 
     @Synchronized
     fun broadcastTransaction(transaction: Transaction, accountIndex: Int) {
@@ -697,7 +701,7 @@ class Bip44AccountIdleService : Service() {
     @Synchronized
     fun broadcastTransactionSingleAddress(transaction: Transaction, guid: String) {
         propagate(Constants.CONTEXT)
-        val wallet = singleAddressAccountsMap[guid]!!
+        val wallet = unrelatedAccountsMap[guid]!!
         wallet.commitTx(transaction)
         saveWalletAccountToFile(wallet, singleAddressWalletFile(guid))
         peerGroup!!.broadcastTransaction(transaction)
@@ -718,8 +722,8 @@ class Bip44AccountIdleService : Service() {
         sendRequest.useForkId = true
         sendRequest.missingSigsMode = Wallet.MissingSigsMode.USE_OP_ZERO
         sendRequest.signInputs = false
-        singleAddressAccountsMap[guid]?.completeTx(sendRequest)
-        val networkParameters = singleAddressAccountsMap[guid]?.networkParameters
+        unrelatedAccountsMap[guid]?.completeTx(sendRequest)
+        val networkParameters = unrelatedAccountsMap[guid]?.networkParameters
         val utxosHex = getUtxosHex(sendRequest.tx.inputs, networkParameters)
         sendUnsignedTransactionToMbwSingleAddress(operationId, sendRequest.tx, utxosHex, guid)
     }
@@ -750,7 +754,7 @@ class Bip44AccountIdleService : Service() {
     }
 
     private fun sendUnsignedTransactionToMbwSingleAddress(operationId: String, unsignedTransaction: Transaction, txOutputHex: List<String>, guid: String) {
-        SpvMessageSender.sendUnsignedTransactionToMbwSingleAddress(operationId, unsignedTransaction, txOutputHex, guid)
+        SpvMessageSender.sendUnsignedTransactionToMbwUnrelated(operationId, unsignedTransaction, txOutputHex, guid)
     }
 
     private val walletEventListener = object : WalletCoinsReceivedEventListener, WalletCoinsSentEventListener {
@@ -759,7 +763,9 @@ class Bip44AccountIdleService : Service() {
             addMoreAccountsToLookAhead(walletAccount)
             for (key in walletsAccountsMap.keys()) {
                 if(walletsAccountsMap[key] == walletAccount) {
-                    if(transaction!!.confidence.appearedAtChainHeight >= highestChainHeight) {
+                    val confidence = transaction!!.confidence
+                    if(confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING &&
+                            confidence.appearedAtChainHeight >= highestChainHeight) {
                         notifySatoshisReceived(transaction.getValue(walletAccount).value,
                                 0L, key)
                     }
@@ -799,11 +805,13 @@ class Bip44AccountIdleService : Service() {
         }
     }
 
-    private val singleAddressWalletEventListener = WalletCoinsReceivedEventListener { walletAccount, transaction, _, _ ->
-        for (key in singleAddressAccountsMap.keys()) {
-            if(singleAddressAccountsMap[key] == walletAccount) {
-                if(transaction!!.confidence.appearedAtChainHeight >= highestChainHeight) {
-                    notifySingleAddressSatoshisReceived(transaction.getValue(walletAccount).value,
+    private val unrelatedAccountWalletEventListener = WalletCoinsReceivedEventListener { walletAccount, transaction, _, _ ->
+        for (key in unrelatedAccountsMap.keys()) {
+            if(unrelatedAccountsMap[key] == walletAccount) {
+                val confidence = transaction!!.confidence
+                if(confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING &&
+                    confidence.appearedAtChainHeight >= highestChainHeight) {
+                    notifySatoshisReceivedUnrelated(transaction.getValue(walletAccount).value,
                             0L, key)
                 }
             }
@@ -815,8 +823,8 @@ class Bip44AccountIdleService : Service() {
         notifyCurrentReceiveAddress()
     }
 
-    private fun notifySingleAddressSatoshisReceived(satoshisReceived: Long, satoshisSent: Long, guid: String) {
-        SpvMessageSender.notifySingleAddressSatoshisReceived(satoshisReceived, satoshisSent, guid)
+    private fun notifySatoshisReceivedUnrelated(satoshisReceived: Long, satoshisSent: Long, guid: String) {
+        SpvMessageSender.notifySatoshisReceivedUnrelated(satoshisReceived, satoshisSent, guid)
         notifyCurrentReceiveAddress()
     }
 
@@ -884,7 +892,7 @@ class Bip44AccountIdleService : Service() {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "getTransactionsSummary, guid = $guid")
 
-        val walletAccount = singleAddressAccountsMap[guid]
+        val walletAccount = unrelatedAccountsMap[guid]
                 ?: return mutableListOf()
         return getTransactionsSummary(walletAccount)
     }
@@ -954,15 +962,15 @@ class Bip44AccountIdleService : Service() {
         }
     }
 
-    fun getSingleAddressAccountBalance(guid: String): Long {
+    fun getUnrelatedAccountBalance(guid: String): Long {
         propagate(Constants.CONTEXT)
-        val walletAccount = singleAddressAccountsMap[guid]
+        val walletAccount = unrelatedAccountsMap[guid]
         return walletAccount?.getBalance(Wallet.BalanceType.ESTIMATED)?.getValue()?: 0
     }
 
-    fun getSingleAddressAccountReceiving(guid: String): Long {
+    fun getUnrelatedAccountReceiving(guid: String): Long {
         propagate(Constants.CONTEXT)
-        val walletAccount = singleAddressAccountsMap[guid] ?: return 0
+        val walletAccount = unrelatedAccountsMap[guid] ?: return 0
         return walletAccount.pendingTransactions.sumByLong {
             val sent = it.getValueSentFromMe(walletAccount)
             val netReceived = it.getValueSentToMe(walletAccount).minus(sent)
@@ -970,9 +978,9 @@ class Bip44AccountIdleService : Service() {
         }
     }
 
-    fun getSingleAddressAccountSending(guid: String): Long {
+    fun getUnrelatedAccountSending(guid: String): Long {
         propagate(Constants.CONTEXT)
-        val walletAccount = singleAddressAccountsMap[guid] ?: return 0
+        val walletAccount = unrelatedAccountsMap[guid] ?: return 0
         return walletAccount.pendingTransactions.sumByLong {
             val received = it.getValueSentToMe(walletAccount)
             val netSent = it.getValueSentFromMe(walletAccount).minus(received)
@@ -985,6 +993,13 @@ class Bip44AccountIdleService : Service() {
         val walletAccount = walletsAccountsMap[accountIndex] ?: return null
         return walletAccount.currentReceiveAddress() ?: walletAccount.freshReceiveAddress()
     }
+
+    fun getAccountCurrentReceiveAddressUnrelatedHD(guid: String): org.bitcoinj.core.Address? {
+        propagate(Constants.CONTEXT)
+        val walletAccount = unrelatedAccountsMap[guid] ?: return null
+        return walletAccount.currentReceiveAddress() ?: walletAccount.freshReceiveAddress()
+    }
+
 
     fun isValid(qrCode :String): Boolean {
         propagate(Constants.CONTEXT)
@@ -1013,10 +1028,10 @@ class Bip44AccountIdleService : Service() {
         return balance.subtract(Coin.valueOf(feeToUse))
     }
 
-    fun calculateMaxSpendableAmountSingleAddress(guid: String, txFee: TransactionFee, txFeeFactor: Float): Coin? {
+    fun calculateMaxSpendableAmountUnrelated(guid: String, txFee: TransactionFee, txFeeFactor: Float): Coin? {
         propagate(Constants.CONTEXT)
         Log.d(LOG_TAG, "calculateMaxSpendableAmount, guid = $guid, txFee = $txFee, txFeeFactor = $txFeeFactor")
-        val walletAccount = singleAddressAccountsMap[guid] ?: return null
+        val walletAccount = unrelatedAccountsMap[guid] ?: return null
         val balance = walletAccount.balance
         val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
         val feeToUse = StandardTransactionBuilder.estimateFee(walletAccount.unspents.size, 1, feePerKb.value)
@@ -1066,16 +1081,16 @@ class Bip44AccountIdleService : Service() {
         return getMaxFundsTranferableBySingleTransaction(walletsAccountsMap[accountIndex]!!)
     }
 
-    fun getMaxFundsTranferableBySingleTransactionSA(guid: String): Coin {
-        return getMaxFundsTranferableBySingleTransaction(singleAddressAccountsMap[guid]!!)
+    fun getMaxFundsTranferableBySingleTransactionUnrelated(guid: String): Coin {
+        return getMaxFundsTranferableBySingleTransaction(unrelatedAccountsMap[guid]!!)
     }
 
     fun calculateFeeToTransferAmountHD(accountIndex: Int, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
         return calculateFeeToTransferAmount(walletsAccountsMap[accountIndex]!!, amountToSend, txFee, txFeeFactor)
     }
 
-    fun calculateFeeToTransferAmountSA(guid: String, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
-        return calculateFeeToTransferAmount(singleAddressAccountsMap[guid]!!, amountToSend, txFee, txFeeFactor)
+    fun calculateFeeToTransferAmountUnrelated(guid: String, amountToSend: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
+        return calculateFeeToTransferAmount(unrelatedAccountsMap[guid]!!, amountToSend, txFee, txFeeFactor)
     }
 
     fun calculateFeeToTransferAmount(walletAccount: Wallet, amountToTransfer: Long, txFee: TransactionFee, txFeeFactor: Float):Coin {
@@ -1095,6 +1110,13 @@ class Bip44AccountIdleService : Service() {
         }
 
         var amountToSend = amountToTransfer - feeEstimated
+
+        // It could happen that specified amountToTransfer sum is not enough to make transaction
+        // since it could be even smaller than fee.So it is impossible to get more presize fee
+        // estimation by transaction using bitcoincashj
+        if (amountToSend < 0) {
+            return Coin.valueOf(feeEstimated)
+        }
 
         while(true) {
             val sendRequest = SendRequest.to(getNullAddress(Constants.NETWORK_PARAMETERS), Coin.valueOf(amountToSend))
@@ -1183,10 +1205,22 @@ class Bip44AccountIdleService : Service() {
             Constants.Files.WALLET_FILENAME_PROTOBUF + "_$guid"
 
     companion object {
+        @Volatile
         private var INSTANCE: Bip44AccountIdleService? = null
-        fun getInstance(): Bip44AccountIdleService? = INSTANCE
+
+        fun getInstance(): Bip44AccountIdleService  {
+            if (INSTANCE == null) {
+                synchronized(initializingMonitor) {
+                    if (INSTANCE == null) {
+                        SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                        waitUntilInitialized()
+                    }
+                }
+            }
+            return INSTANCE!!
+        }
         private val LOG_TAG = Bip44AccountIdleService::class.java.simpleName
-        private const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
+        const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private const val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
         private const val HIGHEST_CHAIN_HEIGHT_PREF = "highest_chain_height"
         private const val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"
@@ -1201,8 +1235,6 @@ class Bip44AccountIdleService : Service() {
         private val semaphore : Semaphore = Semaphore(WRITE_THREADS_LIMIT)
 
         const val SYNC_PROGRESS_PREF = "syncprogress"
-
-        fun getSyncProgress(): Float = Bip44DownloadProgressTracker.getSyncProgress()
 
         fun waitUntilInitialized() {
             synchronized(initializingMonitor){
@@ -1219,8 +1251,8 @@ class Bip44AccountIdleService : Service() {
     fun doesWalletAccountExist(accountIndex: Int): Boolean =
             null != walletsAccountsMap[accountIndex]
 
-    fun doesSingleAddressWalletAccountExist(guid: String) : Boolean =
-            null != singleAddressAccountsMap[guid]
+    fun doesUnrelatedAccountExist(guid: String) : Boolean =
+            null != unrelatedAccountsMap[guid]
 }
 
 // TODO: in bitcoin we are often dealing with long, where kotlin decided to only provide int, so we

@@ -64,10 +64,11 @@
     <string name="remote_service_stopped">SPV service stopped</string>
     <string name="local_service_label">SPV Service</string>
     <plurals name="notification_peers_connected_msg">
-        <item quantity="one">One peer connected</item>
-        <item quantity="other">%d peers connected</item>
+        <item quantity="one">One peer connected.</item>
+        <item quantity="other">%d peers connected.</item>
     </plurals>
-    <string name="notification_chain_status_behind">Chain is %d days behind.</string>
+    <string name="notification_chain_status">Sync: %.2f%%.</string>
+    <string name="notification_chain_status_synchronized">Fully synchronized.</string>
     <string name="notification_chain_status_impediment">Chain syncing problem: %s</string>
 
     <string name="preferences_activity_title">Settings</string>

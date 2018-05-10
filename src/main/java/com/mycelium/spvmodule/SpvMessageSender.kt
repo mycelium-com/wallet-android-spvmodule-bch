@@ -22,10 +22,11 @@ class SpvMessageSender {
             }
         }
 
-        fun requestPublicKeySingleaddress(guid: String) {
+        fun requestPublicKeyUnrelated(guid: String, accountType: Int) {
             Log.d(LOG_TAG, "requestPrivateKeySingleAddress for " + guid)
-            Intent("com.mycelium.wallet.requestSingleAddressPublicKeyToMBW").apply {
-                putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
+            Intent("com.mycelium.wallet.requestPublicKeyUnrelatedToMBW").apply {
+                putExtra(IntentContract.UNRELATED_ACCOUNT_GUID, guid)
+                putExtra(IntentContract.UNRELATED_ACCOUNT_TYPE, accountType)
                 send(this)
             }
         }
@@ -38,11 +39,11 @@ class SpvMessageSender {
                 send(this)
             }
         }
-        fun notifySingleAddressSatoshisReceived(satoshisReceived: Long, satoshisSent: Long, guid: String) {
-            Intent("com.mycelium.wallet.notifySatoshisReceivedSingleAddress").apply {
+        fun notifySatoshisReceivedUnrelated(satoshisReceived: Long, satoshisSent: Long, guid: String) {
+            Intent("com.mycelium.wallet.notifySatoshisReceivedUnrelated").apply {
                 putExtra(IntentContract.SATOSHIS_RECEIVED, satoshisReceived)
                 putExtra(IntentContract.SATOSHIS_SENT, satoshisSent)
-                putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
+                putExtra(IntentContract.UNRELATED_ACCOUNT_GUID, guid)
                 send(this)
             }
         }
@@ -68,11 +69,11 @@ class SpvMessageSender {
             }
         }
 
-        fun sendUnsignedTransactionToMbwSingleAddress(operationId: String,
-                                                      unsignedTransaction: Transaction,
-                                                      txOutputHex : List<String>, guid: String) {
-            Intent("com.mycelium.wallet.sendUnsignedTransactionToMbwSingleAddress").apply {
-                putExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID, guid)
+        fun sendUnsignedTransactionToMbwUnrelated(operationId: String,
+                                                  unsignedTransaction: Transaction,
+                                                  txOutputHex : List<String>, guid: String) {
+            Intent("com.mycelium.wallet.sendUnsignedTransactionToMbwUnrelated").apply {
+                putExtra(IntentContract.UNRELATED_ACCOUNT_GUID, guid)
                 putExtra(IntentContract.OPERATION_ID, operationId)
                 putExtra(IntentContract.TRANSACTION_BYTES, unsignedTransaction.bitcoinSerialize())
                 putExtra(IntentContract.CONNECTED_OUTPUTS, txOutputHex.toTypedArray())

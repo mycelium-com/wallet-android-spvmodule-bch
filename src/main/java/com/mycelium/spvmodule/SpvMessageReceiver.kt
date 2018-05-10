@@ -39,19 +39,19 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
             }
 
             IntentContract.SendFunds.ACTION -> SpvService.ACTION_SEND_FUNDS
-            IntentContract.SendFundsSingleAddress.ACTION -> SpvService.ACTION_SEND_FUNDS_SINGLE_ADDRESS
+            IntentContract.SendFundsUnrelated.ACTION -> SpvService.ACTION_SEND_FUNDS_UNRELATED
             IntentContract.CreateUnsignedTransaction.ACTION -> SpvService.ACTION_CREATE_UNSIGNED_TRANSACTION
             //TODO Investigate if this should still be called. Maybe IntentContract.SendSignedTransactionToSPV.ACTION should be called in all cases related to broadcasting transactions.
             IntentContract.BroadcastTransaction.ACTION -> SpvService.ACTION_BROADCAST_TRANSACTION
             IntentContract.SendSignedTransactionToSPV.ACTION -> SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION
-            IntentContract.SendSignedTransactionSingleAddressToSPV.ACTION -> SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION_SINGLE_ADDRESS
+            IntentContract.SendSignedTransactionUnrelatedToSPV.ACTION -> SpvService.ACTION_BROADCAST_SIGNEDTRANSACTION_UNRELATED
             IntentContract.ReceiveTransactions.ACTION -> SpvService.ACTION_RECEIVE_TRANSACTIONS
-            IntentContract.ReceiveTransactionsSingleAddress.ACTION -> SpvService.ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS
+            IntentContract.ReceiveTransactionsUnrelated.ACTION -> SpvService.ACTION_RECEIVE_TRANSACTIONS_UNRELATED
             IntentContract.RequestAccountLevelKeysToSPV.ACTION -> SpvService.ACTION_REQUEST_ACCOUNT_LEVEL_KEYS
-            IntentContract.SendSingleAddressPublicKeyToSPV.ACTION -> SpvService.ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY
-            IntentContract.SendSingleAddressToSPV.ACTION -> SpvService.ACTION_REQUEST_SINGLE_ADDRESS
+            IntentContract.SendUnrelatedPublicKeyToSPV.ACTION -> SpvService.ACTION_REQUEST_UNRELATED_PUBLIC_KEY
+            IntentContract.SendUnrelatedWatchedAddressToSPV.ACTION -> SpvService.ACTION_REQUEST_UNRELATED_WATCH_ADDRESS
             IntentContract.RemoveHdWalletAccount.ACTION -> SpvService.ACTION_REMOVE_HD_ACCOUNT
-            IntentContract.RemoveSingleAddressWalletAccount.ACTION -> SpvService.ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT
+            IntentContract.RemoveUnrelatedAccount.ACTION -> SpvService.ACTION_REMOVE_UNRELATED_ACCOUNT
             IntentContract.ForceCacheClean.ACTION -> SpvService.ACTION_FORCE_CACHE_CLEAN
             else -> {
                 Log.e(LOG_TAG, "Unhandled intent action ${intent.action}")
