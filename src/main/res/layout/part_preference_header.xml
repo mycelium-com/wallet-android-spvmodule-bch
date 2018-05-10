@@ -11,14 +11,18 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="4dp"
-        android:text="@string/inner_module_description" />
+        android:text="@string/inner_module_description"
+        android:textColor="#b8bcbf"
+        android:textSize="14sp" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:textSize="12sp"
-        android:text="@string/inner_module_description_addition" />
+        android:layout_marginTop="12dp"
+        android:text="@string/inner_module_description_addition"
+        android:textColor="#b8bcbf"
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/installWarning"
@@ -26,19 +30,37 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
         android:gravity="center"
-        android:textSize="16sp"
+        android:text="@string/wallet_not_installed"
         android:textColor="@android:color/holo_red_dark"
-        android:visibility="gone"
-        android:text="@string/wallet_not_installed" />
+        android:textSize="16sp"
+        android:visibility="gone" />
 
-    <Button
+    <LinearLayout
         android:id="@+id/open"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        style="@style/MyceliumButtonModern"
         android:layout_gravity="center"
-        android:drawableLeft="@drawable/ic_mycelium_wallet"
-        android:drawablePadding="8dp"
+        android:layout_marginTop="24dp"
         android:layout_marginBottom="8dp"
-        android:text="@string/open_mycelium_wallet" />
+        android:background="@drawable/background_action_btn"
+        android:gravity="center"
+        android:paddingEnd="24dp"
+        android:paddingStart="24dp">
+
+        <ImageView
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:src="@drawable/ic_mycelium_wallet" />
+
+        <TextView
+            android:id="@+id/open_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="10dp"
+            android:fontFamily="sans-serif-medium"
+            android:text="@string/open_mycelium_wallet"
+            android:textAllCaps="true"
+            android:textColor="@color/white"
+            android:textSize="14sp" />
+    </LinearLayout>
 </LinearLayout>

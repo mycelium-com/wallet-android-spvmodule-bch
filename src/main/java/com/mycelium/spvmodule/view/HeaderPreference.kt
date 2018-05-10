@@ -26,7 +26,7 @@ class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(con
             val buttonText = if (isMBWInstalled) R.string.open_mycelium_wallet else R.string.install_mycelium_wallet
             val textVisibility = if (isMBWInstalled) View.GONE else View.VISIBLE
 
-            (holder.itemView?.findViewById<View>(R.id.open) as Button).setText(buttonText)
+            (holder.itemView?.findViewById<View>(R.id.open_text) as TextView).setText(buttonText)
             (holder.itemView?.findViewById<View>(R.id.installWarning))?.visibility = textVisibility
 
             findViewById<View>(R.id.open)?.setOnClickListener {
