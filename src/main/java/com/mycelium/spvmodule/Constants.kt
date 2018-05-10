@@ -110,5 +110,7 @@ interface Constants {
             } * txFeeFactor
             return Coin.valueOf(txFeeValue.toLong())
         }
+
+        val COIN_SYMBOL = "BCH"
     }
 }
