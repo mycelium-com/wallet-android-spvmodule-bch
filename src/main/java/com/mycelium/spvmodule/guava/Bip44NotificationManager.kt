@@ -38,7 +38,6 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
         localBroadcastManager.unregisterReceiver(peerCountBroadcastReceiver)
     }
 
-    private var oldDaysBehind: Long = Long.MAX_VALUE
     private var daysBehind: Long = Long.MAX_VALUE
     var oldNotificationBasics = ""
     private fun changed() {
