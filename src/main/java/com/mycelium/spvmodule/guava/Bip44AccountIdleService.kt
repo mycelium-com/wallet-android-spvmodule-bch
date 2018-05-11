@@ -249,7 +249,7 @@ class Bip44AccountIdleService : Service() {
                         Constants.NETWORK_PARAMETERS.port
                     }
                     InetSocketAddress(server, port)
-                }.toTypedArray()
+                }.sortedBy { Math.random() }.toTypedArray()
 
                 override fun shutdown() {
                     normalPeerDiscovery.shutdown()
