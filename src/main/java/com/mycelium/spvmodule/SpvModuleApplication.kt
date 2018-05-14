@@ -12,6 +12,7 @@ import android.util.Log
 import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
+import com.mycelium.spvmodule.guava.BlockStoreController
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.enableStrictMode
 import org.bitcoinj.core.Context.propagate
@@ -29,6 +30,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var packageInfo: PackageInfo? = null
         private set
     private val spvMessageReceiver: SpvMessageReceiver = SpvMessageReceiver(this)
+    lateinit var blockStoreController : BlockStoreController
 
     override fun onMessage(callingPackageName: String, intent: Intent) = spvMessageReceiver.onMessage(callingPackageName, intent)
 
@@ -54,19 +56,30 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         propagate(Constants.CONTEXT)
 
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
-
         super.onCreate()
 
+        CommunicationManager.init(this)
         packageInfo = packageInfoFromContext(this)
 
         configuration = Configuration(PreferenceManager.getDefaultSharedPreferences(this))
         activityManager = getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+        val paired = try {
+            CommunicationManager.getInstance().requestPair(getMbwModulePackage())
+        } catch (se: SecurityException) {
+            Log.w(LOG_TAG, se.message)
+            false
+        }
+        if(!paired) {
+            Log.w(LOG_TAG, "pairing failed. Exiting.")
+            return
+        }
 
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
+
+        blockStoreController = BlockStoreController(this)
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
         startService(serviceIntent)
-        CommunicationManager.getInstance(this).requestPair(getMbwModulePackage())
     }
 
     fun stopBlockchainService() {
@@ -85,34 +98,37 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             return
         }
 
-        Bip44AccountIdleService.getInstance()!!.addWalletAccount(creationTimeSeconds, accountIndex)
+        Bip44AccountIdleService.getInstance().addWalletAccount(creationTimeSeconds, accountIndex)
     }
 
     @Synchronized
-    fun addSingleAddressAccountWithPublicKey(guid: String, publicKey: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithPublicKey(guid, publicKey)
+    fun addUnrelatedAccountWithPublicKey(guid: String, publicKeyB58: String, accountType : Int) {
+        when(accountType) {
+            IntentContract.UNRELATED_ACCOUNT_TYPE_HD -> Bip44AccountIdleService.getInstance().addUnrelatedAccountHD(guid, publicKeyB58)
+            IntentContract.UNRELATED_ACCOUNT_TYPE_SA -> Bip44AccountIdleService.getInstance().addUnrelatedAccountByPublicKey(guid, publicKeyB58)
+        }
         restartBip44AccountIdleService(true)
     }
 
     @Synchronized
-    fun addSingleAddressAccount(guid: String, address: ByteArray) {
-        Bip44AccountIdleService.getInstance()!!.addSingleAddressAccountWithAddress(guid, address)
+    fun addUnrelatedAccountWithAddress(guid: String, address: String) {
+        Bip44AccountIdleService.getInstance().addUnrelatedAccountByAddress(guid, address)
         restartBip44AccountIdleService(true)
     }
 
     fun removeHdAccount(accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.removeHdAccount(accountIndex)
+        Bip44AccountIdleService.getInstance().removeHdAccount(accountIndex)
         restartBip44AccountIdleService()
     }
 
     fun removeSingleAddressAccount(guid: String) {
-        Bip44AccountIdleService.getInstance()!!.removeSingleAddressAccount(guid)
+        Bip44AccountIdleService.getInstance().removeSingleAddressAccount(guid)
         restartBip44AccountIdleService()
     }
 
     @Synchronized
     fun clearAllAccounts() {
-        Bip44AccountIdleService.getInstance()!!.removeAllAccounts()
+        Bip44AccountIdleService.getInstance().removeAllAccounts()
         restartBip44AccountIdleService(true)
     }
 
@@ -124,8 +140,9 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         } catch (e : Throwable) {
             Log.e(LOG_TAG, e.localizedMessage, e)
         } finally {
-            if (rescan)
-                Bip44AccountIdleService().resetBlockchainState()
+            if (rescan) {
+                serviceIntent.putExtra(IntentContract.RESET_BLOCKCHAIN_STATE, true)
+            }
             Log.d(LOG_TAG, "restartBip44AccountIdleService, startAsync")
             startService(serviceIntent)
             Log.d(LOG_TAG, "restartBip44AccountIdleService, DONE")
@@ -133,30 +150,29 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     }
 
     fun getSingleAddressWalletAccount(guid: String) : Wallet =
-            Bip44AccountIdleService.getInstance()!!.getSingleAddressWalletAccount(guid)
+            Bip44AccountIdleService.getInstance().getSingleAddressWalletAccount(guid)
 
-    fun getWalletAccount(accountIndex: Int): Wallet {
-        return Bip44AccountIdleService.getInstance()!!.getWalletAccount(accountIndex)
-    }
+    fun getWalletAccount(accountIndex: Int): Wallet =
+            Bip44AccountIdleService.getInstance().getWalletAccount(accountIndex)
 
     fun broadcastTransaction(tx: Transaction, accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransaction(tx, accountIndex)
+        Bip44AccountIdleService.getInstance().broadcastTransaction(tx, accountIndex)
     }
 
     fun broadcastTransactionSingleAddress(tx: Transaction, guid: String) {
-        Bip44AccountIdleService.getInstance()!!.broadcastTransactionSingleAddress(tx, guid)
+        Bip44AccountIdleService.getInstance().broadcastTransactionSingleAddress(tx, guid)
     }
 
     fun createUnsignedTransaction(operationId: String, sendRequest: SendRequest, accountIndex: Int) {
-        Bip44AccountIdleService.getInstance()!!.createUnsignedTransaction(operationId, sendRequest, accountIndex)
+        Bip44AccountIdleService.getInstance().createUnsignedTransaction(operationId, sendRequest, accountIndex)
     }
 
     fun createUnsignedTransactionSingleAddress(operationId: String, sendRequest: SendRequest, guid: String) {
-        Bip44AccountIdleService.getInstance()!!.createUnsignedTransactionSingleAddress(operationId, sendRequest, guid)
+        Bip44AccountIdleService.getInstance().createUnsignedTransactionSingleAddress(operationId, sendRequest, guid)
     }
 
     fun launchBlockchainScanIfNecessary() {
-        Bip44AccountIdleService.getInstance()!!.checkImpediments()
+        Bip44AccountIdleService.getInstance().checkImpediments()
     }
 
     fun maxConnectedPeers(max :Int): Int {
@@ -172,10 +188,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
             }
 
     internal fun doesWalletAccountExist(accountIndex: Int): Boolean =
-            Bip44AccountIdleService.getInstance()!!.doesWalletAccountExist(accountIndex)
+            Bip44AccountIdleService.getInstance().doesWalletAccountExist(accountIndex)
 
-    internal fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
-            Bip44AccountIdleService.getInstance()!!.doesSingleAddressWalletAccountExist(guid)
+    internal fun doesUnrelatedAccountExist(guid: String): Boolean =
+            Bip44AccountIdleService.getInstance().doesUnrelatedAccountExist(guid)
 
     companion object {
         private var INSTANCE: SpvModuleApplication? = null
@@ -192,17 +208,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         private val LOG_TAG: String? = this::class.java.simpleName
 
-        // TODO: move this to build.gradle. For now, moving it there by adding
-        // buildConfigField "String", "DEBUG_STRING", "\".debug/\"" to buildTypes and
-        // buildConfigField "String", "MBW_MODULE_PACKAGE", "\"com.mycelium.wallet/com.testnet.wallet\" + DEBUG_STRING"
-        // to productFlavors failed, as BuildConfig doesn't reliably get refreshed on build variant changes!?!?
-        fun getMbwModulePackage(): String = when (BuildConfig.APPLICATION_ID) {
-            "com.mycelium.module.spvbch" -> "com.mycelium.wallet"
-            "com.mycelium.module.spvbch.debug" -> "com.mycelium.wallet.debug"
-            "com.mycelium.module.spvbch.testnet" -> "com.mycelium.testnetwallet"
-            "com.mycelium.module.spvbch.testnet.debug" -> "com.mycelium.testnetwallet.debug"
-            else -> throw RuntimeException("No mbw module defined for BuildConfig " + BuildConfig.APPLICATION_ID)
-        }
+        fun getMbwModulePackage(): String = BuildConfig.appIdWallet
 
         fun isMbwInstalled(context: Context): Boolean =
                 context.packageManager.getInstalledPackages(0).any { packageInfo ->
@@ -210,18 +216,18 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 }
 
         fun sendMbw(intent: Intent) {
-            CommunicationManager.getInstance(getApplication()).send(getMbwModulePackage(), intent)
+            CommunicationManager.getInstance().send(getMbwModulePackage(), intent)
         }
 
         fun doesWalletAccountExist(accountIndex: Int): Boolean =
                 INSTANCE!!.doesWalletAccountExist(accountIndex)
 
-        fun doesSingleAddressWalletAccountExist(guid: String): Boolean =
-                INSTANCE!!.doesSingleAddressWalletAccountExist(guid)
+        fun doesUnrelatedAccountExist(guid: String): Boolean =
+                INSTANCE!!.doesUnrelatedAccountExist(guid)
     }
 
     fun createAccounts(accountIndexes: ArrayList<Int>, accountKeys: ArrayList<String>,
                        creationTimeSeconds: Long) {
-        Bip44AccountIdleService.getInstance()!!.createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
+        Bip44AccountIdleService.getInstance().createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
     }
 }

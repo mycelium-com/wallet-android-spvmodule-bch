@@ -12,7 +12,7 @@ import android.text.format.DateUtils
 import com.mycelium.spvmodule.*
 import java.util.*
 
-class Bip44NotificationManager {
+class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44AccountIdleService?) {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
     private val configuration = spvModuleApplication.configuration!!
     private val notificationManager = spvModuleApplication.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -28,8 +28,8 @@ class Bip44NotificationManager {
         localBroadcastManager.registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
         localBroadcastManager.registerReceiver(peerCountBroadcastReceiver, IntentFilter(SpvService.ACTION_PEER_STATE))
         changed()
-        if (notification != null && Bip44AccountIdleService.getSyncProgress() < 99.9F) {
-            Bip44AccountIdleService.getInstance()!!.startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
+        if (notification != null && Bip44DownloadProgressTracker.getSyncProgress() < 99.9F) {
+            bip44IdleServiceInstance!!.startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
         }
     }
 
@@ -38,18 +38,28 @@ class Bip44NotificationManager {
         localBroadcastManager.unregisterReceiver(peerCountBroadcastReceiver)
     }
 
+    private var daysBehind: Long = Long.MAX_VALUE
+    var oldNotificationBasics = ""
     private fun changed() {
         val connectivityNotificationEnabled = configuration.connectivityNotificationEnabled
 
         //We need to check fo 100 to prevent not partial sync on first run.
-        if (Bip44AccountIdleService.getSyncProgress() == 100F) {
-            Bip44AccountIdleService.getInstance()!!.stopForeground(false)
+        if (Bip44DownloadProgressTracker.getSyncProgress() == 100F) {
+            this.bip44IdleServiceInstance?.stopForeground(false)
             if (!connectivityNotificationEnabled) {
                 notificationManager.cancel(Constants.NOTIFICATION_ID_CONNECTED)
                 return
             }
         }
 
+        if(blockchainState != null) {
+            daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
+        }
+        val notificationBasics = "$peerCount,$daysBehind,${blockchainState?.impediments?.size ?:"nope"}"
+        if(notificationBasics == oldNotificationBasics) {
+            return
+        }
+        oldNotificationBasics = notificationBasics
         notification = buildNotification()
         notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification)
     }
@@ -60,9 +70,14 @@ class Bip44NotificationManager {
             setContentTitle(spvModuleApplication.getString(R.string.app_name))
             var contentText = spvModuleApplication.resources.getQuantityString(R.plurals.notification_peers_connected_msg, peerCount, peerCount)
             if (blockchainState != null) {
-                val daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
-                if (daysBehind > 1) {
-                    contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_behind, daysBehind)
+                val downloadPercentDone = blockchainState!!.chainDownloadPercentDone
+                contentText += " " + if (downloadPercentDone < 100) {
+                     spvModuleApplication.getString(R.string.notification_chain_status, downloadPercentDone)
+                } else {
+                    spvModuleApplication.getString(R.string.notification_chain_status_synchronized)
+                }
+                if (downloadPercentDone < 100) {
+                    setProgress(100, Math.round(downloadPercentDone), false)
                 }
                 if (blockchainState!!.impediments.size > 0) {
                     // TODO: this is potentially unreachable as the service stops when offline.

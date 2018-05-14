@@ -32,7 +32,7 @@ class SpvService : IntentService("SpvService") {
     private var notificationManager: NotificationManager? = null
     private var serviceCreatedAtMillis = System.currentTimeMillis()
     private var accountIndex: Int = -1
-    private var singleAddressAccountGuid: String = ""
+    private var unrelatedAccountGuid: String = ""
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intentsQueue.offer(intent)
@@ -68,11 +68,10 @@ class SpvService : IntentService("SpvService") {
                     SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId,
                             tx.hashAsString, true, "")
                 }
-                ACTION_BROADCAST_SIGNEDTRANSACTION_SINGLE_ADDRESS -> {
+                ACTION_BROADCAST_SIGNEDTRANSACTION_UNRELATED -> {
                     val operationId = intent.getStringExtra(IntentContract.OPERATION_ID)
-                    val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionSingleAddressToSPV.TX_EXTRA)
-                    val accountGuid = intent.getStringExtra(IntentContract
-                            .SendSignedTransactionSingleAddressToSPV.SINGLE_ADDRESS_GUID)
+                    val txBytes = intent.getByteArrayExtra(IntentContract.SendSignedTransactionUnrelatedToSPV.TX_EXTRA)
+                    val accountGuid = intent.getStringExtra(IntentContract.SendSignedTransactionUnrelatedToSPV.UNRELATED_ACCOUNT_GUID)
                     val tx = Transaction(Constants.NETWORK_PARAMETERS, txBytes)
                     SpvModuleApplication.getApplication()
                             .broadcastTransactionSingleAddress(tx, accountGuid)
@@ -103,29 +102,39 @@ class SpvService : IntentService("SpvService") {
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
                 }
-                ACTION_SEND_FUNDS_SINGLE_ADDRESS -> {
-                    val operationId = intent.getStringExtra(IntentContract.SendFundsSingleAddress.OPERATION_ID)
-                    singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
-                    val rawAddress = intent.getStringExtra(IntentContract.SendFundsSingleAddress.ADDRESS_EXTRA)
-                    val rawAmount = intent.getLongExtra(IntentContract.SendFundsSingleAddress.AMOUNT_EXTRA, -1)
-                    val txFeeStr = intent.getStringExtra(IntentContract.SendFundsSingleAddress.FEE_EXTRA)
-                    val txFeeFactor = intent.getFloatExtra(IntentContract.SendFundsSingleAddress.FEE_FACTOR_EXTRA, 0.0f)
+                ACTION_SEND_FUNDS_UNRELATED -> {
+                    val operationId = intent.getStringExtra(IntentContract.SendFundsUnrelated.OPERATION_ID)
+                    unrelatedAccountGuid = intent.getStringExtra(IntentContract.UNRELATED_ACCOUNT_GUID)
+                    val rawAddress = intent.getStringExtra(IntentContract.SendFundsUnrelated.ADDRESS_EXTRA)
+                    val rawAmount = intent.getLongExtra(IntentContract.SendFundsUnrelated.AMOUNT_EXTRA, -1)
+                    val txFeeStr = intent.getStringExtra(IntentContract.SendFundsUnrelated.FEE_EXTRA)
+                    val txFeeFactor = intent.getFloatExtra(IntentContract.SendFundsUnrelated.FEE_FACTOR_EXTRA, 0.0f)
+                    val unrelatedAccountType = intent.getIntExtra(IntentContract.SendFundsUnrelated.ACCOUNT_TYPE, -1)
                     if (rawAddress.isEmpty() || rawAmount < 0 || txFeeStr == null || txFeeFactor == 0.0f) {
                         Log.e(LOG_TAG, "Could not send funds with parameters rawAddress $rawAddress, "
                                 + "rawAmount $rawAmount, feePerKb $txFeeStr and feePerFactor $txFeeFactor.")
                         return
                     }
 
-                    val wallet = application.getSingleAddressWalletAccount(singleAddressAccountGuid)
+                    val wallet = application.getSingleAddressWalletAccount(unrelatedAccountGuid)
                     val address = Address.fromBase58(Constants.NETWORK_PARAMETERS, rawAddress)
                     val amount = Coin.valueOf(rawAmount)
                     val sendRequest = SendRequest.to(address, amount)
-                    sendRequest.changeAddress = wallet.importedKeys.get(0).toAddress(Constants.NETWORK_PARAMETERS)
+
+                    //We need to specify the change address manually only in the case of Single Address unrelated account
+                    if (unrelatedAccountType == IntentContract.UNRELATED_ACCOUNT_TYPE_SA) {
+                        if (wallet.importedKeys.size > 0) {
+                            sendRequest.changeAddress = wallet.importedKeys.get(0).toAddress(Constants.NETWORK_PARAMETERS)
+                        } else if (wallet.watchedAddresses.size > 0){
+                            sendRequest.changeAddress = wallet.watchedAddresses.get(0)
+                        }
+                    }
+
                     val txFee = TransactionFee.valueOf(txFeeStr)
                     sendRequest.feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
 
                     try {
-                        application.createUnsignedTransactionSingleAddress(operationId, sendRequest, singleAddressAccountGuid)
+                        application.createUnsignedTransactionSingleAddress(operationId, sendRequest, unrelatedAccountGuid)
                     } catch (ex : Exception) {
                         SpvMessageSender.notifyBroadcastTransactionBroadcastCompleted(operationId, "", false, ex.message!!)
                     }
@@ -141,12 +150,12 @@ class SpvService : IntentService("SpvService") {
                         application.launchBlockchainScanIfNecessary()
                     }
                 }
-                ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS -> {
-                    singleAddressAccountGuid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
-
-                    if (!SpvModuleApplication.doesSingleAddressWalletAccountExist(singleAddressAccountGuid)) {
+                ACTION_RECEIVE_TRANSACTIONS_UNRELATED -> {
+                    unrelatedAccountGuid = intent.getStringExtra(IntentContract.UNRELATED_ACCOUNT_GUID)
+                    val unrelatedAccountType = intent.getIntExtra(IntentContract.UNRELATED_ACCOUNT_TYPE, -1)
+                    if (!SpvModuleApplication.doesUnrelatedAccountExist(unrelatedAccountGuid)) {
                         // Ask for private Key
-                        SpvMessageSender.requestPublicKeySingleaddress(singleAddressAccountGuid)
+                        SpvMessageSender.requestPublicKeyUnrelated(unrelatedAccountGuid, unrelatedAccountType)
                         return
                     } else {
                         application.launchBlockchainScanIfNecessary()
@@ -165,22 +174,25 @@ class SpvService : IntentService("SpvService") {
                     SpvModuleApplication.getApplication()
                             .createAccounts(accountIndexes, accountKeys, creationTimeSeconds)
                 }
-                ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY -> {
-                    val guid = intent.getStringExtra(IntentContract.SendSingleAddressPublicKeyToSPV.SINGLE_ADDRESS_GUID)
-                    val publicKey = intent.getByteArrayExtra(IntentContract.SendSingleAddressPublicKeyToSPV.PUBLIC_KEY)
-                    SpvModuleApplication.getApplication().addSingleAddressAccountWithPublicKey(guid, publicKey)
+                ACTION_REQUEST_UNRELATED_PUBLIC_KEY -> {
+                    val guid = intent.getStringExtra(IntentContract.SendUnrelatedPublicKeyToSPV.UNRELATED_ACCOUNT_GUID)
+                    val publicKey = intent.getStringExtra(IntentContract.SendUnrelatedPublicKeyToSPV.PUBLIC_KEY_B58)
+                    val accountType = intent.getIntExtra(IntentContract.UNRELATED_ACCOUNT_TYPE, -1)
+                    SpvModuleApplication.getApplication().addUnrelatedAccountWithPublicKey(guid, publicKey, accountType)
                 }
-                ACTION_REQUEST_SINGLE_ADDRESS -> {
-                    val guid = intent.getStringExtra(IntentContract.SendSingleAddressToSPV.SINGLE_ADDRESS_GUID)
-                    val address = intent.getByteArrayExtra(IntentContract.SendSingleAddressToSPV.ADDRESS_BYTES)
-                    SpvModuleApplication.getApplication().addSingleAddressAccount(guid, address)
+
+                ACTION_REQUEST_UNRELATED_WATCH_ADDRESS -> {
+                    val guid = intent.getStringExtra(IntentContract.SendUnrelatedWatchedAddressToSPV.UNRELATED_ACCOUNT_GUID)
+                    val address = intent.getStringExtra(IntentContract.SendUnrelatedWatchedAddressToSPV.ADDRESS)
+                    SpvModuleApplication.getApplication().addUnrelatedAccountWithAddress(guid, address)
                 }
+
                 ACTION_REMOVE_HD_ACCOUNT -> {
                     accountIndex = getAccountIndex(intent) ?: return
                     SpvModuleApplication.getApplication().removeHdAccount(accountIndex)
                 }
-                ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT -> {
-                    val guid = intent.getStringExtra(IntentContract.SINGLE_ADDRESS_ACCOUNT_GUID)
+                ACTION_REMOVE_UNRELATED_ACCOUNT -> {
+                    val guid = intent.getStringExtra(IntentContract.UNRELATED_ACCOUNT_GUID)
                     SpvModuleApplication.getApplication().removeSingleAddressAccount(guid)
                 }
                 ACTION_FORCE_CACHE_CLEAN -> {
@@ -232,17 +244,17 @@ class SpvService : IntentService("SpvService") {
         val ACTION_CANCEL_COINS_RECEIVED = PACKAGE_NAME + ".cancel_coins_received"
         val ACTION_BROADCAST_TRANSACTION = PACKAGE_NAME + ".broadcast_transaction"
         val ACTION_BROADCAST_SIGNEDTRANSACTION = PACKAGE_NAME + ".broadcast_signedtransaction"
-        val ACTION_BROADCAST_SIGNEDTRANSACTION_SINGLE_ADDRESS = PACKAGE_NAME + ".broadcast_signedtransaction_single_address"
+        val ACTION_BROADCAST_SIGNEDTRANSACTION_UNRELATED = PACKAGE_NAME + ".broadcast_signedtransaction_single_address"
         val ACTION_RECEIVE_TRANSACTIONS = PACKAGE_NAME + ".receive_transactions"
-        val ACTION_RECEIVE_TRANSACTIONS_SINGLE_ADDRESS = PACKAGE_NAME + ".receive_transactions_single_address"
+        val ACTION_RECEIVE_TRANSACTIONS_UNRELATED = PACKAGE_NAME + ".receive_transactions_unrelated"
         val ACTION_SEND_FUNDS = PACKAGE_NAME + ".send_funds"
-        val ACTION_SEND_FUNDS_SINGLE_ADDRESS = PACKAGE_NAME + ".send_funds_single_address"
+        val ACTION_SEND_FUNDS_UNRELATED = PACKAGE_NAME + ".send_funds_unrelated"
         val ACTION_CREATE_UNSIGNED_TRANSACTION = PACKAGE_NAME + ".create_unsigned_transaction"
         val ACTION_REQUEST_ACCOUNT_LEVEL_KEYS = PACKAGE_NAME + ".request_account_level_keys"
-        val ACTION_REQUEST_SINGLE_ADDRESS_PUBLIC_KEY = PACKAGE_NAME + ".request_single_address_public_key"
-        val ACTION_REQUEST_SINGLE_ADDRESS = PACKAGE_NAME + ".request_single_address"
+        val ACTION_REQUEST_UNRELATED_PUBLIC_KEY = PACKAGE_NAME + ".request_unrelated_public_key"
+        var ACTION_REQUEST_UNRELATED_WATCH_ADDRESS = PACKAGE_NAME + ".request_unrelated_watch_address"
         val ACTION_REMOVE_HD_ACCOUNT = PACKAGE_NAME + ".remove_hd_account"
-        val ACTION_REMOVE_SINGLE_ADDRESS_ACCOUNT = PACKAGE_NAME + ".remove_single_address_account"
+        val ACTION_REMOVE_UNRELATED_ACCOUNT = PACKAGE_NAME + ".remove_unrelated_account"
         val ACTION_FORCE_CACHE_CLEAN = PACKAGE_NAME + ".force_cache_clean"
 
         val intentsQueue: Queue<Intent> = ConcurrentLinkedQueue<Intent>()

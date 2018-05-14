@@ -64,10 +64,11 @@
     <string name="remote_service_stopped">SPV service stopped</string>
     <string name="local_service_label">SPV Service</string>
     <plurals name="notification_peers_connected_msg">
-        <item quantity="one">One peer connected</item>
-        <item quantity="other">%d peers connected</item>
+        <item quantity="one">One peer connected.</item>
+        <item quantity="other">%d peers connected.</item>
     </plurals>
-    <string name="notification_chain_status_behind">Chain is %d days behind.</string>
+    <string name="notification_chain_status">Sync: %.2f%%.</string>
+    <string name="notification_chain_status_synchronized">Fully synchronized.</string>
     <string name="notification_chain_status_impediment">Chain syncing problem: %s</string>
 
     <string name="preferences_activity_title">Settings</string>
@@ -92,7 +93,7 @@
     <string name="open_mycelium_wallet">Open Mycelium Wallet</string>
     <string name="install_mycelium_wallet">Install Mycelium Wallet</string>
     <string name="wallet_not_installed">Mycelium wallet is not installed\nIt is required for proper module functioning.</string>
-    <string name="footer_text">You can always access Bitcoin <font color="#f08c18">Cash</font> module from Settings > Modules section, by tapping on it.</string>
+    <string name="footer_text">You can always access Bitcoin <font color="#f08c18">Cash</font> module from Settings > Modules section by tapping on it.</string>
     <string name="bitcoin_cash_setting_section">Module settings</string>
     <string name="inner_module_description_addition">If you are experienced user, you can fine tune your Bitcoin <font color="#f08c18">Cash</font> module bellow, otherwise go straight to Mycelium Wallet.</string>
     <string name="sync_progress">Sync progress:</string>
