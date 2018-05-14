@@ -15,6 +15,7 @@ import com.mycelium.spvmodule.guava.Bip44AccountIdleService.Companion.SHARED_PRE
 import org.bitcoinj.core.*
 import org.bitcoinj.core.listeners.DownloadProgressTracker
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private val impediments: Set<BlockchainState.Impediment>) : DownloadProgressTracker() {
@@ -23,6 +24,7 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     private val lastMessageTime = AtomicLong(0)
     private var lastChainHeight = 0
     private var maxChainHeight = 0L
+    private var updatePending : AtomicBoolean = AtomicBoolean(false)
     var wakeLock : PowerManager.WakeLock? = null
 
     private val blockchainState: BlockchainState
@@ -50,9 +52,16 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
 
         if (now - lastMessageTime.get() > BLOCKCHAIN_STATE_BROADCAST_THROTTLE_MS
                 || blocksLeft == 0) {
-            AsyncTask.execute(reportProgress)
+            updateProgress()
         }
         super.onBlocksDownloaded(peer, block, filteredBlock, blocksLeft)
+    }
+
+    private fun updateProgress() {
+        if (updatePending.getAndSet(true)) {
+            return
+        }
+        AsyncTask.execute(reportProgress)
     }
 
     private fun maybeUpdateMaxChainHeight(height : Long) {
@@ -104,6 +113,7 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
 
     override fun doneDownload() {
         setSyncProgress(100f)
+        updateProgress()
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
@@ -113,7 +123,10 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
 
     private val reportProgress = {
         setSyncProgress(getDownloadPercentDone())
+
         lastMessageTime.set(System.currentTimeMillis())
+        updatePending.set(false)
+
         configuration.maybeIncrementBestChainHeightEver(blockChain.chainHead.height)
         broadcastBlockchainState()
     }
