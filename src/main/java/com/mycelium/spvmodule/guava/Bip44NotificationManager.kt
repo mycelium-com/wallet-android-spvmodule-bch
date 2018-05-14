@@ -17,10 +17,10 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
     private val configuration = spvModuleApplication.configuration!!
     private val notificationManager = spvModuleApplication.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private var peerCount = 0
-    private var blockchainState : BlockchainState? = null
+    private var blockchainState: BlockchainState? = null
     private val chainStateBroadcastReceiver = ChainStateBroadcastReceiver()
     private val peerCountBroadcastReceiver = PeerCountBroadcastReceiver()
-    var notification : Notification? = null
+    private var notification: Notification? = null
 
     private val localBroadcastManager = LocalBroadcastManager.getInstance(spvModuleApplication)
 
@@ -33,13 +33,12 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
         }
     }
 
-    protected fun finalize(){
+    protected fun finalize() {
         localBroadcastManager.unregisterReceiver(chainStateBroadcastReceiver)
         localBroadcastManager.unregisterReceiver(peerCountBroadcastReceiver)
     }
 
-    private var daysBehind: Long = Long.MAX_VALUE
-    var oldNotificationBasics = ""
+    private var oldNotificationBasics = ""
     private fun changed() {
         val connectivityNotificationEnabled = configuration.connectivityNotificationEnabled
 
@@ -52,11 +51,14 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
             }
         }
 
-        if(blockchainState != null) {
-            daysBehind = (Date().time - blockchainState!!.bestChainDate.time) / DateUtils.DAY_IN_MILLIS
+        val downloadPercentDone = if (blockchainState != null) {
+            blockchainState!!.chainDownloadPercentDone
+        } else {
+            100F
         }
-        val notificationBasics = "$peerCount,$daysBehind,${blockchainState?.impediments?.size ?:"nope"}"
-        if(notificationBasics == oldNotificationBasics) {
+        val notificationBasics = "$peerCount,$downloadPercentDone,${blockchainState?.impediments?.size
+                ?: "nope"}"
+        if (notificationBasics == oldNotificationBasics) {
             return
         }
         oldNotificationBasics = notificationBasics
@@ -72,7 +74,7 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
             if (blockchainState != null) {
                 val downloadPercentDone = blockchainState!!.chainDownloadPercentDone
                 contentText += " " + if (downloadPercentDone < 100) {
-                     spvModuleApplication.getString(R.string.notification_chain_status, downloadPercentDone)
+                    spvModuleApplication.getString(R.string.notification_chain_status, downloadPercentDone)
                 } else {
                     spvModuleApplication.getString(R.string.notification_chain_status_synchronized)
                 }

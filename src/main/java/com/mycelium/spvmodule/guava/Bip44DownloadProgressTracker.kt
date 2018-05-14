@@ -23,7 +23,8 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     private val configuration = spvModuleApplication.configuration!!
     private val lastMessageTime = AtomicLong(0)
     private var lastChainHeight = 0
-    private var maxChainHeight = 0L
+    private var blocksLeft = 1
+    private var currentPeer : Peer? = null
     private var updatePending : AtomicBoolean = AtomicBoolean(false)
     var wakeLock : PowerManager.WakeLock? = null
 
@@ -40,14 +41,16 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     override fun onChainDownloadStarted(peer: Peer?, blocksLeft: Int) {
         Log.d(LOG_TAG, "onChainDownloadStarted(), Blockchain's download is starting. " +
                 "Blocks left to download is $blocksLeft, peer = $peer")
-        maybeUpdateMaxChainHeight(peer!!.bestHeight)
+        this.blocksLeft = blocksLeft
+        currentPeer = peer
         super.onChainDownloadStarted(peer, blocksLeft)
     }
 
     override fun onBlocksDownloaded(peer: Peer, block: Block, filteredBlock: FilteredBlock?,
                                     blocksLeft: Int) {
         val now = System.currentTimeMillis()
-        maybeUpdateMaxChainHeight(peer.bestHeight)
+        this.blocksLeft = blocksLeft
+        currentPeer = peer
         updateActivityHistory()
 
         if (now - lastMessageTime.get() > BLOCKCHAIN_STATE_BROADCAST_THROTTLE_MS
@@ -64,12 +67,6 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
         AsyncTask.execute(reportProgress)
     }
 
-    private fun maybeUpdateMaxChainHeight(height : Long) {
-        if (height > maxChainHeight) {
-            maxChainHeight = height
-        }
-    }
-
     override fun progress(pct: Double, blocksSoFar: Int, date: Date) {
         setSyncProgress(getDownloadPercentDone())
         broadcastBlockchainState()
@@ -78,8 +75,7 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     }
 
     private fun getDownloadPercentDone(): Float {
-        val downloadedHeight = blockchainState.bestChainHeight
-        return 100F * downloadedHeight / maxChainHeight
+        return 100F * (1 - (blocksLeft  * 1.0F / currentPeer!!.bestHeight))
     }
 
     override fun startDownload(blocks: Int) {
@@ -114,6 +110,7 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     override fun doneDownload() {
         setSyncProgress(100f)
         updateProgress()
+
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
