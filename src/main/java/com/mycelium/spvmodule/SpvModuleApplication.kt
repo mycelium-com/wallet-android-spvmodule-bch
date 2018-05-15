@@ -58,6 +58,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
         super.onCreate()
 
+        blockStoreController = BlockStoreController(this)
         CommunicationManager.init(this)
         packageInfo = packageInfoFromContext(this)
 
@@ -77,7 +78,6 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
 
-        blockStoreController = BlockStoreController(this)
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
         startService(serviceIntent)
     }
