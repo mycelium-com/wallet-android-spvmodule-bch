@@ -34,13 +34,16 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
     override fun onMessage(callingPackageName: String, intent: Intent) = spvMessageReceiver.onMessage(callingPackageName, intent)
 
-    override fun onCreate() {
+    override fun attachBaseContext(base: Context?) {
         INSTANCE = if (INSTANCE != null && INSTANCE !== this) {
-            throw Error("Application was instanciated more than once?")
+            throw Error("Application was instantiated more than once?")
         } else {
             this
         }
+        super.attachBaseContext(base)
+    }
 
+    override fun onCreate() {
         LinuxSecureRandom() // init proper random number generator
 
         StrictMode.setThreadPolicy(
