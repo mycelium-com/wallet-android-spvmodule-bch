@@ -40,6 +40,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         } else {
             this
         }
+        super.attachBaseContext(base)
     }
 
     override fun onCreate() {
