@@ -8,17 +8,19 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.support.v4.content.LocalBroadcastManager
+import android.text.format.DateUtils
 import com.mycelium.spvmodule.*
+import java.util.*
 
-class Bip44NotificationManager {
+class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44AccountIdleService?) {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
     private val configuration = spvModuleApplication.configuration!!
     private val notificationManager = spvModuleApplication.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     private var peerCount = 0
-    private var blockchainState : BlockchainState? = null
+    private var blockchainState: BlockchainState? = null
     private val chainStateBroadcastReceiver = ChainStateBroadcastReceiver()
     private val peerCountBroadcastReceiver = PeerCountBroadcastReceiver()
-    var notification : Notification? = null
+    private var notification: Notification? = null
 
     private val localBroadcastManager = LocalBroadcastManager.getInstance(spvModuleApplication)
 
@@ -27,27 +29,39 @@ class Bip44NotificationManager {
         localBroadcastManager.registerReceiver(peerCountBroadcastReceiver, IntentFilter(SpvService.ACTION_PEER_STATE))
         changed()
         if (notification != null && Bip44DownloadProgressTracker.getSyncProgress() < 99.9F) {
-            Bip44AccountIdleService.getInstance().startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
+            bip44IdleServiceInstance!!.startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
         }
     }
 
-    protected fun finalize(){
+    protected fun finalize() {
         localBroadcastManager.unregisterReceiver(chainStateBroadcastReceiver)
         localBroadcastManager.unregisterReceiver(peerCountBroadcastReceiver)
     }
 
+    private var oldNotificationBasics = ""
     private fun changed() {
         val connectivityNotificationEnabled = configuration.connectivityNotificationEnabled
 
         //We need to check fo 100 to prevent not partial sync on first run.
         if (Bip44DownloadProgressTracker.getSyncProgress() == 100F) {
-            Bip44AccountIdleService.getInstanceUnsafe()?.stopForeground(false)
+            this.bip44IdleServiceInstance?.stopForeground(false)
             if (!connectivityNotificationEnabled) {
                 notificationManager.cancel(Constants.NOTIFICATION_ID_CONNECTED)
                 return
             }
         }
 
+        val downloadPercentDone = if (blockchainState != null) {
+            blockchainState!!.chainDownloadPercentDone
+        } else {
+            100F
+        }
+        val notificationBasics = "$peerCount,$downloadPercentDone,${blockchainState?.impediments?.size
+                ?: "nope"}"
+        if (notificationBasics == oldNotificationBasics) {
+            return
+        }
+        oldNotificationBasics = notificationBasics
         notification = buildNotification()
         notificationManager.notify(Constants.NOTIFICATION_ID_CONNECTED, notification)
     }
@@ -60,7 +74,7 @@ class Bip44NotificationManager {
             if (blockchainState != null) {
                 val downloadPercentDone = blockchainState!!.chainDownloadPercentDone
                 contentText += " " + if (downloadPercentDone < 100) {
-                     spvModuleApplication.getString(R.string.notification_chain_status, downloadPercentDone)
+                    spvModuleApplication.getString(R.string.notification_chain_status, downloadPercentDone)
                 } else {
                     spvModuleApplication.getString(R.string.notification_chain_status_synchronized)
                 }

@@ -11,9 +11,11 @@ import android.util.Log
 import com.mycelium.spvmodule.BlockchainState
 import com.mycelium.spvmodule.SpvModuleApplication
 import com.mycelium.spvmodule.SpvService
+import com.mycelium.spvmodule.guava.Bip44AccountIdleService.Companion.SHARED_PREFERENCES_FILE_NAME
 import org.bitcoinj.core.*
 import org.bitcoinj.core.listeners.DownloadProgressTracker
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicLong
 
 class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private val impediments: Set<BlockchainState.Impediment>) : DownloadProgressTracker() {
@@ -21,7 +23,9 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     private val configuration = spvModuleApplication.configuration!!
     private val lastMessageTime = AtomicLong(0)
     private var lastChainHeight = 0
-    private var maxChainHeight = 0L
+    private var blocksLeft = 1
+    private var currentPeer : Peer? = null
+    private var updatePending : AtomicBoolean = AtomicBoolean(false)
     var wakeLock : PowerManager.WakeLock? = null
 
     private val blockchainState: BlockchainState
@@ -37,27 +41,30 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     override fun onChainDownloadStarted(peer: Peer?, blocksLeft: Int) {
         Log.d(LOG_TAG, "onChainDownloadStarted(), Blockchain's download is starting. " +
                 "Blocks left to download is $blocksLeft, peer = $peer")
-        maybeUpdateMaxChainHeight(peer!!.bestHeight)
+        this.blocksLeft = blocksLeft
+        currentPeer = peer
         super.onChainDownloadStarted(peer, blocksLeft)
     }
 
     override fun onBlocksDownloaded(peer: Peer, block: Block, filteredBlock: FilteredBlock?,
                                     blocksLeft: Int) {
         val now = System.currentTimeMillis()
-        maybeUpdateMaxChainHeight(peer.bestHeight)
+        this.blocksLeft = blocksLeft
+        currentPeer = peer
         updateActivityHistory()
 
         if (now - lastMessageTime.get() > BLOCKCHAIN_STATE_BROADCAST_THROTTLE_MS
                 || blocksLeft == 0) {
-            AsyncTask.execute(reportProgress)
+            updateProgress()
         }
         super.onBlocksDownloaded(peer, block, filteredBlock, blocksLeft)
     }
 
-    private fun maybeUpdateMaxChainHeight(height : Long) {
-        if (height > maxChainHeight) {
-            maxChainHeight = height
+    private fun updateProgress() {
+        if (updatePending.getAndSet(true)) {
+            return
         }
+        AsyncTask.execute(reportProgress)
     }
 
     override fun progress(pct: Double, blocksSoFar: Int, date: Date) {
@@ -68,8 +75,7 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
     }
 
     private fun getDownloadPercentDone(): Float {
-        val downloadedHeight = blockchainState.bestChainHeight
-        return 100F * downloadedHeight / maxChainHeight
+        return 100F * (1 - (blocksLeft  * 1.0F / currentPeer!!.bestHeight))
     }
 
     override fun startDownload(blocks: Int) {
@@ -103,6 +109,8 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
 
     override fun doneDownload() {
         setSyncProgress(100f)
+        updateProgress()
+
         if (wakeLock?.isHeld == true) {
             wakeLock?.release()
         }
@@ -112,7 +120,10 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
 
     private val reportProgress = {
         setSyncProgress(getDownloadPercentDone())
+
         lastMessageTime.set(System.currentTimeMillis())
+        updatePending.set(false)
+
         configuration.maybeIncrementBestChainHeightEver(blockChain.chainHead.height)
         broadcastBlockchainState()
     }
@@ -164,7 +175,6 @@ class Bip44DownloadProgressTracker(private val blockChain: BlockChain, private v
         private val LOG_TAG = Bip44DownloadProgressTracker::class.java.simpleName
         private const val BLOCKCHAIN_STATE_BROADCAST_THROTTLE_MS = DateUtils.SECOND_IN_MILLIS
         private const val MAX_HISTORY_SIZE = 10
-        private const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private val spvModuleApplication = SpvModuleApplication.getApplication()
         private val sharedPreferences: SharedPreferences = spvModuleApplication.getSharedPreferences(
                 SHARED_PREFERENCES_FILE_NAME, Context.MODE_PRIVATE)

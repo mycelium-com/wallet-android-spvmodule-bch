@@ -12,6 +12,7 @@ import android.util.Log
 import com.mycelium.modularizationtools.CommunicationManager
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
+import com.mycelium.spvmodule.guava.BlockStoreController
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.enableStrictMode
 import org.bitcoinj.core.Context.propagate
@@ -29,16 +30,20 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var packageInfo: PackageInfo? = null
         private set
     private val spvMessageReceiver: SpvMessageReceiver = SpvMessageReceiver(this)
+    lateinit var blockStoreController : BlockStoreController
 
     override fun onMessage(callingPackageName: String, intent: Intent) = spvMessageReceiver.onMessage(callingPackageName, intent)
 
-    override fun onCreate() {
+    override fun attachBaseContext(base: Context?) {
         INSTANCE = if (INSTANCE != null && INSTANCE !== this) {
-            throw Error("Application was instanciated more than once?")
+            throw Error("Application was instantiated more than once?")
         } else {
             this
         }
+        super.attachBaseContext(base)
+    }
 
+    override fun onCreate() {
         LinuxSecureRandom() // init proper random number generator
 
         StrictMode.setThreadPolicy(
@@ -56,6 +61,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
         super.onCreate()
 
+        blockStoreController = BlockStoreController(this)
         CommunicationManager.init(this)
         packageInfo = packageInfoFromContext(this)
 
@@ -74,6 +80,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
         blockchainServiceCancelCoinsReceivedIntent = Intent(SpvService.ACTION_CANCEL_COINS_RECEIVED, null, this,
                 SpvService::class.java)
+
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
         startService(serviceIntent)
     }

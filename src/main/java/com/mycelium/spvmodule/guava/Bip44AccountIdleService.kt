@@ -25,8 +25,6 @@ import org.bitcoinj.net.discovery.MultiplexingDiscovery
 import org.bitcoinj.net.discovery.PeerDiscovery
 import org.bitcoinj.net.discovery.PeerDiscoveryException
 import org.bitcoinj.script.Script
-import org.bitcoinj.store.BlockStore
-import org.bitcoinj.store.SPVBlockStore
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.*
 import org.bitcoinj.wallet.listeners.WalletCoinsReceivedEventListener
@@ -45,6 +43,7 @@ class Bip44AccountIdleService : Service() {
     private val impediments = EnumSet.noneOf(BlockchainState.Impediment::class.java)
     private val connectivityReceiver = Bip44ConnectivityReceiver(impediments)
     private val idlingCheckerExecutor = Executors.newSingleThreadScheduledExecutor()
+    private lateinit var notificationManager : Bip44NotificationManager
 
     private var peerGroup: PeerGroup? = null
 
@@ -65,7 +64,7 @@ class Bip44AccountIdleService : Service() {
     //List of accounts indexes
     private val configuration = spvModuleApplication.configuration!!
     private val peerConnectivityListener: Bip44PeerConnectivityListener = Bip44PeerConnectivityListener()
-    private lateinit var blockStore: BlockStore
+    private val blockStoreController = spvModuleApplication.blockStoreController
 
     private fun runOneIteration() {
         idlingCheckerExecutor.scheduleAtFixedRate({
@@ -81,6 +80,9 @@ class Bip44AccountIdleService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (INSTANCE != null) {
+            return START_REDELIVER_INTENT
+        }
         ready = false
         Log.d(LOG_TAG, "startUp")
         INSTANCE = this
@@ -92,17 +94,12 @@ class Bip44AccountIdleService : Service() {
         }
         spvModuleApplication.applicationContext.registerReceiver(connectivityReceiver, intentFilter)
         if(intent!!.getBooleanExtra(IntentContract.RESET_BLOCKCHAIN_STATE, false)) {
-            resetBlockchainState()
+            blockStoreController.resetBlockchainState()
         }
-        val blockchainFile = getBlockchainFile()
-        synchronized(blockchainFile.absolutePath.intern()) {
-            blockStore = SPVBlockStore(Constants.NETWORK_PARAMETERS, blockchainFile)
-        }
-        blockStore.chainHead // detect corruptions as early as possible
         initializeWalletsAccounts()
         initializePeergroup()
         checkImpediments()
-        Bip44NotificationManager()
+        notificationManager = Bip44NotificationManager(this)
         runOneIteration()
 
         synchronized (initializingMonitor) {
@@ -118,23 +115,6 @@ class Bip44AccountIdleService : Service() {
         stopPeergroup()
         idlingCheckerExecutor.shutdownNow()
         INSTANCE = null
-    }
-
-    private fun getBlockchainFile() : File {
-        return File(spvModuleApplication.getDir("blockstore", Context.MODE_PRIVATE),
-                Constants.Files.BLOCKCHAIN_FILENAME+"-BCH")
-    }
-
-    fun resetBlockchainState() {
-        val blockchainFile = getBlockchainFile()
-        synchronized(blockchainFile.absolutePath.intern()) {
-            sharedPreferences.edit()
-                    .remove(SYNC_PROGRESS_PREF)
-                    .apply()
-            if (blockchainFile.exists()) {
-                blockchainFile.delete()
-            }
-        }
     }
 
     private fun initializeWalletAccountsListeners() {
@@ -183,7 +163,7 @@ class Bip44AccountIdleService : Service() {
             }
         }
         blockChain = BlockChain(Constants.NETWORK_PARAMETERS, (walletsAccountsMap.values + unrelatedAccountsMap.values).toList(),
-                blockStore)
+                blockStoreController.blockStore)
         initializeWalletAccountsListeners()
     }
 
@@ -209,7 +189,7 @@ class Bip44AccountIdleService : Service() {
             val checkpointsInputStream = spvModuleApplication.assets.open(Constants.Files.CHECKPOINTS_FILENAME)
             //earliestKeyCreationTime = 1477958400L //Should be earliestKeyCreationTime, testing something.
             CheckpointManager.checkpoint(Constants.NETWORK_PARAMETERS, checkpointsInputStream,
-                    blockStore, earliestKeyCreationTime)
+                    blockStoreController.blockStore, earliestKeyCreationTime)
             Log.i(LOG_TAG, "checkpoints loaded from '${Constants.Files.CHECKPOINTS_FILENAME}',"
                     + " took ${System.currentTimeMillis() - start}ms, "
                     + "earliestKeyCreationTime = '$earliestKeyCreationTime'")
@@ -269,7 +249,7 @@ class Bip44AccountIdleService : Service() {
                         Constants.NETWORK_PARAMETERS.port
                     }
                     InetSocketAddress(server, port)
-                }.toTypedArray()
+                }.sortedBy { Math.random() }.toTypedArray()
 
                 override fun shutdown() {
                     normalPeerDiscovery.shutdown()
@@ -320,7 +300,6 @@ class Bip44AccountIdleService : Service() {
             }
         }
 
-        blockStore.close()
         Log.d(LOG_TAG, "stopPeergroup DONE")
     }
 
@@ -354,10 +333,11 @@ class Bip44AccountIdleService : Service() {
                         SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
                     }
                 } else {
-                    Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $peerGroup")
+                    Log.i(LOG_TAG, "checkImpediments, impediments size is ${impediments.size} && peergroup is $this")
                     for (walletAccount in walletsAccountsMap.values + unrelatedAccountsMap.values) {
                         removeWallet(walletAccount)
                     }
+                    downloadProgressTracker = null
                 }
                 //Release wakelock
                 if (wakeLock.isHeld) {
@@ -1235,21 +1215,22 @@ class Bip44AccountIdleService : Service() {
             Constants.Files.WALLET_FILENAME_PROTOBUF + "_$guid"
 
     companion object {
+        @Volatile
         private var INSTANCE: Bip44AccountIdleService? = null
 
-        fun getInstanceUnsafe(): Bip44AccountIdleService? = INSTANCE
-
         fun getInstance(): Bip44AccountIdleService  {
-            synchronized(this) {
-                if (INSTANCE == null) {
-                    SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
-                    waitUntilInitialized()
+            if (INSTANCE == null) {
+                synchronized(initializingMonitor) {
+                    if (INSTANCE == null) {
+                        SpvModuleApplication.getApplication().restartBip44AccountIdleService(false)
+                        waitUntilInitialized()
+                    }
                 }
             }
             return INSTANCE!!
         }
         private val LOG_TAG = Bip44AccountIdleService::class.java.simpleName
-        private const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
+        const val SHARED_PREFERENCES_FILE_NAME = "com.mycelium.spvmodule.PREFERENCE_FILE_KEY"
         private const val ACCOUNT_INDEX_STRING_SET_PREF = "account_index_stringset"
         private const val HIGHEST_CHAIN_HEIGHT_PREF = "highest_chain_height"
         private const val SINGLE_ADDRESS_ACCOUNT_GUID_SET_PREF = "single_address_account_guid_set"

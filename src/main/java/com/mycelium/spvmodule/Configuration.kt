@@ -2,7 +2,6 @@ package com.mycelium.spvmodule
 
 import android.content.SharedPreferences
 import android.util.Log
-import com.google.common.base.Strings
 import com.google.gson.annotations.SerializedName
 import com.mycelium.spvmodule.BuildConfig.IS_TESTNET
 
@@ -67,7 +66,7 @@ class Configuration(private val prefs: SharedPreferences) {
     }
 
     val connectivityNotificationEnabled: Boolean
-        get() = prefs.getBoolean(PREFS_KEY_CONNECTIVITY_NOTIFICATION, false)
+        get() = prefs.getBoolean(PREFS_KEY_CONNECTIVITY_NOTIFICATION, true)
 
     val peerHostConfig
         get() = prefs.getString(PREFS_NODE_OPTION, "mycelium")

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.util.Log
 import com.mycelium.spvmodule.BlockchainState
+import com.mycelium.spvmodule.SpvModuleApplication
 import java.util.*
 
 class Bip44ConnectivityReceiver(private val impediments: EnumSet<BlockchainState.Impediment>) : BroadcastReceiver() {
@@ -16,7 +17,10 @@ class Bip44ConnectivityReceiver(private val impediments: EnumSet<BlockchainState
                 val hasConnectivity = !intent.getBooleanExtra(ConnectivityManager.EXTRA_NO_CONNECTIVITY, false)
                 Log.i(LOG_TAG, "Bip44ConnectivityReceiver, network is " + if (hasConnectivity) "up" else "down")
                 if (hasConnectivity) {
-                    impediments.remove(BlockchainState.Impediment.NETWORK)
+                    if (impediments.contains(BlockchainState.Impediment.NETWORK)) {
+                        impediments.remove(BlockchainState.Impediment.NETWORK)
+                        SpvModuleApplication.getApplication().restartBip44AccountIdleService()
+                    }
                 } else {
                     impediments.add(BlockchainState.Impediment.NETWORK)
                 }
@@ -27,8 +31,10 @@ class Bip44ConnectivityReceiver(private val impediments: EnumSet<BlockchainState
             }
             Intent.ACTION_DEVICE_STORAGE_OK -> {
                 Log.i(LOG_TAG, "Bip44ConnectivityReceiver, device storage ok")
-
-                impediments.remove(BlockchainState.Impediment.STORAGE)
+                if (impediments.contains(BlockchainState.Impediment.STORAGE)) {
+                    impediments.remove(BlockchainState.Impediment.STORAGE)
+                    SpvModuleApplication.getApplication().restartBip44AccountIdleService()
+                }
             }
         }
     }
