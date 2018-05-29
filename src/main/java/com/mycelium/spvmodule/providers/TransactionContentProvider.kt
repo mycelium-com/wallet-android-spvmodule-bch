@@ -116,7 +116,7 @@ class TransactionContentProvider : ContentProvider() {
             TRANSACTION_DETAILS_ID ->
                 if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX) {
                     val cursor = TransactionDetailsCursor()
-                    val accountIndex = selectionArgs!!.get(0)
+                    val accountIndex = selectionArgs!![0]
                     var accountUuid: UUID? = null
                     var accountIdInt: Int = -1
                     try {

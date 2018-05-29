@@ -915,12 +915,14 @@ class Bip44AccountIdleService : Service() {
         for (input in transactionBitcoinJ.inputs) {
             val connectedOutput = input.outpoint.connectedOutput
             if (connectedOutput == null) {
-                /*   inputs.add(TransactionDetails.Item(Address.getNullAddress(networkParametersBitlib),
+                val bytes = ByteArray(20)
+                bytes[0] = (walletAccount.networkParameters.addressHeader and 0xFF).toByte()
+                inputs.add(TransactionDetails.Item(Address(walletAccount.networkParameters, bytes),
                            if (input.value != null) {
                                input.value!!.value
                            } else {
                                0
-                           }, input.isCoinBase))*/
+                           }, input.isCoinBase))
             } else {
                 val addressBitcoinJ = connectedOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
                 inputs.add(TransactionDetails.Item(addressBitcoinJ, input.value!!.value, input.isCoinBase))
