@@ -40,15 +40,18 @@ class TransactionContentProvider : ContentProvider() {
         val service = Bip44AccountIdleService.getInstance()
         when (match) {
             TRANSACTION_SUMMARY_LIST -> {
-                var transactionsSummary = Collections.emptyList<com.mycelium.spvmodule.model.TransactionSummary>()
-                if (selection == TransactionSummary.SELECTION_ACCOUNT_INDEX) {
-                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                    val accountIndex = selectionArgs!![0]
-                    transactionsSummary = service.getTransactionsSummary(accountIndex.toInt())
-                } else if (selection == TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID) {
-                    Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
-                    val guid = selectionArgs!![0]
-                    transactionsSummary = service.getTransactionsSummary(guid)
+                val transactionsSummary = when (selection) {
+                    TransactionSummary.SELECTION_ACCOUNT_INDEX -> {
+                        Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
+                        val accountIndex = selectionArgs!![0]
+                        service.getTransactionsSummary(accountIndex.toInt())
+                    }
+                    TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID -> {
+                        Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
+                        val guid = selectionArgs!![0]
+                        service.getTransactionsSummary(guid)
+                    }
+                    else -> Collections.emptyList<com.mycelium.spvmodule.model.TransactionSummary>()
                 }
                 return TransactionsSummaryCursor(transactionsSummary.size).apply {
                     for (rowItem in transactionsSummary) {
@@ -61,12 +64,11 @@ class TransactionContentProvider : ContentProvider() {
                                 rowItem.height,                                //TransactionContract.TransactionSummary.HEIGHT
                                 rowItem.confirmations,                         //TransactionContract.TransactionSummary.CONFIRMATIONS
                                 if (rowItem.isQueuedOutgoing) 1 else 0,        //TransactionContract.TransactionSummary.IS_QUEUED_OUTGOING
-                                riskProfile?.unconfirmedChainLength
-                                        ?: -1,     //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_LENGTH
+                                riskProfile?.unconfirmedChainLength ?: -1,     //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_LENGTH
                                 riskProfile?.hasRbfRisk,                       //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_RBF_RISK
                                 riskProfile?.isDoubleSpend,                    //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_DOUBLE_SPEND
                                 rowItem.destinationAddress.orNull()?.toString(),//TransactionContract.TransactionSummary.DESTINATION_ADDRESS
-                                rowItem.toAddresses.joinToString(",")          //TransactionContract.TransactionSummary.TO_ADDRESSES
+                                rowItem.toAddresses.joinToString(",")  //TransactionContract.TransactionSummary.TO_ADDRESSES
                         )
                         addRow(columnValues)
                     }

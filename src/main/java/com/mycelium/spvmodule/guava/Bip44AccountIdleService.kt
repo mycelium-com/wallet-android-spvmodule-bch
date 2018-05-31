@@ -918,11 +918,7 @@ class Bip44AccountIdleService : Service() {
                 val bytes = ByteArray(20)
                 bytes[0] = (walletAccount.networkParameters.addressHeader and 0xFF).toByte()
                 inputs.add(TransactionDetails.Item(Address(walletAccount.networkParameters, bytes),
-                           if (input.value != null) {
-                               input.value!!.value
-                           } else {
-                               0
-                           }, input.isCoinBase))
+                           input.value?.value ?: 0, input.isCoinBase))
             } else {
                 val addressBitcoinJ = connectedOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
                 inputs.add(TransactionDetails.Item(addressBitcoinJ, input.value!!.value, input.isCoinBase))
@@ -936,9 +932,10 @@ class Bip44AccountIdleService : Service() {
             //val addressBitLib: Address = Address.fromString(addressBitcoinJ.toBase58(), networkParametersBitlib)
             outputs.add(TransactionDetails.Item(addressBitcoinJ, output.value!!.value, false))
         }
-        var height = -1
-        if (transactionBitcoinJ.confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING) {
-            height = transactionBitcoinJ.confidence.appearedAtChainHeight
+        val height = if (transactionBitcoinJ.confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING) {
+            transactionBitcoinJ.confidence.appearedAtChainHeight
+        } else {
+            -1
         }
         return TransactionDetails(Sha256Hash.wrap(hash),
                 height,
