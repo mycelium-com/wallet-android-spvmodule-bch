@@ -35,31 +35,31 @@
 package com.mycelium.spvmodule.currency;
 import java.math.BigDecimal;
 
-public class ExchangeBasedBitcoinValue extends ExchangeBasedCurrencyValue implements BitcoinValue {
+public class ExchangeBasedBitcoinCashValue extends ExchangeBasedCurrencyValue implements BitcoinCashValue {
 
-   private final Bitcoins value;
+   private final BitcoinsCash value;
 
    public static CurrencyValue fromValue(CurrencyValue currencyValue, ExchangeRateProvider exchangeRateManager) {
-      return ExchangeBasedCurrencyValue.fromValue(currencyValue, BTC, exchangeRateManager);
+      return ExchangeBasedCurrencyValue.fromValue(currencyValue, BCH, exchangeRateManager);
    }
 
-   protected ExchangeBasedBitcoinValue(String currency, BigDecimal value) {
+   protected ExchangeBasedBitcoinCashValue(String currency, BigDecimal value) {
       this(currency, value, null);
    }
 
-   protected ExchangeBasedBitcoinValue(String currency, BigDecimal value, ExactCurrencyValue basedOnExactValue) {
+   protected ExchangeBasedBitcoinCashValue(String currency, BigDecimal value, ExactCurrencyValue basedOnExactValue) {
       super(currency, basedOnExactValue);
       if (value != null) {
-         this.value = Bitcoins.nearestValue(value);
+         this.value = BitcoinsCash.nearestValue(value);
       } else {
          this.value = null;
       }
    }
 
-   protected ExchangeBasedBitcoinValue(String currency, Long satoshis, ExactCurrencyValue basedOnExactValue) {
+   protected ExchangeBasedBitcoinCashValue(String currency, Long satoshis, ExactCurrencyValue basedOnExactValue) {
       super(currency, basedOnExactValue);
       if (satoshis != null) {
-         this.value = Bitcoins.valueOf(satoshis);
+         this.value = BitcoinsCash.valueOf(satoshis);
       } else {
          this.value = null;
       }
@@ -68,13 +68,13 @@ public class ExchangeBasedBitcoinValue extends ExchangeBasedCurrencyValue implem
 
    // todo - optimize to bigdecimal/long ondemand caching
    @Override
-   public Bitcoins getAsBitcoin() {
+   public BitcoinsCash getAsBitcoinCash() {
       return value;
    }
 
    @Override
    public long getLongValue() {
-      return getAsBitcoin().getLongValue();
+      return getAsBitcoinCash().getLongValue();
    }
 
    @Override

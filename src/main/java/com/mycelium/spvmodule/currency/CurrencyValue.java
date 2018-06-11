@@ -40,7 +40,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 
 public abstract class CurrencyValue implements Serializable {
-   public static final String BTC = "BTC";
+   public static final String BCH = "BCH";
 
    public abstract String getCurrency();
 
@@ -87,24 +87,24 @@ public abstract class CurrencyValue implements Serializable {
       return value == null || value.getValue() == null || value.isZero();
    }
 
-   public boolean isBtc() {
-      return getCurrency().equals(BTC);
+   public boolean isBch() {
+      return getCurrency().equals(BCH);
    }
 
    public boolean isFiat() {
-      return !isBtc();
+      return !isBch();
    }
 
-   public BitcoinValue getBitcoinValue(ExchangeRateProvider exchangeRateManager) {
-      if (this instanceof BitcoinValue) {
-         return ((BitcoinValue) this);
+   public BitcoinCashValue getBitcoinCashValue(ExchangeRateProvider exchangeRateManager) {
+      if (this instanceof BitcoinCashValue) {
+         return ((BitcoinCashValue) this);
       } else {
          if (this instanceof ExactCurrencyValue) {
-            return (BitcoinValue) ExchangeBasedBitcoinValue.fromValue(this, exchangeRateManager);
+            return (BitcoinCashValue) ExchangeBasedBitcoinCashValue.fromValue(this, exchangeRateManager);
          } else if (this instanceof ExchangeBasedCurrencyValue) {
-            return (BitcoinValue) ExchangeBasedBitcoinValue.fromValue(this.getExactValue(), exchangeRateManager);
+            return (BitcoinCashValue) ExchangeBasedBitcoinCashValue.fromValue(this.getExactValue(), exchangeRateManager);
          } else {
-            throw new RuntimeException("Unable to convert to Bitcoin");
+            throw new RuntimeException("Unable to convert to Bitcoin Cash");
          }
       }
    }
@@ -155,8 +155,8 @@ public abstract class CurrencyValue implements Serializable {
       }
    }
 
-   public Bitcoins getAsBitcoin(ExchangeRateProvider exchangeRateManager) {
-      return getBitcoinValue(exchangeRateManager).getAsBitcoin();
+   public BitcoinsCash getAsBitcoinCash(ExchangeRateProvider exchangeRateManager) {
+      return getBitcoinCashValue(exchangeRateManager).getAsBitcoinCash();
    }
 
    public abstract ExactCurrencyValue getExactValue();

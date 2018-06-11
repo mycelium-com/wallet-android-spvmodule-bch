@@ -36,9 +36,62 @@ package com.mycelium.spvmodule.currency;
 
 import java.math.BigDecimal;
 
-public interface BitcoinValue {
-   Bitcoins getAsBitcoin();
-   long getLongValue();
-   BigDecimal getValue();
-   String getCurrency();
+public class ExactBitcoinCashValue extends ExactCurrencyValue implements BitcoinCashValue {
+   private final BitcoinsCash value;
+   public static final ExactCurrencyValue ZERO = from(0L);
+
+   public static ExactBitcoinCashValue from(BigDecimal value) {
+      return new ExactBitcoinCashValue(value);
+   }
+   public static ExactBitcoinCashValue from(Long value) {
+      return new ExactBitcoinCashValue(value);
+   }
+   public static ExactBitcoinCashValue from(BitcoinsCash value) {
+      return new ExactBitcoinCashValue(value);
+   }
+
+   protected ExactBitcoinCashValue(Long satoshis) {
+      if (satoshis != null) {
+         value = BitcoinsCash.valueOf(satoshis);
+      } else {
+         value = null;
+      }
+   }
+
+   protected ExactBitcoinCashValue(BitcoinsCash bitcoinsCash) {
+      value = bitcoinsCash;
+   }
+
+
+   protected ExactBitcoinCashValue(BigDecimal bitcoins) {
+      if (bitcoins != null) {
+         value = BitcoinsCash.nearestValue(bitcoins);
+      } else {
+         value = null;
+      }
+   }
+
+   @Override
+   public long getLongValue() {
+      return getAsBitcoinCash().getLongValue();
+   }
+
+   @Override
+   public BitcoinsCash getAsBitcoinCash() {
+      return value;
+   }
+
+   @Override
+   public String getCurrency() {
+      return CurrencyValue.BCH;
+   }
+
+   @Override
+   public BigDecimal getValue() {
+      if (value != null) {
+         return value.toBigDecimal();
+      } else {
+         return null;
+      }
+   }
 }

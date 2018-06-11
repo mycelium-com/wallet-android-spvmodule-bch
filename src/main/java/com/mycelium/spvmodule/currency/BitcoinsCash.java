@@ -29,7 +29,7 @@ import java.math.RoundingMode;
  *
  * @author apetersson
  */
-public final class Bitcoins implements Serializable {
+public final class BitcoinsCash implements Serializable {
     private static final long serialVersionUID = 1L;
 
     public static final long SATOSHIS_PER_BITCOIN = 100000000L;
@@ -62,26 +62,26 @@ public final class Bitcoins implements Serializable {
      *            if the given double value loses precision when converted to
      *            long
      */
-    public static Bitcoins valueOf(double btc) {
+    public static BitcoinsCash valueOf(double btc) {
         return valueOf(toLongExact(btc));
     }
 
-    public static Bitcoins valueOf(String btc) {
-        return Bitcoins.valueOf(new BigDecimal(btc).multiply(SATOSHIS_PER_BITCOIN_BD).longValueExact());
+    public static BitcoinsCash valueOf(String btc) {
+        return BitcoinsCash.valueOf(new BigDecimal(btc).multiply(SATOSHIS_PER_BITCOIN_BD).longValueExact());
     }
 
-    public static Bitcoins nearestValue(double v) {
-        return new Bitcoins(Math.round(v * SATOSHIS_PER_BITCOIN));
+    public static BitcoinsCash nearestValue(double v) {
+        return new BitcoinsCash(Math.round(v * SATOSHIS_PER_BITCOIN));
     }
 
-    public static Bitcoins nearestValue(BigDecimal bitcoinAmount) {
+    public static BitcoinsCash nearestValue(BigDecimal bitcoinAmount) {
         BigDecimal satoshis = bitcoinAmount.multiply(SATOSHIS_PER_BITCOIN_BD);
         long satoshisExact = satoshis.setScale(0, RoundingMode.HALF_UP).longValueExact();
-        return new Bitcoins(satoshisExact);
+        return new BitcoinsCash(satoshisExact);
     }
 
-    public static Bitcoins valueOf(long satoshis) {
-        return new Bitcoins(satoshis);
+    public static BitcoinsCash valueOf(long satoshis) {
+        return new BitcoinsCash(satoshis);
     }
 
     private static long toLongExact(double origValue) {
@@ -109,7 +109,7 @@ public final class Bitcoins implements Serializable {
     // return longSatoshis;
     // }
 
-    private Bitcoins(long satoshis) {
+    private BitcoinsCash(long satoshis) {
         if (satoshis < 0)
             throw new IllegalArgumentException(String.format("Bitcoin values must be debt-free and positive, but was %s",
                     satoshis));
@@ -123,8 +123,8 @@ public final class Bitcoins implements Serializable {
         return toBigDecimal().multiply(BigDecimal.valueOf(satoshis));
     }
 
-    protected Bitcoins parse(String input) {
-        return Bitcoins.valueOf(input);
+    protected BitcoinsCash parse(String input) {
+        return BitcoinsCash.valueOf(input);
     }
 
     @Override
@@ -158,9 +158,9 @@ public final class Bitcoins implements Serializable {
         if (o == null || getClass() != o.getClass())
             return false;
 
-        Bitcoins bitcoins = (Bitcoins) o;
+        BitcoinsCash bitcoinsCash = (BitcoinsCash) o;
 
-        return satoshis == bitcoins.satoshis;
+        return satoshis == bitcoinsCash.satoshis;
     }
 
     public BigInteger toBigInteger() {
@@ -179,8 +179,8 @@ public final class Bitcoins implements Serializable {
         return BITCOIN_SYMBOL + ' ' + toString(decimals);
     }
 
-    public Bitcoins roundToSignificantFigures(int n) {
-        return Bitcoins.valueOf(roundToSignificantFigures(satoshis, n));
+    public BitcoinsCash roundToSignificantFigures(int n) {
+        return BitcoinsCash.valueOf(roundToSignificantFigures(satoshis, n));
     }
 
     private static long roundToSignificantFigures(long num, int n) {

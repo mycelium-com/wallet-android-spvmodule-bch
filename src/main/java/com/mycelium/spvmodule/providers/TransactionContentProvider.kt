@@ -12,11 +12,13 @@ import com.mycelium.spvmodule.BuildConfig
 import com.mycelium.spvmodule.Constants
 import com.mycelium.spvmodule.SpvModuleApplication
 import com.mycelium.spvmodule.TransactionFee
-import com.mycelium.spvmodule.currency.ExactBitcoinValue
+import com.mycelium.spvmodule.currency.ExactBitcoinCashValue
 import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.guava.Bip44DownloadProgressTracker
 import com.mycelium.spvmodule.providers.TransactionContract.*
 import com.mycelium.spvmodule.providers.data.*
+import org.bitcoinj.core.Utils
+import java.util.*
 import java.util.concurrent.TimeUnit
 
 class TransactionContentProvider : ContentProvider() {
@@ -37,8 +39,44 @@ class TransactionContentProvider : ContentProvider() {
         val match = URI_MATCHER.match(uri)
         val service = Bip44AccountIdleService.getInstance()
         when (match) {
+            TRANSACTION_SUMMARY_LIST -> {
+                val transactionsSummary = when (selection) {
+                    TransactionSummary.SELECTION_ACCOUNT_INDEX -> {
+                        Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
+                        val accountIndex = selectionArgs!![0]
+                        service.getTransactionsSummary(accountIndex.toInt())
+                    }
+                    TransactionSummary.SELECTION_SINGLE_ADDRESS_ACCOUNT_GUID -> {
+                        Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST")
+                        val guid = selectionArgs!![0]
+                        service.getTransactionsSummary(guid)
+                    }
+                    else -> Collections.emptyList<com.mycelium.spvmodule.model.TransactionSummary>()
+                }
+                return TransactionsSummaryCursor(transactionsSummary.size).apply {
+                    for (rowItem in transactionsSummary) {
+                        val riskProfile = rowItem.confirmationRiskProfile.orNull()
+                        val columnValues = listOf(
+                                Utils.HEX.encode(rowItem.txid.bytes),          //TransactionContract.TransactionSummary._ID
+                                rowItem.value.value.toPlainString(),           //TransactionContract.TransactionSummary.VALUE
+                                if (rowItem.isIncoming) 1 else 0,              //TransactionContract.TransactionSummary.IS_INCOMING
+                                rowItem.time,                                  //TransactionContract.TransactionSummary.TIME
+                                rowItem.height,                                //TransactionContract.TransactionSummary.HEIGHT
+                                rowItem.confirmations,                         //TransactionContract.TransactionSummary.CONFIRMATIONS
+                                if (rowItem.isQueuedOutgoing) 1 else 0,        //TransactionContract.TransactionSummary.IS_QUEUED_OUTGOING
+                                riskProfile?.unconfirmedChainLength ?: -1,     //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_LENGTH
+                                riskProfile?.hasRbfRisk,                       //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_RBF_RISK
+                                riskProfile?.isDoubleSpend,                    //TransactionContract.TransactionSummary.CONFIRMATION_RISK_PROFILE_DOUBLE_SPEND
+                                rowItem.destinationAddress.orNull()?.toString(),//TransactionContract.TransactionSummary.DESTINATION_ADDRESS
+                                rowItem.toAddresses.joinToString(",")  //TransactionContract.TransactionSummary.TO_ADDRESSES
+                        )
+                        addRow(columnValues)
+                    }
+                }
+            }
+
             TRANSACTION_SUMMARY_ID -> {
-                Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_LIST $selection")
+                Log.d(LOG_TAG, "query, TRANSACTION_SUMMARY_ID $selection")
                 when (selection) {
                     TransactionSummary.SELECTION_ACCOUNT_INDEX -> {
                         val accountIndex = selectionArgs!!.get(0)
@@ -80,12 +118,25 @@ class TransactionContentProvider : ContentProvider() {
             TRANSACTION_DETAILS_ID ->
                 if (selection == TransactionDetails.SELECTION_ACCOUNT_INDEX) {
                     val cursor = TransactionDetailsCursor()
-                    val accountIndex = selectionArgs!!.get(0)
+                    val accountIndex = selectionArgs!![0]
+                    var accountUuid: UUID? = null
+                    var accountIdInt: Int = -1
+                    try {
+                        accountIdInt = accountIndex.toInt()
+                    } catch (e:NumberFormatException) {
+                        accountUuid = UUID.fromString(accountIndex)
+                    }
                     val hash = uri!!.lastPathSegment
-                    val transactionDetails = service.getTransactionDetails(accountIndex.toInt(), hash) ?: return cursor
+                    val transactionDetails = if (accountIdInt == -1) {
+                        service.getTransactionDetails(accountUuid!!, hash)
+                                ?: return cursor
+                    } else {
+                        service.getTransactionDetails(accountIndex.toInt(), hash)
+                                ?: return cursor
+                    }
 
-                    val inputs = transactionDetails.inputs.map { "${it.value} BTC${it.address}" }.joinToString(",")
-                    val outputs = transactionDetails.outputs.map { "${it.value} BTC${it.address}" }.joinToString(",")
+                    val inputs = transactionDetails.inputs.joinToString(",") { "${it.value} BCH${it.address}" }
+                    val outputs = transactionDetails.outputs.joinToString(",") { "${it.value} BCH${it.address}" }
                     val columnValues = listOf(
                         transactionDetails.hash.toString(), //TransactionContract.Transaction._ID
                         transactionDetails.height,       //TransactionContract.Transaction.HEIGHT
@@ -305,7 +356,7 @@ class TransactionContentProvider : ContentProvider() {
                 val riskProfile = rowItem.confirmationRiskProfile.orNull()
                 val columnValues = listOf(
                         rowItem.txid.toString(),                       //TransactionContract.TransactionSummary._ID
-                        (rowItem.value as ExactBitcoinValue).asBitcoin
+                        (rowItem.value as ExactBitcoinCashValue).asBitcoinCash
                                 .longValue.toString(),                 //TransactionContract.TransactionSummary.VALUE
                         if (rowItem.isIncoming) 1 else 0,              //TransactionContract.TransactionSummary.IS_INCOMING
                         rowItem.time,                                  //TransactionContract.TransactionSummary.TIME
