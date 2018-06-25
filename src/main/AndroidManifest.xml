@@ -19,7 +19,8 @@
         android:theme="@style/AppTheme" >
         <activity
             android:name=".PreferenceActivity"
-            android:label="@string/app_name" >            
+            android:label="@string/app_name"
+            android:theme="@style/MyceliumSettings">
             <intent-filter>
                 <action android:name="com.mycelium.action.SETTINGS" />
                 <category android:name="android.intent.category.DEFAULT" />
