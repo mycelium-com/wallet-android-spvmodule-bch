@@ -67,8 +67,8 @@ public abstract class ExchangeBasedCurrencyValue extends CurrencyValue {
 
    // create an instance without any underlying exact value
    static public CurrencyValue from(BigDecimal value, String currency) {
-      if (currency.equals(CurrencyValue.BTC)) {
-         return new ExchangeBasedBitcoinValue(currency, value);
+      if (currency.equals(CurrencyValue.BCH)) {
+         return new ExchangeBasedBitcoinCashValue(currency, value);
       } else {
          return new ExchangeBasedFiatValue(currency, value);
       }
@@ -85,8 +85,8 @@ public abstract class ExchangeBasedCurrencyValue extends CurrencyValue {
 
 
          if (fx.getSourcePrice() == null || fx.getTargetPrice() == null) {
-            if (targetCurrency.equals(CurrencyValue.BTC)) {
-               return new ExchangeBasedBitcoinValue(targetCurrency, (Long) null, value.getExactValue());
+            if (targetCurrency.equals(CurrencyValue.BCH)) {
+               return new ExchangeBasedBitcoinCashValue(targetCurrency, (Long) null, value.getExactValue());
             } else {
                return new ExchangeBasedFiatValue(targetCurrency, null, value.getExactValue());
             }
@@ -97,8 +97,8 @@ public abstract class ExchangeBasedCurrencyValue extends CurrencyValue {
          if (fromValueDecimal != null) {
             newValue = fromValueDecimal.divide(fx.getSourcePrice(), 8, RoundingMode.HALF_UP).multiply(fx.getTargetPrice());
          }
-         if (targetCurrency.equals(CurrencyValue.BTC)) {
-            return new ExchangeBasedBitcoinValue(targetCurrency, newValue, value.getExactValue());
+         if (targetCurrency.equals(CurrencyValue.BCH)) {
+            return new ExchangeBasedBitcoinCashValue(targetCurrency, newValue, value.getExactValue());
          } else {
             return new ExchangeBasedFiatValue(targetCurrency, newValue, value.getExactValue());
          }
@@ -113,8 +113,8 @@ public abstract class ExchangeBasedCurrencyValue extends CurrencyValue {
          GetExchangeRate fx = new GetExchangeRate(targetCurrency, sourceCurrency, exchangeRateManager).invoke();
 
          if (fx.getSourcePrice() == null || fx.getTargetPrice() == null) {
-            if (targetCurrency.equals(CurrencyValue.BTC)) {
-               return new ExchangeBasedBitcoinValue(targetCurrency, (Long) null, exactValue);
+            if (targetCurrency.equals(CurrencyValue.BCH)) {
+               return new ExchangeBasedBitcoinCashValue(targetCurrency, (Long) null, exactValue);
             } else {
                return new ExchangeBasedFiatValue(targetCurrency, null, exactValue);
             }
@@ -125,8 +125,8 @@ public abstract class ExchangeBasedCurrencyValue extends CurrencyValue {
          if (exactDecimal != null) {
             newValue = exactDecimal.multiply(fx.getRate());
          }
-         if (targetCurrency.equals(CurrencyValue.BTC)) {
-            return new ExchangeBasedBitcoinValue(targetCurrency, newValue, exactValue);
+         if (targetCurrency.equals(CurrencyValue.BCH)) {
+            return new ExchangeBasedBitcoinCashValue(targetCurrency, newValue, exactValue);
          } else {
             return new ExchangeBasedFiatValue(targetCurrency, newValue, exactValue);
          }
@@ -195,7 +195,7 @@ public abstract class ExchangeBasedCurrencyValue extends CurrencyValue {
          sourceExchangeRate = null;
          targetExchangeRate = null;
 
-         if (!sourceCurrency.equals(BTC)) {
+         if (!sourceCurrency.equals(BCH)) {
             sourceExchangeRate = exchangeRateManager.getExchangeRate(sourceCurrency);
             if (sourceExchangeRate != null && sourceExchangeRate.price != null) {
                sourcePrice = BigDecimal.valueOf(sourceExchangeRate.price);
@@ -204,7 +204,7 @@ public abstract class ExchangeBasedCurrencyValue extends CurrencyValue {
             sourcePrice = BigDecimal.ONE;
          }
 
-         if (!targetCurrency.equals(BTC)) {
+         if (!targetCurrency.equals(BCH)) {
             targetExchangeRate = exchangeRateManager.getExchangeRate(targetCurrency);
             if (targetExchangeRate != null && targetExchangeRate.price != null) {
                targetPrice = BigDecimal.valueOf(targetExchangeRate.price);

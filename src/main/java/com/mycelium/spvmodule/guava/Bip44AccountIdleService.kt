@@ -14,7 +14,7 @@ import android.widget.Toast
 import com.google.common.base.Optional
 import com.mrd.bitlib.StandardTransactionBuilder
 import com.mycelium.spvmodule.*
-import com.mycelium.spvmodule.currency.ExactBitcoinValue
+import com.mycelium.spvmodule.currency.ExactBitcoinCashValue
 import com.mycelium.spvmodule.model.TransactionDetails
 import com.mycelium.spvmodule.model.TransactionSummary
 import com.mycelium.spvmodule.providers.TransactionContract
@@ -846,11 +846,9 @@ class Bip44AccountIdleService : Service() {
 
             for (transactionOutput in transactionBitcoinJ.outputs) {
                 val toAddress = transactionOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
-
                 if (!transactionOutput.isMine(walletAccount)) {
                     destAddress = toAddress
                 }
-
                 toAddresses.add(toAddress)
             }
 
@@ -867,7 +865,7 @@ class Bip44AccountIdleService : Service() {
                 //continue
             }
 
-            val bitcoinValue =  ExactBitcoinValue.from(Math.abs(bitcoinJValue.value))
+            val bitcoinValue =  ExactBitcoinCashValue.from(Math.abs(bitcoinJValue.value))
 
             val transactionSummary = TransactionSummary(transactionBitcoinJ.hash,
                     bitcoinValue,
@@ -900,20 +898,27 @@ class Bip44AccountIdleService : Service() {
 
     fun getTransactionDetails(accountIndex: Int, hash: String): TransactionDetails? {
         propagate(Constants.CONTEXT)
-        Log.d(LOG_TAG, "getTransactionDetails, accountIndex = $accountIndex, hash = $hash")
         val walletAccount = walletsAccountsMap[accountIndex] ?: return null
+        return getTransactionDetails(walletAccount, hash)
+    }
+
+    fun getTransactionDetails(accountUuid: UUID, hash: String): TransactionDetails? {
+        propagate(Constants.CONTEXT)
+        val walletAccount = unrelatedAccountsMap[accountUuid.toString()] ?: return null
+        return getTransactionDetails(walletAccount, hash)
+    }
+
+    private fun getTransactionDetails(walletAccount: Wallet, hash: String): TransactionDetails? {
         val transactionBitcoinJ = walletAccount.getTransaction(Sha256Hash.wrap(hash))!!
         val inputs: MutableList<TransactionDetails.Item> = mutableListOf()
 
         for (input in transactionBitcoinJ.inputs) {
             val connectedOutput = input.outpoint.connectedOutput
             if (connectedOutput == null) {
-                /*   inputs.add(TransactionDetails.Item(Address.getNullAddress(networkParametersBitlib),
-                           if (input.value != null) {
-                               input.value!!.value
-                           } else {
-                               0
-                           }, input.isCoinBase))*/
+                val bytes = ByteArray(20)
+                bytes[0] = (walletAccount.networkParameters.addressHeader and 0xFF).toByte()
+                inputs.add(TransactionDetails.Item(Address(walletAccount.networkParameters, bytes),
+                           input.value?.value ?: 0, input.isCoinBase))
             } else {
                 val addressBitcoinJ = connectedOutput.scriptPubKey.getToAddress(walletAccount.networkParameters)
                 inputs.add(TransactionDetails.Item(addressBitcoinJ, input.value!!.value, input.isCoinBase))
@@ -927,8 +932,11 @@ class Bip44AccountIdleService : Service() {
             //val addressBitLib: Address = Address.fromString(addressBitcoinJ.toBase58(), networkParametersBitlib)
             outputs.add(TransactionDetails.Item(addressBitcoinJ, output.value!!.value, false))
         }
-
-        val height = transactionBitcoinJ.confidence.depthInBlocks
+        val height = if (transactionBitcoinJ.confidence.confidenceType == TransactionConfidence.ConfidenceType.BUILDING) {
+            transactionBitcoinJ.confidence.appearedAtChainHeight
+        } else {
+            -1
+        }
         return TransactionDetails(Sha256Hash.wrap(hash),
                 height,
                 (transactionBitcoinJ.updateTime.time / 1000).toInt(), inputs.toTypedArray(),
