@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Mycelium Bitcoin Cash Module</string>
     <string name="module_name"><![CDATA[Mycelium Bitcoin <font color="#f08c18">Cash</font> Module]]></string>
-    <string name="module_short_name">BCH Module</string>
+    <string name="module_short_name">BCH</string>
     <string name="module_description">Bitcoin Cash accounts support and BCH to BTC exchange.</string>
 
     <!-- Strings related to Settings -->
