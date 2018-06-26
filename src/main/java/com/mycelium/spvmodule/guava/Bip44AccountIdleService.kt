@@ -860,7 +860,7 @@ class Bip44AccountIdleService : Service() {
             val bitcoinJValue = transactionBitcoinJ.getValue(walletAccount)
             val isIncoming = bitcoinJValue.isPositive
 
-            val height = transactionBitcoinJ.confidence.depthInBlocks
+            val height = transactionBitcoinJ.confidence.appearedAtChainHeight
             if (height <= 0) {
                 //continue
             }
