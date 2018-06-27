@@ -64,33 +64,4 @@
         android:textColor="@android:color/holo_red_dark"
         android:textSize="16sp"
         android:visibility="gone" />
-
-    <LinearLayout
-        android:id="@+id/open"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginBottom="8dp"
-        android:layout_marginTop="24dp"
-        android:background="@drawable/background_action_btn"
-        android:gravity="center"
-        android:paddingEnd="24dp"
-        android:paddingStart="24dp">
-
-        <ImageView
-            android:layout_width="24dp"
-            android:layout_height="24dp"
-            android:src="@drawable/ic_mycelium_wallet" />
-
-        <TextView
-            android:id="@+id/open_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:fontFamily="sans-serif-medium"
-            android:text="@string/open_mycelium_wallet"
-            android:textAllCaps="true"
-            android:textColor="@color/white"
-            android:textSize="14sp" />
-    </LinearLayout>
 </LinearLayout>

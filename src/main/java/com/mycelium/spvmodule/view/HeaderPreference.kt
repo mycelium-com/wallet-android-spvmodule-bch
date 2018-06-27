@@ -32,7 +32,7 @@ class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(con
     private var button: TextView? = null
 
     init {
-        widgetLayoutResource = R.layout.preference_button
+        widgetLayoutResource = R.layout.preference_button_uninstall
     }
 
     override fun onBindViewHolder(holder: PreferenceViewHolder?) {
@@ -42,12 +42,10 @@ class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(con
         holder?.itemView?.apply {
             val buttonOpenText = if (isMBWInstalled) R.string.open_mycelium_wallet else R.string.install_mycelium_wallet
             val textVisibility = if (isMBWInstalled) View.GONE else View.VISIBLE
-
-            (holder.itemView?.findViewById<View>(R.id.open_text) as TextView).setText(buttonOpenText)
+            val secondButton = holder.itemView?.findViewById<View>(R.id.second_button) as TextView
+            secondButton.setText(buttonOpenText)
             (holder.itemView?.findViewById<View>(R.id.installWarning))?.visibility = textVisibility
-            val openButton = findViewById<View>(R.id.open)
-            openButton.visibility = if (isMBWInstalled) View.GONE else View.VISIBLE
-            openButton.setOnClickListener {
+            secondButton.setOnClickListener {
                 openListener?.invoke()
             }
             isClickable = false
@@ -68,7 +66,7 @@ class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(con
                 expand = !expand
                 updateDescription(it, expand)
             }
-            button = findViewById(R.id.preference_button)
+            button = findViewById(R.id.first_button)
             button?.text = buttonText
             button?.setOnClickListener {
                 buttonListener?.invoke()

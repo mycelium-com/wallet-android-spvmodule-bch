@@ -17,57 +17,19 @@
 
 package com.mycelium.spvmodule
 
-import android.content.ActivityNotFoundException
-import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.text.Html
-import android.util.Log
-import android.view.MenuItem
 
 class PreferenceActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_preference)
         title = getString(R.string.settings_title)
-        if (intent?.hasExtra("callingPackage") == true) {
-            supportActionBar?.setDisplayHomeAsUpEnabled(true)
-            supportActionBar?.setHomeAsUpIndicator(R.drawable.ic_back_arrow)
-        }
         if (savedInstanceState == null) {
             val settingsFragment = SettingsFragment()
             val ft = supportFragmentManager.beginTransaction()
             ft.add(R.id.fragment_container, settingsFragment)
             ft.commit()
         }
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem?): Boolean {
-        if (item!!.itemId == android.R.id.home) {
-            val mbwModulePackage = SpvModuleApplication.getMbwModulePackage()
-
-            val isMBWInstalled = SpvModuleApplication.isMbwInstalled(this)
-
-            if (isMBWInstalled) {
-                val walletPackage = mbwModulePackage
-                if (intent?.getStringExtra("callingPackage") != walletPackage) {
-                    val intent = Intent(Intent.ACTION_MAIN)
-                    intent.`package` = walletPackage
-                    try {
-                        startActivity(intent)
-                    } catch (e: ActivityNotFoundException) {
-                        Log.e("PreferenceActivity", "Something wrong with wallet", e)
-                    }
-                }
-                finish()
-            } else {
-                val installIntent = Intent(Intent.ACTION_VIEW)
-                installIntent.data = Uri.parse("https://play.google.com/store/apps/details?id=" + mbwModulePackage)
-                startActivity(installIntent)
-            }
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 }

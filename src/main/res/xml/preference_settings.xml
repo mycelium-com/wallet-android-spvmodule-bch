@@ -4,9 +4,7 @@
         android:key="header"
         android:layout="@layout/part_preference_header" />
     <PreferenceCategory
-        android:key="bitcoin_cash_settings"
-        android:layout="@layout/preference_category_layout_first_item"
-        android:title="@string/bitcoin_cash_setting_section">
+        android:layout="@layout/preference_category_layout_first_item">
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="connectivity_notification"
@@ -38,6 +36,5 @@
                 android:targetPackage="com.android.settings" />
         </Preference>
     </PreferenceCategory>
-    <!--<Preference android:layout="@layout/part_preference_footer" />-->
     <PreferenceCategory android:layout="@layout/preference_category_end_space"/>
 </PreferenceScreen>
