@@ -4,66 +4,6 @@
     <string name="module_short_name">BCH Module</string>
     <string name="module_description">Bitcoin Cash accounts support and BCH to BTC exchange.</string>
 
-    <!-- Strings related to Settings -->
-
-    <!-- Example General settings -->
-    <string name="pref_header_general">General</string>
-
-    <string name="pref_title_social_recommendations">Enable social recommendations</string>
-    <string name="pref_description_social_recommendations">Recommendations for people to contact
-        based on your message history
-    </string>
-
-    <string name="pref_title_display_name">Display name</string>
-    <string name="pref_default_display_name">John Smith</string>
-
-    <string name="pref_title_add_friends_to_messages">Add friends to messages</string>
-    <string-array name="pref_example_list_titles">
-        <item>Always</item>
-        <item>When possible</item>
-        <item>Never</item>
-    </string-array>
-    <string-array name="pref_example_list_values">
-        <item>1</item>
-        <item>0</item>
-        <item>-1</item>
-    </string-array>
-
-    <!-- Example settings for Data & Sync -->
-    <string name="pref_header_data_sync">Data &amp; sync</string>
-
-    <string name="pref_title_sync_frequency">Sync frequency</string>
-    <string-array name="pref_sync_frequency_titles">
-        <item>15 minutes</item>
-        <item>30 minutes</item>
-        <item>1 hour</item>
-        <item>3 hours</item>
-        <item>6 hours</item>
-        <item>Never</item>
-    </string-array>
-    <string-array name="pref_sync_frequency_values">
-        <item>15</item>
-        <item>30</item>
-        <item>60</item>
-        <item>180</item>
-        <item>360</item>
-        <item>-1</item>
-    </string-array>
-
-    <string name="pref_title_system_sync_settings">System sync settings</string>
-
-    <!-- Example settings for Notifications -->
-    <string name="pref_header_notifications">Notifications</string>
-
-    <string name="pref_title_new_message_notifications">New message notifications</string>
-
-    <string name="pref_title_ringtone">Ringtone</string>
-    <string name="pref_ringtone_silent">Silent</string>
-
-    <string name="pref_title_vibrate">Vibrate</string>
-    <string name="remote_service_started">SPV service started</string>
-    <string name="remote_service_stopped">SPV service stopped</string>
-    <string name="local_service_label">SPV Service</string>
     <plurals name="notification_peers_connected_msg">
         <item quantity="one">One peer connected.</item>
         <item quantity="other">%d peers connected.</item>
@@ -72,24 +12,13 @@
     <string name="notification_chain_status_synchronized">Fully synchronized.</string>
     <string name="notification_chain_status_impediment">Chain syncing problem: %s</string>
 
-    <string name="preferences_activity_title">Settings</string>
     <string name="preferences_connectivity_notification_title">Connectivity indicator</string>
     <string name="preferences_connectivity_notification_summary">Always show current number of connected peers in the notification area.</string>
     <string name="preferences_trusted_peer_title">Trusted peer</string>
     <string name="preferences_trusted_peer_summary">IP or hostname of single peer to connect to.</string>
-    <string name="preferences_trusted_peer_only_title">Skip regular peer discovery</string>
-    <string name="preferences_trusted_peer_only_summary">Prevents connecting to any peers besides the trusted peer.</string>
     <string name="preferences_data_usage_title">Data usage</string>
     <string name="preferences_data_usage_summary">Show options to restrict data usage on mobile networks.</string>
-    <string name="about_title">About</string>
-    <string name="watched_addresses_title">Watched Addresses</string>
-    <string name="transaction_list_title">Recorded Transactions</string>
-    <string name="missing_transaction_id">missing transaction id</string>
-    <string name="unconfirmed">unconfirmed</string>
-    <string name="missing_account">missing account</string>
     <string name="pref_title_sync_progress">Sync progress: %s%%.</string>
-    <string name="mycelium_wallet">Mycelium Wallet</string>
-    <string name="start_wallet_application">Open the wallet application</string>
     <string name="inner_module_description"><![CDATA[This module is part of _logo_ Mycelium. It allows to find unretrieved Bitcoin <font color="#f08c18">Cash</font> and instantly exchange it to Bitcoin. Full Bitcoin <font color="#f08c18">Cash</font> support is coming soon.]]></string>
     <string name="open_mycelium_wallet">Open Mycelium Wallet</string>
     <string name="install_mycelium_wallet">Install Mycelium Wallet</string>
