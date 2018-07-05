@@ -17,6 +17,7 @@
 
 package com.mycelium.spvmodule
 
+import android.app.Activity.RESULT_CANCELED
 import android.app.AlertDialog
 import android.content.*
 import android.content.pm.PackageManager
@@ -29,13 +30,16 @@ import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.preference.ListPreference
 import android.support.v7.preference.Preference
 import android.support.v7.preference.PreferenceFragmentCompat
+import android.text.Html
 import android.util.Log
 import android.view.View
 import com.google.common.base.Strings
-import com.mycelium.spvmodule.guava.Bip44AccountIdleService
 import com.mycelium.spvmodule.guava.Bip44DownloadProgressTracker
+import com.mycelium.spvmodule.helper.DisplayPreferenceDialogHandler
 import com.mycelium.spvmodule.view.HeaderPreference
 import java.text.DecimalFormat
+
+private const val REQUEST_CODE_UNINSTALL = 1
 
 class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChangeListener {
     private var application: SpvModuleApplication? = null
@@ -47,10 +51,12 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     private var backgroundHandler: Handler? = null
 
     private var trustedPeerPreference: Preference? = null
-    private var syncProgressPreference: Preference? = null
     private var nodeOptionPref: ListPreference? = null
 
+    private lateinit var header: HeaderPreference
+
     private val chainStateBroadcastReceiver: ChainStateBroadcastReceiver = SettingsFragment.ChainStateBroadcastReceiver(this)
+    private var displayPreferenceDialogHandler: DisplayPreferenceDialogHandler? = null
 
     override fun onAttach(context: Context) {
         super.onAttach(context)
@@ -66,17 +72,19 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         backgroundThread = HandlerThread("backgroundThread", Process.THREAD_PRIORITY_BACKGROUND)
         backgroundThread!!.start()
         backgroundHandler = Handler(backgroundThread!!.looper)
-        val header = findPreference(Configuration.PREFS_KEY_HEADER) as HeaderPreference
+        header = findPreference(Configuration.PREFS_KEY_HEADER) as HeaderPreference
+        header.title = Html.fromHtml(getString(R.string.module_name))
+        header.summary = BuildConfig.VERSION_NAME
+        header.icon = resources.getDrawable(R.drawable.image_bch_module)
         header.openListener = {
             val mbwModulePackage = SpvModuleApplication.getMbwModulePackage()
 
             val isMBWInstalled = SpvModuleApplication.isMbwInstalled(context!!)
 
             if (isMBWInstalled) {
-                val walletPackage = mbwModulePackage
-                if (activity?.intent?.getStringExtra("callingPackage") != walletPackage) {
+                if (activity?.intent?.getStringExtra("callingPackage") != mbwModulePackage) {
                     val intent = Intent(Intent.ACTION_MAIN)
-                    intent.`package` = walletPackage
+                    intent.`package` = mbwModulePackage
                     try {
                         startActivity(intent)
                     } catch (e: ActivityNotFoundException) {
@@ -86,12 +94,19 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
                 activity?.finish()
             } else {
                 val installIntent = Intent(Intent.ACTION_VIEW)
-                installIntent.data = Uri.parse("https://play.google.com/store/apps/details?id=" + mbwModulePackage)
+                installIntent.data = Uri.parse("https://play.google.com/store/apps/details?id=$mbwModulePackage")
                 startActivity(installIntent)
             }
         }
+        header.setButtonText(getString(R.string.uninstall))
+        header.buttonListener = {
+            val packageUri = Uri.parse("package:" + BuildConfig.APPLICATION_ID)
+            header.isEnabled = false
+            startActivityForResult(Intent(Intent.ACTION_UNINSTALL_PACKAGE, packageUri)
+                    .putExtra(Intent.EXTRA_RETURN_RESULT, true), REQUEST_CODE_UNINSTALL)
+        }
 
-        nodeOptionPref  = findPreference(Configuration.PREFS_NODE_OPTION) as ListPreference?
+        nodeOptionPref = findPreference(Configuration.PREFS_NODE_OPTION) as ListPreference?
         nodeOptionPref!!.onPreferenceChangeListener = this
         trustedPeerPreference = findPreference(Configuration.PREFS_KEY_TRUSTED_PEER)
         trustedPeerPreference!!.onPreferenceChangeListener = this
@@ -99,28 +114,39 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
         val dataUsagePreference = findPreference(Configuration.PREFS_KEY_DATA_USAGE)
         dataUsagePreference.isEnabled = pm!!.resolveActivity(dataUsagePreference.intent, 0) != null
 
-        syncProgressPreference = findPreference(Configuration.PREFS_KEY_SYNC_PROGRESS)
         updateSyncProgress()
 
         updateTrustedPeer()
         LocalBroadcastManager.getInstance(application!!).registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
+
+        displayPreferenceDialogHandler = DisplayPreferenceDialogHandler(activity)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         listView.setPadding(0, 0, 0, 0)
+        setDivider(resources.getDrawable(R.drawable.pref_list_divider))
     }
 
     private fun updateSyncProgress() {
         val syncProgress = Bip44DownloadProgressTracker.getSyncProgress()
         val format = DecimalFormat(if (syncProgress < 0.1f) "#.###" else "#.##")
-        syncProgressPreference?.title = getString(R.string.pref_title_sync_progress
-                , format.format(syncProgress))
+        val syncStatus = if (syncProgress == 100f) getString(R.string.fully_synced)
+        else getString(R.string.sync_progress, format.format(syncProgress))
+        header.setSyncStateText(syncStatus)
     }
 
     class ChainStateBroadcastReceiver(private var fragment: SettingsFragment) : BroadcastReceiver() {
         override fun onReceive(p0: Context?, p1: Intent?) {
             fragment.updateSyncProgress()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == REQUEST_CODE_UNINSTALL) {
+            if (resultCode == RESULT_CANCELED) {
+                header.isEnabled = true
+            }
         }
     }
 
@@ -169,10 +195,11 @@ class SettingsFragment : PreferenceFragmentCompat(), Preference.OnPreferenceChan
     private fun updateTrustedPeer() {
         val trustedPeer = config!!.trustedPeerHost
         trustedPeerPreference!!.isVisible = nodeOptionPref!!.value == "custom"
-        trustedPeerPreference!!.setSummary(Strings.emptyToNull(trustedPeer) ?: getString(R.string.preferences_trusted_peer_summary))
+        trustedPeerPreference!!.summary = Strings.emptyToNull(trustedPeer)
+                ?: getString(R.string.preferences_trusted_peer_summary)
     }
 
-    companion object {
-        val LOG_TAG = "SettingsFragment"
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        displayPreferenceDialogHandler?.onDisplayPreferenceDialog(preference)
     }
 }

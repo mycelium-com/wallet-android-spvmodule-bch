@@ -9,40 +9,90 @@ import android.text.SpannableStringBuilder
 import android.text.style.ImageSpan
 import android.util.AttributeSet
 import android.view.View
-import android.widget.Button
+import android.widget.ImageView
 import android.widget.TextView
 import com.mycelium.spvmodule.R
 import com.mycelium.spvmodule.SpvModuleApplication
 
 
+private val DESCRIPTION_FIRST_SHOW = "description_first_show"
+
 class HeaderPreference(context: Context?, attrs: AttributeSet?) : Preference(context, attrs) {
     var openListener: (() -> Unit)? = null
+    var buttonListener: (() -> Unit)? = null
+
+    private var syncState: TextView? = null
+    private var syncStateText: String? = null
+
+    private var descriptionView: TextView? = null
+    private var descriptionView2: TextView? = null
+    private var expand = false
+
+    private var buttonText: String? = null
+    private var button: TextView? = null
+
+    init {
+        widgetLayoutResource = R.layout.preference_button_uninstall
+    }
 
     override fun onBindViewHolder(holder: PreferenceViewHolder?) {
         super.onBindViewHolder(holder)
         val isMBWInstalled = SpvModuleApplication.isMbwInstalled(context)
 
         holder?.itemView?.apply {
-            val buttonText = if (isMBWInstalled) R.string.open_mycelium_wallet else R.string.install_mycelium_wallet
+            val buttonOpenText = if (isMBWInstalled) R.string.open_mycelium_wallet else R.string.install_mycelium_wallet
             val textVisibility = if (isMBWInstalled) View.GONE else View.VISIBLE
-
-            (holder.itemView?.findViewById<View>(R.id.open_text) as TextView).setText(buttonText)
+            val secondButton = holder.itemView?.findViewById<View>(R.id.second_button) as TextView
+            secondButton.setText(buttonOpenText)
             (holder.itemView?.findViewById<View>(R.id.installWarning))?.visibility = textVisibility
-
-            findViewById<View>(R.id.open)?.setOnClickListener {
+            secondButton.setOnClickListener {
                 openListener?.invoke()
             }
             isClickable = false
-            val descriptionView = findViewById<TextView>(R.id.description)
+            descriptionView2 = findViewById(R.id.description_2)
+            descriptionView = findViewById(R.id.description)
             val description = Html.fromHtml(context.getString(R.string.inner_module_description))
-            val ssb = SpannableStringBuilder(description)
-            val tag = "_logo_"
-            val startIndex = description.indexOf(tag)
-            val lineHeight = 3 * (descriptionView?.lineHeight ?: 0) / 2
-            val logo = context.resources.getDrawable(R.drawable.ic_mycelium_wallet)
-            logo.setBounds(0, 0, lineHeight, lineHeight)
-            ssb.setSpan(ImageSpan(logo), startIndex, startIndex + tag.length, Spannable.SPAN_INCLUSIVE_INCLUSIVE)
-            findViewById<TextView>(R.id.description)?.setText(ssb, TextView.BufferType.SPANNABLE)
+            findViewById<TextView>(R.id.description)?.text = description
+
+            syncState = findViewById(R.id.sync_state)
+            syncState?.text = syncStateText
+
+            val moreDescription = findViewById<ImageView>(R.id.more_description)
+            expand = sharedPreferences.getBoolean(DESCRIPTION_FIRST_SHOW, true)
+            updateDescription(moreDescription, expand);
+            sharedPreferences.edit().putBoolean(DESCRIPTION_FIRST_SHOW, false).apply()
+
+            moreDescription.setOnClickListener {
+                expand = !expand
+                updateDescription(it, expand)
+            }
+            button = findViewById(R.id.first_button)
+            button?.text = buttonText
+            button?.setOnClickListener {
+                buttonListener?.invoke()
+            }
         }
     }
+
+    private fun updateDescription(it: View, expand: Boolean) {
+        it.rotation = if (expand) 180f else 0f
+        if (expand) {
+            descriptionView2?.visibility = View.VISIBLE
+            descriptionView?.maxLines = 10
+        } else {
+            descriptionView2?.visibility = View.GONE
+            descriptionView?.maxLines = 2
+        }
+    }
+
+    fun setSyncStateText(syncStateText: String) {
+        this.syncStateText = syncStateText
+        syncState?.text = syncStateText
+    }
+
+    fun setButtonText(text: String) {
+        buttonText = text
+        button?.text = text
+    }
+
 }

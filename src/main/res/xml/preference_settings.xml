@@ -4,18 +4,17 @@
         android:key="header"
         android:layout="@layout/part_preference_header" />
     <PreferenceCategory
-        android:key="bitcoin_cash_settings"
-        android:layout="@layout/preference_category_layout"
-        android:title="@string/bitcoin_cash_setting_section">
+        android:layout="@layout/preference_category_layout_first_item">
         <CheckBoxPreference
             android:defaultValue="true"
             android:key="connectivity_notification"
-            android:layout="@layout/preference_layout"
+            android:layout="@layout/preference_layout_no_icon"
             android:summary="@string/preferences_connectivity_notification_summary"
-            android:title="@string/preferences_connectivity_notification_title" />
+            android:title="@string/preferences_connectivity_notification_title"
+            android:widgetLayout="@layout/preference_switch"/>
         <ListPreference
             android:key="node_option"
-            android:layout="@layout/preference_layout"
+            android:layout="@layout/preference_layout_no_icon"
             android:title="Select peers"
             android:summary="%s"
             android:defaultValue="mycelium"
@@ -23,18 +22,13 @@
             android:entryValues="@array/nodeOptionValues" />
         <EditTextPreference
             android:key="trusted_peer"
-            android:layout="@layout/preference_layout"
+            android:layout="@layout/preference_layout_no_icon"
             android:singleLine="false"
             android:summary="@string/preferences_trusted_peer_summary"
             android:title="@string/preferences_trusted_peer_title" />
         <Preference
-            android:key="sync_progress"
-            android:summary=""
-            android:layout="@layout/preference_layout"
-            android:title="@string/sync_progress" />
-        <Preference
             android:key="data_usage"
-            android:layout="@layout/preference_layout"
+            android:layout="@layout/preference_layout_no_icon"
             android:summary="@string/preferences_data_usage_summary"
             android:title="@string/preferences_data_usage_title">
             <intent
@@ -42,5 +36,5 @@
                 android:targetPackage="com.android.settings" />
         </Preference>
     </PreferenceCategory>
-    <Preference android:layout="@layout/part_preference_footer" />
+    <PreferenceCategory android:layout="@layout/preference_category_end_space"/>
 </PreferenceScreen>

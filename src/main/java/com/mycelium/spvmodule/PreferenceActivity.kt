@@ -19,13 +19,12 @@ package com.mycelium.spvmodule
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.text.Html
 
 class PreferenceActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_preference)
-        title = Html.fromHtml(getString(R.string.module_name))
+        title = getString(R.string.settings_title)
         if (savedInstanceState == null) {
             val settingsFragment = SettingsFragment()
             val ft = supportFragmentManager.beginTransaction()
