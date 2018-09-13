@@ -1032,7 +1032,7 @@ class Bip44AccountIdleService : Service() {
         val walletAccount = walletsAccountsMap[accountIndex] ?: return null
         val balance = walletAccount.balance
         val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
-        val feeToUse = StandardTransactionBuilder.estimateFee(walletAccount.unspents.size, 1, feePerKb.value)
+        val feeToUse = StandardTransactionBuilder.estimateFee(walletAccount.unspents.size, 1, 0,feePerKb.value)
 
         return balance.subtract(Coin.valueOf(feeToUse))
     }
@@ -1043,7 +1043,7 @@ class Bip44AccountIdleService : Service() {
         val walletAccount = unrelatedAccountsMap[guid] ?: return null
         val balance = walletAccount.balance
         val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
-        val feeToUse = StandardTransactionBuilder.estimateFee(walletAccount.unspents.size, 1, feePerKb.value)
+        val feeToUse = StandardTransactionBuilder.estimateFee(walletAccount.unspents.size, 1, 0,feePerKb.value)
 
         return balance.subtract(Coin.valueOf(feeToUse))
     }
@@ -1109,7 +1109,7 @@ class Bip44AccountIdleService : Service() {
         val coinSelection = walletAccount!!.coinSelector.select(Coin.valueOf(amountToTransfer), walletAccount.unspents)
 
         val outputsNumber = if (amountToTransfer < walletAccount.balance.value) 2 else 1
-        val feeEstimated = StandardTransactionBuilder.estimateFee(coinSelection.gathered.size, outputsNumber, feePerKb.value)
+        val feeEstimated = StandardTransactionBuilder.estimateFee(coinSelection.gathered.size, outputsNumber, 0,feePerKb.value)
 
         if (amountToTransfer <= 0) {
             return Coin.valueOf(0)
