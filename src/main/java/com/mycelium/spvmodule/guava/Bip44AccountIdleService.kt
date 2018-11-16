@@ -12,7 +12,7 @@ import android.os.PowerManager
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
-import com.mrd.bitlib.StandardTransactionBuilder
+import com.mrd.bitlib.FeeEstimatorBuilder
 import com.mycelium.spvmodule.*
 import com.mycelium.spvmodule.currency.ExactBitcoinCashValue
 import com.mycelium.spvmodule.model.TransactionDetails
@@ -1032,7 +1032,11 @@ class Bip44AccountIdleService : Service() {
         val walletAccount = walletsAccountsMap[accountIndex] ?: return null
         val balance = walletAccount.balance
         val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
-        val feeToUse = StandardTransactionBuilder.estimateFee(walletAccount.unspents.size, 1, feePerKb.value)
+        val estimator = FeeEstimatorBuilder().setLegacyInputs(walletAccount.unspents.size)
+                .setLegacyOutputs(1)
+                .setMinerFeePerKb(feePerKb.value)
+                .createFeeEstimator()
+        val feeToUse = estimator.estimateFee()
 
         return balance.subtract(Coin.valueOf(feeToUse))
     }
@@ -1043,7 +1047,11 @@ class Bip44AccountIdleService : Service() {
         val walletAccount = unrelatedAccountsMap[guid] ?: return null
         val balance = walletAccount.balance
         val feePerKb = Constants.minerFeeValue(txFee, txFeeFactor)
-        val feeToUse = StandardTransactionBuilder.estimateFee(walletAccount.unspents.size, 1, feePerKb.value)
+        val estimator = FeeEstimatorBuilder().setLegacyInputs(walletAccount.unspents.size)
+                .setLegacyOutputs(1)
+                .setMinerFeePerKb(feePerKb.value)
+                .createFeeEstimator()
+        val feeToUse = estimator.estimateFee()
 
         return balance.subtract(Coin.valueOf(feeToUse))
     }
@@ -1109,7 +1117,11 @@ class Bip44AccountIdleService : Service() {
         val coinSelection = walletAccount!!.coinSelector.select(Coin.valueOf(amountToTransfer), walletAccount.unspents)
 
         val outputsNumber = if (amountToTransfer < walletAccount.balance.value) 2 else 1
-        val feeEstimated = StandardTransactionBuilder.estimateFee(coinSelection.gathered.size, outputsNumber, feePerKb.value)
+        val estimator = FeeEstimatorBuilder().setLegacyInputs(coinSelection.gathered.size)
+                .setLegacyOutputs(outputsNumber)
+                .setMinerFeePerKb(feePerKb.value)
+                .createFeeEstimator()
+        val feeEstimated = estimator.estimateFee()
 
         if (amountToTransfer <= 0) {
             return Coin.valueOf(0)
