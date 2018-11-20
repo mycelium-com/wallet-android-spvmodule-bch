@@ -43,13 +43,15 @@ class SpvService : IntentService("SpvService") {
             val service = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val CHANNEL_ID = "spv service"
             val channel = NotificationChannel(CHANNEL_ID, "SPV Service",
-                    NotificationManager.IMPORTANCE_DEFAULT)
-
+                    NotificationManager.IMPORTANCE_LOW)
+            channel.enableVibration(false)
             service.createNotificationChannel(channel)
 
             val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
                     .setSmallIcon(com.mycelium.spvmodule.R.drawable.ic_launcher)
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setPriority(NotificationCompat.PRIORITY_MIN)
+                    .setVibrate(null)
+                    .setSound(null)
                     .setCategory(NotificationCompat.CATEGORY_SERVICE)
                     .setContentTitle("Title title")
                     .setContentText("Text text")

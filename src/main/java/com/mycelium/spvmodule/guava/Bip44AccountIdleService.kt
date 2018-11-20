@@ -103,7 +103,6 @@ class Bip44AccountIdleService : Service() {
         initializeWalletsAccounts()
         initializePeergroup()
         checkImpediments()
-        notificationManager = Bip44NotificationManager(this)
         runOneIteration()
 
         synchronized (initializingMonitor) {
@@ -115,22 +114,7 @@ class Bip44AccountIdleService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        if (Build.VERSION.SDK_INT >= 26) {
-            val CHANNEL_ID = "idle service"
-            val channel = NotificationChannel(CHANNEL_ID, "idle service", NotificationManager.IMPORTANCE_DEFAULT)
-
-            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
-
-            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_launcher)
-                    .setContentTitle("SPV module sync service")
-                    .setContentText("This service syncs accounts with the network.")
-                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
-                    .build()
-
-            startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
-        }
+        notificationManager = Bip44NotificationManager(this)
     }
 
     override fun onDestroy() {

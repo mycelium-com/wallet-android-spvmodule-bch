@@ -21,6 +21,7 @@ import org.bitcoinj.crypto.LinuxSecureRandom
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.SendRequest
 import org.bitcoinj.wallet.Wallet
+import java.lang.IllegalStateException
 
 class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var configuration: Configuration? = null
@@ -86,10 +87,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 SpvService::class.java)
 
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
-        if (Build.VERSION.SDK_INT >= 26) {
-            startForegroundService(serviceIntent)
-        } else {
+        try {
             startService(serviceIntent)
+        } catch (e: IllegalStateException) {
+            Log.e(LOG_TAG, "", e) // often throw after update mbw application with exception "process is bad"
         }
     }
 
@@ -155,10 +156,10 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 serviceIntent.putExtra(IntentContract.RESET_BLOCKCHAIN_STATE, true)
             }
             Log.d(LOG_TAG, "restartBip44AccountIdleService, startAsync")
-            if (Build.VERSION.SDK_INT >= 26) {
-                startForegroundService(serviceIntent)
-            } else {
+            try {
                 startService(serviceIntent)
+            } catch (e: IllegalStateException) {
+                Log.e(LOG_TAG, "", e) // often throw after update mbw application with exception "process is bad"
             }
             Log.d(LOG_TAG, "restartBip44AccountIdleService, DONE")
         }
