@@ -1,12 +1,11 @@
 package com.mycelium.spvmodule.guava
 
 import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
+import android.os.Build
 import android.support.v4.app.NotificationCompat
 import android.support.v4.content.LocalBroadcastManager
 import com.mycelium.spvmodule.*
@@ -67,6 +66,15 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
 
     private fun buildNotification(): Notification? {
         val CHANNEL_ID = "idle service"
+
+        if (Build.VERSION.SDK_INT >= 26) {
+            val service = bip44IdleServiceInstance?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val channel = NotificationChannel(CHANNEL_ID, "Message Receiver",
+                    NotificationManager.IMPORTANCE_LOW)
+            channel.enableVibration(false)
+
+            service.createNotificationChannel(channel)
+        }
         return NotificationCompat.Builder(spvModuleApplication, CHANNEL_ID).apply {
             setSmallIcon(R.drawable.stat_sys_peers, if (peerCount > 4) 4 else peerCount)
             setContentTitle(spvModuleApplication.getString(R.string.app_name))
