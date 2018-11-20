@@ -51,9 +51,11 @@ class SpvService : IntentService("SpvService") {
                     .setSmallIcon(com.mycelium.spvmodule.R.drawable.ic_launcher)
                     .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                     .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                    .setContentTitle("Title title")
+                    .setContentText("Text text")
                     .build()
 
-            startForeground(3, notification)
+            startForeground(51554, notification)
         }
     }
 

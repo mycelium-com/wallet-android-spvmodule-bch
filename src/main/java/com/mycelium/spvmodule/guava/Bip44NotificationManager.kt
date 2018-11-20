@@ -8,9 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.support.v4.content.LocalBroadcastManager
-import android.text.format.DateUtils
 import com.mycelium.spvmodule.*
-import java.util.*
 
 class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44AccountIdleService?) {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
