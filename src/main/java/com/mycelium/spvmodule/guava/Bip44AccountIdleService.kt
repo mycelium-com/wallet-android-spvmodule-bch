@@ -125,9 +125,11 @@ class Bip44AccountIdleService : Service() {
                     .setSmallIcon(R.drawable.ic_launcher)
                     .setContentTitle("SPV module sync service")
                     .setContentText("This service syncs accounts with the network.")
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
                     .build()
 
-            startForeground(7, notification)
+            startForeground(Constants.NOTIFICATION_ID_CONNECTED, notification)
         }
     }
 

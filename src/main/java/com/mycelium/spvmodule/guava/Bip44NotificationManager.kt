@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.support.v4.app.NotificationCompat
 import android.support.v4.content.LocalBroadcastManager
 import com.mycelium.spvmodule.*
 
@@ -65,7 +66,8 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
     }
 
     private fun buildNotification(): Notification? {
-        return Notification.Builder(spvModuleApplication).apply {
+        val CHANNEL_ID = "idle service"
+        return NotificationCompat.Builder(spvModuleApplication, CHANNEL_ID).apply {
             setSmallIcon(R.drawable.stat_sys_peers, if (peerCount > 4) 4 else peerCount)
             setContentTitle(spvModuleApplication.getString(R.string.app_name))
             var contentText = spvModuleApplication.resources.getQuantityString(R.plurals.notification_peers_connected_msg, peerCount, peerCount)
@@ -86,7 +88,7 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
                     contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_impediment, impedimentsString)
                 }
             }
-            setStyle(Notification.BigTextStyle().bigText(contentText))
+            setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
             setContentText(contentText)
 
             setContentIntent(PendingIntent.getActivity(spvModuleApplication, 0,
