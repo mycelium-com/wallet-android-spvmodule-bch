@@ -17,9 +17,12 @@
 
 package com.mycelium.spvmodule
 
-import android.app.IntentService
-import android.app.NotificationManager
+import android.app.*
 import android.content.*
+import android.content.Context
+import android.graphics.Color
+import android.os.Build
+import android.support.v4.app.NotificationCompat
 import android.util.Log
 import org.bitcoinj.core.*
 import org.bitcoinj.core.Context.propagate
@@ -33,6 +36,26 @@ class SpvService : IntentService("SpvService") {
     private var serviceCreatedAtMillis = System.currentTimeMillis()
     private var accountIndex: Int = -1
     private var unrelatedAccountGuid: String = ""
+
+    override fun onCreate() {
+        super.onCreate()
+        if (Build.VERSION.SDK_INT >= 26) {
+            val service = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val CHANNEL_ID = "spv service"
+            val channel = NotificationChannel(CHANNEL_ID, "SPV Service",
+                    NotificationManager.IMPORTANCE_DEFAULT)
+
+            service.createNotificationChannel(channel)
+
+            val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+                    .setSmallIcon(com.mycelium.spvmodule.R.drawable.ic_launcher)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                    .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                    .build()
+
+            startForeground(3, notification)
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         intentsQueue.offer(intent)

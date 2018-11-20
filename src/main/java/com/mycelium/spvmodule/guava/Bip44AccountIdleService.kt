@@ -1,14 +1,18 @@
 package com.mycelium.spvmodule.guava
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
+import android.os.Build
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.support.v4.app.NotificationCompat
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
@@ -107,6 +111,24 @@ class Bip44AccountIdleService : Service() {
             initializingMonitor.notifyAll()
         }
         return START_REDELIVER_INTENT
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        if (Build.VERSION.SDK_INT >= 26) {
+            val CHANNEL_ID = "idle service"
+            val channel = NotificationChannel(CHANNEL_ID, "idle service", NotificationManager.IMPORTANCE_DEFAULT)
+
+            (getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).createNotificationChannel(channel)
+
+            val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+                    .setSmallIcon(R.drawable.ic_launcher)
+                    .setContentTitle("SPV module sync service")
+                    .setContentText("This service syncs accounts with the network.")
+                    .build()
+
+            startForeground(7, notification)
+        }
     }
 
     override fun onDestroy() {

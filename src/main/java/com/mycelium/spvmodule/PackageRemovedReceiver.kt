@@ -3,6 +3,7 @@ package com.mycelium.spvmodule
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 
 class PackageRemovedReceiver : BroadcastReceiver() {
@@ -20,6 +21,18 @@ class PackageRemovedReceiver : BroadcastReceiver() {
                     Intent.ACTION_PACKAGE_REPLACED -> Runtime.getRuntime().exit(0)
                 }
             }
+        }
+    }
+
+    companion object {
+        fun register(context: Context) {
+            val filter = IntentFilter().apply {
+                addAction(Intent.ACTION_PACKAGE_ADDED)
+                addAction(Intent.ACTION_PACKAGE_REPLACED)
+                addAction(Intent.ACTION_PACKAGE_REMOVED)
+                addDataScheme("package")
+            }
+            context.registerReceiver(PackageRemovedReceiver(), filter)
         }
     }
 }

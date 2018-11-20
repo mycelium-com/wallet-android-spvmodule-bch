@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.StrictMode
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
@@ -34,6 +35,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
 
     override fun onMessage(callingPackageName: String, intent: Intent) = spvMessageReceiver.onMessage(callingPackageName, intent)
 
+    override fun getIcon() = spvMessageReceiver.getIcon()
+
     override fun attachBaseContext(base: Context?) {
         INSTANCE = if (INSTANCE != null && INSTANCE !== this) {
             throw Error("Application was instantiated more than once?")
@@ -57,6 +60,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Threading.throwOnLockCycles()
         enableStrictMode()
         propagate(Constants.CONTEXT)
+        PackageRemovedReceiver.register(this)
 
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
         super.onCreate()
@@ -82,7 +86,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 SpvService::class.java)
 
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
-        startService(serviceIntent)
+        if (Build.VERSION.SDK_INT >= 26) {
+            startForegroundService(serviceIntent)
+        } else {
+            startService(serviceIntent)
+        }
     }
 
     fun stopBlockchainService() {
@@ -147,7 +155,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 serviceIntent.putExtra(IntentContract.RESET_BLOCKCHAIN_STATE, true)
             }
             Log.d(LOG_TAG, "restartBip44AccountIdleService, startAsync")
-            startService(serviceIntent)
+            if (Build.VERSION.SDK_INT >= 26) {
+                startForegroundService(serviceIntent)
+            } else {
+                startService(serviceIntent)
+            }
             Log.d(LOG_TAG, "restartBip44AccountIdleService, DONE")
         }
     }
