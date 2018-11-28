@@ -66,6 +66,31 @@ public class DisplayPreferenceDialogHandler implements PreferenceManager.OnDispl
                     .setView(view)
                     .create();
             alertDialog.show();
+        } else if (preference instanceof EditTextPreference) {
+            final EditTextPreference editTextPreference = (EditTextPreference) preference;
+            View view = LayoutInflater.from(context).inflate(R.layout.preference_trusted_peer, null);
+            final EditText text = (EditText) view.findViewById(R.id.trustedPeerText);
+            TextView title = view.findViewById(R.id.title);
+            title.setText(editTextPreference.getDialogTitle());
+            view.findViewById(R.id.buttonCancel).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    alertDialog.dismiss();
+                }
+            });
+
+            view.findViewById(R.id.buttonok).setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String result = text.getText().toString();
+                    editTextPreference.setText(result);
+                    alertDialog.dismiss();
+                }
+            });
+            alertDialog = new AlertDialog.Builder(context, theme)
+                    .setView(view)
+                    .create();
+            alertDialog.show();
         } else {
             throw new IllegalArgumentException("Tried to display dialog for unknown " +
                     "preference type. Did you forget to override onDisplayPreferenceDialog()?");
