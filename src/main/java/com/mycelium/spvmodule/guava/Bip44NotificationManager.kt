@@ -1,16 +1,17 @@
 package com.mycelium.spvmodule.guava
 
 import android.app.Notification
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
+import android.os.Build
+import android.support.v4.app.NotificationCompat
 import android.support.v4.content.LocalBroadcastManager
-import android.text.format.DateUtils
 import com.mycelium.spvmodule.*
 import java.util.*
+import java.util.concurrent.TimeUnit
+import kotlin.concurrent.timerTask
 
 class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44AccountIdleService?) {
     private val spvModuleApplication = SpvModuleApplication.getApplication()
@@ -23,6 +24,7 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
     private var notification: Notification? = null
 
     private val localBroadcastManager = LocalBroadcastManager.getInstance(spvModuleApplication)
+    private var changedTask: TimerTask? = null
 
     init {
         localBroadcastManager.registerReceiver(chainStateBroadcastReceiver, IntentFilter(SpvService.ACTION_BLOCKCHAIN_STATE))
@@ -38,11 +40,23 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
         localBroadcastManager.unregisterReceiver(peerCountBroadcastReceiver)
     }
 
+    // prevent notification "updates" that don't update anything
     private var oldNotificationBasics = ""
+    // prevent notification updates faster than NOTIFICATION_THROTTLE_MS
+    private val NOTIFICATION_THROTTLE_MS = TimeUnit.SECONDS.toMillis(20)
     private fun changed() {
+        val now = System.currentTimeMillis()
+        if (changedTask?.scheduledExecutionTime() ?: 0 > now) {
+            // will execute changeThrottled in the future anyway
+            return
+        }
+        changedTask  = timerTask { changedThrottled() }
+        Timer().schedule(changedTask, NOTIFICATION_THROTTLE_MS)
+    }
+    private fun changedThrottled() {
         val connectivityNotificationEnabled = configuration.connectivityNotificationEnabled
 
-        //We need to check fo 100 to prevent not partial sync on first run.
+        //We need to check for 100 to prevent not partial sync on first run.
         if (Bip44DownloadProgressTracker.getSyncProgress() == 100F) {
             this.bip44IdleServiceInstance?.stopForeground(false)
             if (!connectivityNotificationEnabled) {
@@ -50,7 +64,6 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
                 return
             }
         }
-
         val downloadPercentDone = if (blockchainState != null) {
             blockchainState!!.chainDownloadPercentDone
         } else {
@@ -67,7 +80,17 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
     }
 
     private fun buildNotification(): Notification? {
-        return Notification.Builder(spvModuleApplication).apply {
+        val CHANNEL_ID = "idle service"
+
+        if (Build.VERSION.SDK_INT >= 26) {
+            val service = bip44IdleServiceInstance?.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val channel = NotificationChannel(CHANNEL_ID, "Message Receiver",
+                    NotificationManager.IMPORTANCE_LOW)
+            channel.enableVibration(false)
+
+            service.createNotificationChannel(channel)
+        }
+        return NotificationCompat.Builder(spvModuleApplication, CHANNEL_ID).apply {
             setSmallIcon(R.drawable.stat_sys_peers, if (peerCount > 4) 4 else peerCount)
             setContentTitle(spvModuleApplication.getString(R.string.app_name))
             var contentText = spvModuleApplication.resources.getQuantityString(R.plurals.notification_peers_connected_msg, peerCount, peerCount)
@@ -88,7 +111,7 @@ class Bip44NotificationManager(private val bip44IdleServiceInstance: Bip44Accoun
                     contentText += " " + spvModuleApplication.getString(R.string.notification_chain_status_impediment, impedimentsString)
                 }
             }
-            setStyle(Notification.BigTextStyle().bigText(contentText))
+            setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
             setContentText(contentText)
 
             setContentIntent(PendingIntent.getActivity(spvModuleApplication, 0,

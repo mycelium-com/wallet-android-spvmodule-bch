@@ -84,7 +84,7 @@ interface Constants {
 
         val MEMORY_CLASS_LOWEND = 48
 
-        val NOTIFICATION_ID_CONNECTED = 3
+        val NOTIFICATION_ID_CONNECTED = 2133
         val NOTIFICATION_ID_COINS_RECEIVED = 1
         val NOTIFICATION_ID_INACTIVITY = 2
 

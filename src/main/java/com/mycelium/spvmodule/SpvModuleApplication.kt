@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.StrictMode
 import android.preference.PreferenceManager
 import android.support.multidex.MultiDexApplication
@@ -20,6 +21,7 @@ import org.bitcoinj.crypto.LinuxSecureRandom
 import org.bitcoinj.utils.Threading
 import org.bitcoinj.wallet.SendRequest
 import org.bitcoinj.wallet.Wallet
+import java.lang.IllegalStateException
 
 class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     var configuration: Configuration? = null
@@ -33,6 +35,8 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
     lateinit var blockStoreController : BlockStoreController
 
     override fun onMessage(callingPackageName: String, intent: Intent) = spvMessageReceiver.onMessage(callingPackageName, intent)
+
+    override fun getIcon() = spvMessageReceiver.getIcon()
 
     override fun attachBaseContext(base: Context?) {
         INSTANCE = if (INSTANCE != null && INSTANCE !== this) {
@@ -57,6 +61,7 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
         Threading.throwOnLockCycles()
         enableStrictMode()
         propagate(Constants.CONTEXT)
+        PackageRemovedReceiver.register(this)
 
         Log.i(LOG_TAG, "=== starting app using configuration: ${if (BuildConfig.IS_TESTNET) "test" else "prod"}, ${Constants.NETWORK_PARAMETERS.id}")
         super.onCreate()
@@ -82,7 +87,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 SpvService::class.java)
 
         val serviceIntent = Intent(this, Bip44AccountIdleService::class.java)
-        startService(serviceIntent)
+        try {
+            startService(serviceIntent)
+        } catch (e: IllegalStateException) {
+            Log.e(LOG_TAG, "", e) // often throw after update mbw application with exception "process is bad"
+        }
     }
 
     fun stopBlockchainService() {
@@ -147,7 +156,11 @@ class SpvModuleApplication : MultiDexApplication(), ModuleMessageReceiver {
                 serviceIntent.putExtra(IntentContract.RESET_BLOCKCHAIN_STATE, true)
             }
             Log.d(LOG_TAG, "restartBip44AccountIdleService, startAsync")
-            startService(serviceIntent)
+            try {
+                startService(serviceIntent)
+            } catch (e: IllegalStateException) {
+                Log.e(LOG_TAG, "", e) // often throw after update mbw application with exception "process is bad"
+            }
             Log.d(LOG_TAG, "restartBip44AccountIdleService, DONE")
         }
     }

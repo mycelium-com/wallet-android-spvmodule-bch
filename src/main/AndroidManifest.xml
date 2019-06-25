@@ -10,6 +10,7 @@
 
     <uses-permission android:name="com.mycelium.wallet.BROADCAST_SIGNED_TRANSACTION"/>
     <uses-permission android:name="com.mycelium.wallet.RECEIVE_ADDRESSES"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <application
         android:name=".SpvModuleApplication"
         android:allowBackup="false"
@@ -35,13 +36,5 @@
             android:name=".providers.TransactionContentProvider"
             android:exported="true"
             android:authorities="${applicationId}.providers.TransactionContentProvider" />
-
-        <receiver android:name=".PackageRemovedReceiver">
-            <intent-filter>
-                <action android:name="android.intent.action.PACKAGE_REPLACED"/>
-                <action android:name="android.intent.action.PACKAGE_REMOVED"/>
-                <data android:scheme="package"/>
-            </intent-filter>
-        </receiver>
     </application>
 </manifest>

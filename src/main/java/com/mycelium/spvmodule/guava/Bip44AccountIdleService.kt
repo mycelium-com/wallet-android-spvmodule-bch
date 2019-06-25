@@ -1,14 +1,18 @@
 package com.mycelium.spvmodule.guava
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
+import android.os.Build
 import android.os.IBinder
 import android.os.Looper
 import android.os.PowerManager
+import android.support.v4.app.NotificationCompat
 import android.util.Log
 import android.widget.Toast
 import com.google.common.base.Optional
@@ -99,7 +103,6 @@ class Bip44AccountIdleService : Service() {
         initializeWalletsAccounts()
         initializePeergroup()
         checkImpediments()
-        notificationManager = Bip44NotificationManager(this)
         runOneIteration()
 
         synchronized (initializingMonitor) {
@@ -107,6 +110,11 @@ class Bip44AccountIdleService : Service() {
             initializingMonitor.notifyAll()
         }
         return START_REDELIVER_INTENT
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        notificationManager = Bip44NotificationManager(this)
     }
 
     override fun onDestroy() {

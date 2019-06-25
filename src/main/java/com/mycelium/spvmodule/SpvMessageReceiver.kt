@@ -2,13 +2,17 @@ package com.mycelium.spvmodule
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 import com.mycelium.modularizationtools.ModuleMessageReceiver
 import com.mycelium.spvmodule.SpvModuleApplication.Companion.getMbwModulePackage
 import org.bitcoinj.utils.ContextPropagatingThreadFactory
+import java.lang.IllegalStateException
 import java.util.concurrent.Executors
 
 class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
+    override fun getIcon() = R.drawable.ic_launcher
+
     @Synchronized
     override fun onMessage(callingPackageName: String, intent: Intent) {
         //Wait until the application is initialized
@@ -64,7 +68,11 @@ class SpvMessageReceiver(private val context: Context) : ModuleMessageReceiver {
                 ContextPropagatingThreadFactory("SpvMessageReceiverThreadFactory"))
         executorService.execute {
             Log.d(LOG_TAG, "Starting Service $clone with action ${clone.action}")
-            context.startService(clone)
+            try {
+                context.startService(clone)
+            }  catch (e: IllegalStateException) {
+                Log.e(LOG_TAG, "", e) // often throw after update mbw application with exception "process is bad"
+            }
         }
     }
 
