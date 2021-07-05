@@ -92,10 +92,10 @@ android {
             signingConfig signingConfigs.release
             buildConfigField 'boolean', 'IS_TESTNET', 'false'
             buildConfigField 'String[]', 'TRUSTED_FULL_NODES', '{' +
-                    '"tcp://bitcoin-abc-1.mycelium.com:8444",' +
-                    '"tcp://bitcoin-abc-2.mycelium.com:8444",' +
-                    '"tcp://bitcoin-abc-3.mycelium.com:8444",' +
-                    '"tcp://bitcoin-abc-4.mycelium.com:8444"' +
+                    '"tcp://bitcoin-abc-1.mycelium.com:8443",' +
+                    '"tcp://bitcoin-abc-2.mycelium.com:8443",' +
+                    '"tcp://bitcoin-abc-3.mycelium.com:8443",' +
+                    '"tcp://bitcoin-abc-4.mycelium.com:8443"' +
                     '}'
             ext {
                 appIdWallet = [release: "com.mycelium.wallet",
@@ -108,10 +108,10 @@ android {
             signingConfig signingConfigs.btctestnet
             buildConfigField 'boolean', 'IS_TESTNET', 'true'
             buildConfigField 'String[]', 'TRUSTED_FULL_NODES', '{' +
-                    '"tcp://bitcoin-abc-1.mycelium.com:18444",' +
-                    '"tcp://bitcoin-abc-2.mycelium.com:18444",' +
-                    '"tcp://bitcoin-abc-3.mycelium.com:18444",' +
-                    '"tcp://bitcoin-abc-4.mycelium.com:18444"' +
+                    '"tcp://bitcoin-abc-1.mycelium.com:18443",' +
+                    '"tcp://bitcoin-abc-2.mycelium.com:18443",' +
+                    '"tcp://bitcoin-abc-3.mycelium.com:18443",' +
+                    '"tcp://bitcoin-abc-4.mycelium.com:18443"' +
                     '}'
             ext {
                 appIdWallet = [release: "com.mycelium.testnetwallet",
